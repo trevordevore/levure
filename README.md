@@ -1,4 +1,4 @@
-# levure
+# levure 
 Application development framework for LiveCode
 
 ## Design
@@ -40,7 +40,7 @@ When the application is loaded files are loaded in the following order:
 
 ## Plugins
 
-How are plugins installed?
+Todo: How are plugins installed?
 
 - preference
 - window manager
