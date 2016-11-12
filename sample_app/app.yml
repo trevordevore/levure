@@ -1,0 +1,13 @@
+multiple instances: false
+relaunch in background: false
+file extensions:
+  Text File: txt
+file extension groups:
+  Text Files:
+    1:
+      name: All Supported Files
+      extensions: txt
+components:
+  1:
+    name: MyApp
+    filename: myapp/myapp.livecode
