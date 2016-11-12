@@ -6,13 +6,13 @@ local sRootFolder
 local sAppA
 local sRuntimePropertiesA
 
-
 command InitializeFramework pRootFolder
   local tError, tStacksInApp
   
   put false into sRuntimePropertiesA["application has loaded"]
   
   if pRootFolder is not empty then
+    if the last char of pRootFolder is "/" then delete the last char of pRootFolder
     put pRootFolder into sRootFolder
   else
     put myFolder() into sRootFolder
