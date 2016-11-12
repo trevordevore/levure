@@ -98,7 +98,7 @@ copy files:
 
 ## standalone.livecode
 
-This stack is used to build the standalone for the supported platforms. Its only function is to load the levure.livecode stack and dispatch the `RunApplication` message to it. The stack name in memory is `levureStandaloneLauncher`.
+This stack is used to build the standalone for the supported platforms. Its primary function is to load the levure.livecode stack and dispatch the `RunApplication` message to it. It will also process the `relaunch` message and call the helper functions that extract command line parameters from that. The stack name in memory is `levureStandaloneLauncher`.
 
 ## app.livecode
 
