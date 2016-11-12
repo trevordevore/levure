@@ -17,6 +17,8 @@ command InitializeFramework
   end if
   
   if tError is empty then
+    loadCommandLineArguments
+    
     loadAppStack
     put the result into tError
   end if
@@ -32,6 +34,23 @@ command InitializeFramework
   
   return tError for error
 end InitializeFramework
+
+
+private command loadCommandLineArguments
+  if the platform is not "macos" then
+    local tValue, tParams, i
+    
+    set the itemDelimiter to "."
+    repeat with i = 1 to ($# - 1)
+      put value("$" & i) into tValue
+      put tValue & cr after tParams
+    end repeat
+    
+    if tParams is not empty then
+      appProcessCommandLineParameters tParams
+    end if
+  end if
+end loadCommandLineArguments
 
 
 command RunApplication
