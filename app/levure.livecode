@@ -7,39 +7,39 @@ local sAppA
 local sRuntimePropertiesA
 
 command InitializeFramework pRootFolder
-  local tError, tStacksInApp
-  
-  put false into sRuntimePropertiesA["application has loaded"]
-  
-  if pRootFolder is not empty then
-    if the last char of pRootFolder is "/" then delete the last char of pRootFolder
-    put pRootFolder into sRootFolder
-  else
-    put myFolder() into sRootFolder
-  end if
-  
-  if tError is empty then
-    loadAppConfig
-    put the result into tError
-  end if
-  
-  if tError is empty then
-    loadCommandLineArguments
-    
-    loadAppStack
-    put the result into tError
-  end if
-  
-  if tError is empty then
-    loadHelpers tStacksInApp
-    put the result into tError
-  end if
-  
-  if tError is empty then
-    set the stackFiles of stack "app" to tStacksInApp
-  end if
-  
-  return tError for error
+   local tError, tStacksInApp
+   
+   put false into sRuntimePropertiesA["application has loaded"]
+   
+   if pRootFolder is not empty then
+      if the last char of pRootFolder is "/" then delete the last char of pRootFolder
+      put pRootFolder into sRootFolder
+   else
+      put myFolder() into sRootFolder
+   end if
+   
+   if tError is empty then
+      loadAppConfig
+      put the result into tError
+   end if
+   
+   if tError is empty then
+      loadCommandLineArguments
+      
+      loadAppStack
+      put the result into tError
+   end if
+   
+   if tError is empty then
+      loadHelpers tStacksInApp
+      put the result into tError
+   end if
+   
+   if tError is empty then
+      set the stackFiles of stack "app" to tStacksInApp
+   end if
+   
+   return tError for error
 end InitializeFramework
 
 
@@ -61,10 +61,10 @@ command RunApplication
       ## user can quit app if they want
       if lockMessages is true then unlock messages
       unloadApp
-
+      
       ## Only quit if not in development. This allows developer to troubleshoot.
       if the environment is not "development" then
-       quit
+        quit
       end if
     else
       ## Slight delay here so that appleEvents can be sent before
@@ -96,18 +96,18 @@ end loadCommandLineArguments
 
 
 command levurefinishLoadingApplication
-   local msgsAreLocked
-   
-   dispatch "OpenApplication" to stack "app"
-   put true into sRuntimePropertiesA["application has loaded"]
-   
-   # Don't fire off any messages when closing the app launcher.
-   if there is a stack "levureStandaloneLauncher" then
-      put the lockMessages into msgsAreLocked
-      lock messages
-      close stack "levureStandaloneLauncher"
-      set the lockMessages to msgsAreLocked
-   end if
+  local msgsAreLocked
+  
+  dispatch "OpenApplication" to stack "app"
+  put true into sRuntimePropertiesA["application has loaded"]
+  
+  # Don't fire off any messages when closing the app launcher.
+  if there is a stack "levureStandaloneLauncher" then
+    put the lockMessages into msgsAreLocked
+    lock messages
+    close stack "levureStandaloneLauncher"
+    set the lockMessages to msgsAreLocked
+  end if
 end levurefinishLoadingApplication
 
 
@@ -184,7 +184,7 @@ private command loadAppConfig
           put tFile into sAppA["libraries"][i]["filename"]
         end repeat
       end if
-    
+      
       if the number of elements of sAppA["backscripts"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["backscripts"]
           put sRootFolder & "/backscripts/" before sAppA["backscripts"][i]["filename"]
@@ -195,7 +195,7 @@ private command loadAppConfig
           put tFile into sAppA["backscripts"][i]["backscripts"]
         end repeat
       end if
-    
+      
       if the number of elements of sAppA["frontscripts"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["frontscripts"]
           put sRootFolder & "/frontscripts/" before sAppA["frontscripts"][i]["filename"]
@@ -210,7 +210,7 @@ private command loadAppConfig
   end if
   
   if sAppA is not an array then
-     put "invalid app.yml file" into tError
+    put "invalid app.yml file" into tError
   end if
   
   return tError for error
@@ -237,7 +237,7 @@ private command loadAppAssets @xStacks
     
     repeat with i = 1 to the number of elements of sAppA["components"]
       put sAppA["components"][i]["name"] & "," & \
-        sRootFolder & "/components/" & prepForUseInPath(sAppA["components"][i]["filename"]) & cr after xStacks
+            sRootFolder & "/components/" & prepForUseInPath(sAppA["components"][i]["filename"]) & cr after xStacks
     end repeat
     if the number of elements of sAppA["components"] > 0 then
       delete the last char of xStacks
@@ -256,11 +256,11 @@ private command loadMessagePathAssets pArrayA
   repeat with i = 1 to the number of elements of pArrayA["libraries"]
     start using stack pArrayA["libraries"][i]["filename"]
   end repeat
-
+  
   repeat with i = 1 to the number of elements of pArrayA["backscripts"]
     insert script of stack pArrayA["backscripts"][i]["filename"] into back
   end repeat
-
+  
   repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
     insert script of stack pArrayA["frontscripts"][i]["filename"] into front
   end repeat
@@ -285,7 +285,7 @@ private command loadHelpers @xStacks
       
       repeat with i = 1 to the number of elements of tConfigA["stacks"]
         put tConfigA["stacks"][i]["name"] & "," & \
-          tHelper & "/" & prepForUseInPath(tConfigA["stacks"][i]["filename"]) & cr after xStacks
+              tHelper & "/" & prepForUseInPath(tConfigA["stacks"][i]["filename"]) & cr after xStacks
       end repeat
       if the number of elements of tConfigA["stacks"] > 0 then
         delete the last char of xStacks
@@ -327,7 +327,7 @@ private command loadExternals pFilenames
     
     /*dispatch "PreloadExternals" to stack "app" with pFilenames
     if it is "handled" then
-       put the result into pFilenames
+      put the result into pFilenames
     end if*/
     
     reset the templatestack
@@ -359,9 +359,9 @@ private command unloadExternals --pPurgeFromMemory
   if there is a stack kApplicationExternals then
     stop using stack kApplicationExternals
     --if pPurgeFromMemory then
-      delete stack kApplicationExternals
+    delete stack kApplicationExternals
     --else
-      --close stack kApplicationExternals
+    --close stack kApplicationExternals
     --end if
   end if
 end unloadExternals
@@ -477,30 +477,30 @@ Convert a LiveCode array to yaml format
 @pIndentLevel : initially empty, recursion sets this
 */
 private function arrayToYaml pArray, pIndentLevel
-   local tYaml
-   local tIndentLevel
-   
-   put pIndentLevel into tIndentLevel
-   if tIndentLevel is empty then
-      put kIndent into tIndentLevel
-      put "ArrayName :" & cr into tYaml
-   end if
-   if pArray is an array then
-      repeat for each key tKey in pArray
-         if pArray[tKey] is an array then
-            put indent(tIndentLevel) & tKey && ":" && pArray[tKey] & cr after tYaml
-            add kIndent to tIndentLevel
-            -- recurse to work through multidimensional arrays
-            put arrayToYaml(pArray[tKey], tIndentLevel) after tYaml
-            subtract kIndent from tIndentLevel
-         else
-            put indent(tIndentLevel) & tKey && ":" && pArray[tKey] & cr after tYaml
-         end if
-      end repeat
-   else
-      throw "not an array"
-   end if
-   return tYaml
+  local tYaml
+  local tIndentLevel
+  
+  put pIndentLevel into tIndentLevel
+  if tIndentLevel is empty then
+    put kIndent into tIndentLevel
+    put "ArrayName :" & cr into tYaml
+  end if
+  if pArray is an array then
+    repeat for each key tKey in pArray
+      if pArray[tKey] is an array then
+        put indent(tIndentLevel) & tKey && ":" && pArray[tKey] & cr after tYaml
+        add kIndent to tIndentLevel
+        -- recurse to work through multidimensional arrays
+        put arrayToYaml(pArray[tKey], tIndentLevel) after tYaml
+        subtract kIndent from tIndentLevel
+      else
+        put indent(tIndentLevel) & tKey && ":" && pArray[tKey] & cr after tYaml
+      end if
+    end repeat
+  else
+    throw "not an array"
+  end if
+  return tYaml
 end arrayToYaml
 
 /*
@@ -509,13 +509,13 @@ indent
 Used internally by arrayToYaml
 */
 private function indent pIndentLevel
-   local tIndentLevel
-   
-   -- return the proper number of spaces for indentation
-   repeat pIndentLevel times
-      put space after tIndentLevel
-   end repeat
-   return tIndentLevel
+  local tIndentLevel
+  
+  -- return the proper number of spaces for indentation
+  repeat pIndentLevel times
+    put space after tIndentLevel
+  end repeat
+  return tIndentLevel
 end indent
 
 /*
@@ -526,15 +526,15 @@ NOTE: changes the input line in situ to remove the indentation
 Used internally by yamlToArray
 */
 private function indentationLevel @pLine
-   local tIndentationLevel
-   local tKey, tValue
-   
-   put 0 into tIndentationLevel
-   repeat while char 1 of pLine is space
-      add 1 to tIndentationLevel
-      delete char 1 of pLine
-   end repeat
-   return tIndentationLevel
+  local tIndentationLevel
+  local tKey, tValue
+  
+  put 0 into tIndentationLevel
+  repeat while char 1 of pLine is space
+    add 1 to tIndentationLevel
+    delete char 1 of pLine
+  end repeat
+  return tIndentationLevel
 end indentationLevel
 
 /*
@@ -543,78 +543,78 @@ yamlToArray
 Convert yaml format text to a LiveCode array
 */
 private function yamlToArray pYaml
-   local tArray
-   local tIndentation, tPrevIndent
-   local tWorkingLine
-   local tYamlHeading
-   local tKey, tValue
-   
-   repeat for each line tLine in pYaml
-      put tLine into tWorkingLine
-      set the itemdelimiter to ":"
-      put item 1 of tWorkingLine into tKey
-      repeat while char -1 of tKey is in ": "
-         delete char -1 of tKey
-      end repeat
-      put word 1 to -1 of item 2 of tWorkingLine into tValue
-      put indentationLevel(tKey) into tIndentation
-      set the itemdelimiter to ","
-      if tPrevIndent is empty then
-         -- first time through
-         put tIndentation into tPrevIndent
-         put tKey into tYamlHeading
-         put tValue into tArray[tYamlHeading]
-      else
-         switch
-            case tIndentation < tPrevIndent
-               -- remove the last array index
-               repeat with i = tPrevIndent down to tIndentation+1
-                  RemoveLastIndexFrom tYamlHeading
-               end repeat
-               put tIndentation into tPrevIndent
-               if tYamlHeading is empty then
-                  do "put tValue into tArray[" & quote & tKey & quote & "]"
-               else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-               end if
-               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
-               break
-            case tIndentation is tPrevIndent
-               RemoveLastIndexFrom tYamlHeading
-               if tYamlHeading is empty then
-                  do "put tValue into tArray" & "[" & quote & tKey & quote & "]"
-               else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-               end if
-               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
-               break
-            case tIndentation > tPrevIndent
-               -- add an array index
-               if tYamlHeading is empty then
-                  do "put tValue into tArray[" & quote & tKey & quote & "]"
-               else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-               end if
-               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
-               put tIndentation into tPrevIndent
-               break
-         end switch
-      end if
-   end repeat
-   return tArray
+  local tArray
+  local tIndentation, tPrevIndent
+  local tWorkingLine
+  local tYamlHeading
+  local tKey, tValue
+  
+  repeat for each line tLine in pYaml
+    put tLine into tWorkingLine
+    set the itemdelimiter to ":"
+    put item 1 of tWorkingLine into tKey
+    repeat while char -1 of tKey is in ": "
+      delete char -1 of tKey
+    end repeat
+    put word 1 to -1 of item 2 of tWorkingLine into tValue
+    put indentationLevel(tKey) into tIndentation
+    set the itemdelimiter to ","
+    if tPrevIndent is empty then
+      -- first time through
+      put tIndentation into tPrevIndent
+      put tKey into tYamlHeading
+      put tValue into tArray[tYamlHeading]
+    else
+      switch
+        case tIndentation < tPrevIndent
+          -- remove the last array index
+          repeat with i = tPrevIndent down to tIndentation+1
+            RemoveLastIndexFrom tYamlHeading
+          end repeat
+          put tIndentation into tPrevIndent
+          if tYamlHeading is empty then
+            do "put tValue into tArray[" & quote & tKey & quote & "]"
+          else
+            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
+          end if
+          put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
+          break
+        case tIndentation is tPrevIndent
+          RemoveLastIndexFrom tYamlHeading
+          if tYamlHeading is empty then
+            do "put tValue into tArray" & "[" & quote & tKey & quote & "]"
+          else
+            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
+          end if
+          put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
+          break
+        case tIndentation > tPrevIndent
+          -- add an array index
+          if tYamlHeading is empty then
+            do "put tValue into tArray[" & quote & tKey & quote & "]"
+          else
+            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
+          end if
+          put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
+          put tIndentation into tPrevIndent
+          break
+      end switch
+    end if
+  end repeat
+  return tArray
 end yamlToArray
 
 private command RemoveLastIndexFrom @pIndexString
-   set the itemdelimiter to comma
-   delete item -1 of pIndexString
+  set the itemdelimiter to comma
+  delete item -1 of pIndexString
 end RemoveLastIndexFrom
 
 private function yamlPathToArrayPath pYamlPath
-   local tArrayPath
-   
-   set the itemdelimiter to comma
-   repeat for each item tPath in pYamlPath
-      put "[" & quote & tPath & quote & "]" after tArrayPath
-   end repeat
-   return tArrayPath
+  local tArrayPath
+  
+  set the itemdelimiter to comma
+  repeat for each item tPath in pYamlPath
+    put "[" & quote & tPath & quote & "]" after tArrayPath
+  end repeat
+  return tArrayPath
 end yamlPathToArrayPath
