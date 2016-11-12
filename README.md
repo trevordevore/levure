@@ -7,7 +7,7 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 ## Try Out Sample Application
 
-1. Open the `app/levure.livecode` stack in LiveCode 8+.
+1. Open the `app/levure.livecodescript` stack in LiveCode 8+.
 2. `dispatch "InitializeFramework" to stack "levureLibrary" with "/Users/USERNAME/development/levure/sample_app"`
 3. `dispatch "RunApplication" to stack "levureLibrary"`
 4. The `MyApp` stack should open up and display some information in a field.
@@ -19,41 +19,41 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 Application stack files are organized using folders. Any UI stacks go in the`components` folder. Each stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
 
 - app.yml
-- app.livecode
+- app.livecodescript
 - standalone.livecode
-- levure.livecode
+- levure.livecodescript
 - components/
   - preferences/
     - preferences.livecode
     - behaviors/
-      - card.livecode
-      - stack.livecode
+      - card.livecodescript
+      - stack.livecodescript
   - document window/
     - document.livecode
     - behaviors/
-      - card.livecode
-      - stack.livecode
-      - tools.livecode
+      - card.livecodescript
+      - stack.livecodescript
+      - tools.livecodescript
 - libraries/
-  - libcontrols.livecode
-  - libdatahelpers.livecode
+  - libcontrols.livecodescript
+  - libdatahelpers.livecodescript
 - backscripts/
-  - mybackscript.livecode
+  - mybackscript.livecodescript
 - frontscripts/
-  - myfrontscripts.livecode
+  - myfrontscripts.livecodescript
 - helpers/
   - miscellaneous/
     - helper.yml
     - ui.livecode
-    - frontscript.livecode
-    - backscript.livecode
-    - library.livecode
+    - frontscript.livecodescript
+    - backscript.livecodescript
+    - library.livecodescript
   - logging/
     - helper.yml
-    - library.livecode
+    - library.livecodescript
   - preferences/
     - helper.yml
-    - library.livecode
+    - library.livecodescript
     - preference.bundle
   - my external
     - helper.yml
@@ -111,7 +111,7 @@ copy files:
 
 This stack is used to build the standalone for the supported platforms. Its primary function is to load the `levure.livecode` stack and dispatch the `RunApplication` message to it. It will also process the `relaunch` message and call the helper functions that extract command line parameters from that. The stack name in memory is `levureStandaloneLauncher`.
 
-## app.livecode
+## app.livecodescript
 
 This stack has the following handlers for handling framework messages:
 
@@ -122,11 +122,11 @@ This stack has the following handlers for handling framework messages:
   
 ## Loading
 
-The framework logic is located in the `levure.livecode` file. `InitializeFramework` must be called first. Then the `RunApplication` message is sent. This is what is happening:
+The framework logic is located in the `levure.livecodescript` file. `InitializeFramework` must be called first. Then the `RunApplication` message is sent. This is what is happening:
 
 1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file. If `app.yml` is not found then app cannot be loaded.
 2. Process any command line arguments using the `app_files_and_urls` helper.
-3. Load `app.livecode`
+3. Load `app.livecodescript`
 4. Load helpers (Load externals, libraries, backscripts, and frontscripts. Add ui stacks to list of stackFiles to be assigned to `app` stack). `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
 8. Add list of stacks defined in `components` key in config file to stackFiles list.
 5. Load app libraries and start using.
