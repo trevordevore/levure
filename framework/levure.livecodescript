@@ -218,14 +218,15 @@ end loadAppConfig
 
 
 private command loadAppStack
-  # app stack will already be in memory if this is a packaged app
-  if there is not a stack "app" then
-    if there is not a stack (sRootFolder & "/app.livecode") then
-      return "app stack not found" for error
-    end if
-  end if
-  
-  return empty for value
+   # app stack will already be in memory if this is a packaged app
+   if there is not a stack "app" then
+      if there is not a stack (sRootFolder & "/app.livecodescript") \
+            AND there is not a stack (sRootFolder & "/app.livecode") then
+         return "app stack not found" for error
+      end if
+   end if
+   
+   return empty for value
 end loadAppStack
 
 
