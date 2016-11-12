@@ -2,14 +2,21 @@ script "levureLibrary"
 
 constant kApplicationExternals = "levureAppExternals"
 
+local sRootFolder
 local sAppA
 local sRuntimePropertiesA
 
 
-command InitializeFramework
+command InitializeFramework pRootFolder
   local tError, tStacksInApp
   
   put false into sRuntimePropertiesA["application has loaded"]
+  
+  if pRootFolder is not empty then
+    put pRootFolder into sRootFolder
+  else
+    put myFolder() into sRootFolder
+  end if
   
   if tError is empty then
     loadAppConfig
@@ -34,23 +41,6 @@ command InitializeFramework
   
   return tError for error
 end InitializeFramework
-
-
-private command loadCommandLineArguments
-  if the platform is not "macos" then
-    local tValue, tParams, i
-    
-    set the itemDelimiter to "."
-    repeat with i = 1 to ($# - 1)
-      put value("$" & i) into tValue
-      put tValue & cr after tParams
-    end repeat
-    
-    if tParams is not empty then
-      appProcessCommandLineParameters tParams
-    end if
-  end if
-end loadCommandLineArguments
 
 
 command RunApplication
@@ -86,6 +76,23 @@ command RunApplication
   
   -- tError
 end RunApplication
+
+
+private command loadCommandLineArguments
+  if the platform is not "macos" then
+    local tValue, tParams, i
+    
+    set the itemDelimiter to "."
+    repeat with i = 1 to ($# - 1)
+      put value("$" & i) into tValue
+      put tValue & cr after tParams
+    end repeat
+    
+    if tParams is not empty then
+      appProcessCommandLineParameters tParams
+    end if
+  end if
+end loadCommandLineArguments
 
 
 command levurefinishLoadingApplication
@@ -154,11 +161,9 @@ private command loadAppConfig
     
   else
     # Development
-    local tMyFolder, i
+    local i
     
-    put myFolder() into tMyFolder
-    
-    put yamlFileToArray(tMyFolder & "/app.yml") into sAppA
+    put yamlFileToArray(sRootFolder & "/app.yml") into sAppA
     put the result into tError
     
     if tError is empty then
@@ -169,10 +174,10 @@ private command loadAppConfig
     if tError is empty then
       if the number of elements of sAppA["libraries"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["libraries"]
-          put tMyFolder & "/libraries/" before sAppA["libraries"][i]["filename"]
+          put sRootFolder & "/libraries/" before sAppA["libraries"][i]["filename"]
         end repeat
       else
-        repeat for each line tFile in fileListing(tMyFolder & "/libraries")
+        repeat for each line tFile in fileListing(sRootFolder & "/libraries")
           add 1 to i
           put tFile into sAppA["libraries"][i]["filename"]
         end repeat
@@ -180,10 +185,10 @@ private command loadAppConfig
     
       if the number of elements of sAppA["backscripts"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["backscripts"]
-          put tMyFolder & "/backscripts/" before sAppA["backscripts"][i]["filename"]
+          put sRootFolder & "/backscripts/" before sAppA["backscripts"][i]["filename"]
         end repeat
       else
-        repeat for each line tFile in fileListing(tMyFolder & "/backscripts")
+        repeat for each line tFile in fileListing(sRootFolder & "/backscripts")
           add 1 to i
           put tFile into sAppA["backscripts"][i]["backscripts"]
         end repeat
@@ -191,10 +196,10 @@ private command loadAppConfig
     
       if the number of elements of sAppA["frontscripts"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["frontscripts"]
-          put tMyFolder & "/frontscripts/" before sAppA["frontscripts"][i]["filename"]
+          put sRootFolder & "/frontscripts/" before sAppA["frontscripts"][i]["filename"]
         end repeat
       else
-        repeat for each line tFile in fileListing(tMyFolder & "/frontscripts")
+        repeat for each line tFile in fileListing(sRootFolder & "/frontscripts")
           add 1 to i
           put tFile into sAppA["frontscripts"][i]["filename"]
         end repeat
@@ -209,7 +214,7 @@ end loadAppConfig
 private command loadAppStack
   # app stack will already be in memory if this is a packaged app
   if there is not a stack "app" then
-    if there is not a stack (myFolder() & "/app.livecode") then
+    if there is not a stack (sRootFolder & "/app.livecode") then
       return "app stack not found" for error
     end if
   end if
@@ -219,16 +224,14 @@ end loadAppStack
 
 
 private command loadAppAssets @xStacks
-  local tError, tRootFolder
-  
-  put myFolder() into tRootFolder
+  local tError
   
   if tError is empty then
     local i
     
     repeat with i = 1 to the number of elements of sAppA["components"]
       put sAppA["components"][i]["name"] & "," & \
-        tRootFolder & "/components/" & prepForUseInPath(sAppA["components"][i]["filename"]) & cr after xStacks
+        sRootFolder & "/components/" & prepForUseInPath(sAppA["components"][i]["filename"]) & cr after xStacks
     end repeat
     if the number of elements of sAppA["components"] > 0 then
       delete the last char of xStacks
@@ -265,7 +268,7 @@ private command loadHelpers @xStacks
   local tHelperFolders, tHelper
   local tConfigA
   
-  put folderListing(myFolder() & "/helpers") into tHelperFolders
+  put folderListing(sRootFolder & "/helpers") into tHelperFolders
   
   repeat for each line tHelper in tHelperFolders
     put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
