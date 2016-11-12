@@ -1,4 +1,4 @@
-script "appFilesAndURLsFrontscript"
+﻿script "appFilesAndURLsFrontscript"
 
 constant kFrameworkStackName = "levureFramework"
 constant kAppStackName = "app"
@@ -20,16 +20,16 @@ end appGetFilesToProcessOnOpen
 on appleEvent pClass, pID, pSender
   ## Don't let user execute random scripts
   if the environment is not "development" and pClass & pID is among the items of "miscDOSC,miscEVAL" then exit appleEvent
-
+  
   if pClass is "aevt" and pID is "odoc" then
     local tFiles
     
     request appleEvent data
     put it into tFiles
-
+    
     if tFiles is not "not found" then
-     put extractAppAssociatedFilesFromList(tFiles) into tFiles
-   
+      put extractAppAssociatedFilesFromList(tFiles) into tFiles
+      
       if tFiles is not empty then      
         if not hasAppLoaded() then
           if sFilesToProcessOnOpen is not empty then
@@ -90,17 +90,17 @@ command appProcessCommandLineParameters pParams
     
     put extractAppAssociatedFilesFromList(pParams) into tFiles
     if tFiles is not empty then
-       if not hasAppLoaded() then
-          if sFilesToProcessOnOpen is not empty then
-             put sFilesToProcessOnOpen into line (the number of lines of tFiles + 1) of tFiles
-          end if
-          put tFiles into sFilesToProcessOnOpen
-       else
-          dispatch "ProcessFiles" to stack kAppStackName with tFiles
-       end if
+      if not hasAppLoaded() then
+        if sFilesToProcessOnOpen is not empty then
+          put sFilesToProcessOnOpen into line (the number of lines of tFiles + 1) of tFiles
+        end if
+        put tFiles into sFilesToProcessOnOpen
+      else
+        dispatch "ProcessFiles" to stack kAppStackName with tFiles
+      end if
     end if
   end if
-
+  
   return empty
 end appProcessCommandLineParameters
 
@@ -109,10 +109,8 @@ function appSupportedFileExtensionsList pNames
   local tName, tExtensionsA, tExtensions
   
   put getFileExtensionsArray() into tExtensionsA
-
-  if pNames is not empty then
-    local tName
-    
+  
+  if pNames is not empty then      
     repeat for each item tName in pNames
       if tExtensionsA[tName] is not empty then
         put tExtensionsA[tName] & cr after tExtensions
@@ -126,7 +124,7 @@ function appSupportedFileExtensionsList pNames
   delete the last char of tExtensions
   replace comma with cr in tExtensions
   sort lines of tExtensions ascending
-   
+  
   return tExtensions
 end appSupportedFileExtensionsList
 
@@ -141,11 +139,11 @@ end appSupportedFileExtensionsList
 */
 function appFileDialogTypeFilterFromGroup pFileExtGroupName
   local tFileExtGroupsA, tGroupA
-  local tGroupA, tFilter
-
+  local tFilter
+  
   put getFileExtensionsGroupsArray() into tFileExtGroupsA
   put tFileExtGroupsA[pFileExtGroupName] into tGroupA
- 
+  
   if tGroupA is an array then
     local i
     local tFileTypes # not used
@@ -156,9 +154,9 @@ function appFileDialogTypeFilterFromGroup pFileExtGroupName
       end if
     end repeat
     delete the last char of tFilter
-   end if
-   
-   return tFilter
+  end if
+  
+  return tFilter
 end appFileDialogTypeFilterFromGroup
 
 
@@ -178,9 +176,9 @@ function appFileDialogTypeFilterFromExtension pExtensionName
   
   if pExtensionName[pExtensionName] is an array then
     put pExtensionName & "|" & pExtensionName[pExtensionName] & "|" & empty into tFilter
-   end if
-   
-   return tFilter
+  end if
+  
+  return tFilter
 end appFileDialogTypeFilterFromExtension
 
 
@@ -203,9 +201,9 @@ end appFileDialogTypeFilterFromExtension
 */
 function appFileExtensionGroupExtensions pGroupName
   local tExtGroupsA, tExtensions
-
+  
   put getFileExtensionsGroupsArray() into tExtGroupsA
-
+  
   if tExtGroupsA[pGroupName] is an array then
     local i
     
@@ -225,7 +223,7 @@ function appFileExtensionGroupExtensionsForCategory pGroupName, pCategoryName
   local tExtGroupsA, tExtensions
   
   put getFileExtensionsGroupsArray() into tExtGroupsA
-
+  
   if tExtGroupsA[pGroupName] is an array then
     local i
     
@@ -265,14 +263,14 @@ private function extractAppAssociatedFilesFromList pFiles
   local tExtensions, tSupportedFiles
   local tFile, tCorrectedFilepath
   local tFileName, tExtension, tLineNo
-
+  
   set the wholeMatches to true
-
+  
   put appSupportedFileExtensionsList(empty) into tExtensions
-
+  
   repeat for each line tFile in pFiles
     put _longFilePath(tFile) into tCorrectedFilepath
-
+    
     set the itemDelimiter to slash
     put item -1 of tCorrectedFilepath into tFileName
     set the itemDelimiter to "."
@@ -285,11 +283,11 @@ private function extractAppAssociatedFilesFromList pFiles
     else
       # TODO: Check creator types on mac os (2016-11-12: is this relevant any longer?)
       if the platform is "MacOS" then
-
+        
       end if
     end if
   end repeat
-
+  
   delete the last char of tSupportedFiles
   return tSupportedFiles
 end extractAppAssociatedFilesFromList
@@ -303,7 +301,7 @@ end hasAppLoaded
 
 private function _longFilePath pPath
   if pPath is empty then return empty
-
+  
   if the platform is "win32" then
     local tLongPath
     
