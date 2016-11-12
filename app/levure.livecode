@@ -1,4 +1,4 @@
-script "levureLibrary"
+﻿script "levureLibrary"
 
 constant kApplicationExternals = "levureAppExternals"
 
@@ -102,10 +102,12 @@ command levurefinishLoadingApplication
    put true into sRuntimePropertiesA["application has loaded"]
    
    # Don't fire off any messages when closing the app launcher.
-   put the lockMessages into msgsAreLocked
-   lock messages
-   close stack "levureStandaloneLauncher"
-   set the lockMessages to msgsAreLocked
+   if there is a stack "levureStandaloneLauncher" then
+      put the lockMessages into msgsAreLocked
+      lock messages
+      close stack "levureStandaloneLauncher"
+      set the lockMessages to msgsAreLocked
+   end if
 end levurefinishLoadingApplication
 
 
@@ -129,7 +131,7 @@ private command normalizeAppArray
   
   repeat for each item tKey in "password"
     if tKey is not among the keys of sAppA then
-      put empty into sAppA
+      put empty into sAppA[tKey]
     end if
   end repeat
   
@@ -154,7 +156,7 @@ end unloadApp
 private command loadAppConfig
   local tError
   
-  if sAppA is an array then
+  if the environment is not "development" and sAppA is an array then
     # Packaged application. 
     # - 'app' stack should be in memory
     # - sAppA should have configuration info
@@ -205,6 +207,10 @@ private command loadAppConfig
         end repeat
       end if
     end if
+  end if
+  
+  if sAppA is not an array then
+     put "invalid app.yml file" into tError
   end if
   
   return tError for error
@@ -552,6 +558,7 @@ private function yamlToArray pYaml
       end repeat
       put word 1 to -1 of item 2 of tWorkingLine into tValue
       put indentationLevel(tKey) into tIndentation
+      set the itemdelimiter to ","
       if tPrevIndent is empty then
          -- first time through
          put tIndentation into tPrevIndent
@@ -561,32 +568,34 @@ private function yamlToArray pYaml
          switch
             case tIndentation < tPrevIndent
                -- remove the last array index
-               RemoveLastIndexFrom tYamlHeading
-               RemoveLastIndexFrom tYamlHeading
+               repeat with i = tPrevIndent down to tIndentation+1
+                  RemoveLastIndexFrom tYamlHeading
+               end repeat
                put tIndentation into tPrevIndent
                if tYamlHeading is empty then
-                  do "put tValue into tArray[" & tKey & "]"
+                  do "put tValue into tArray[" & quote & tKey & quote & "]"
                else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & tKey & "]"
+                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
                end if
+               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
                break
             case tIndentation is tPrevIndent
                RemoveLastIndexFrom tYamlHeading
                if tYamlHeading is empty then
-                  do "put tValue into tArray" & "[" & tKey & "]"
+                  do "put tValue into tArray" & "[" & quote & tKey & quote & "]"
                else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & tKey & "]"
+                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
                end if
-               put comma & tKey after tYamlHeading
+               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
                break
             case tIndentation > tPrevIndent
                -- add an array index
                if tYamlHeading is empty then
-                  do "put tValue into tArray[" & tKey & "]"
+                  do "put tValue into tArray[" & quote & tKey & quote & "]"
                else
-                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & tKey & "]"
+                  do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
                end if
-               put comma & tKey after tYamlHeading
+               put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
                put tIndentation into tPrevIndent
                break
          end switch
@@ -605,7 +614,7 @@ private function yamlPathToArrayPath pYamlPath
    
    set the itemdelimiter to comma
    repeat for each item tPath in pYamlPath
-      put "[" & tPath & "]" after tArrayPath
+      put "[" & quote & tPath & quote & "]" after tArrayPath
    end repeat
    return tArrayPath
 end yamlPathToArrayPath
