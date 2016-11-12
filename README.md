@@ -109,7 +109,7 @@ copy files:
 
 ## standalone.livecode
 
-This stack is used to build the standalone for the supported platforms. Its primary function is to load the levure.livecode stack and dispatch the `RunApplication` message to it. It will also process the `relaunch` message and call the helper functions that extract command line parameters from that. The stack name in memory is `levureStandaloneLauncher`.
+This stack is used to build the standalone for the supported platforms. Its primary function is to load the `levure.livecode` stack and dispatch the `RunApplication` message to it. It will also process the `relaunch` message and call the helper functions that extract command line parameters from that. The stack name in memory is `levureStandaloneLauncher`.
 
 ## app.livecode
 
@@ -122,7 +122,7 @@ This stack has the following handlers for handling framework messages:
   
 ## Loading
 
-The framework logic is located in the levure.livecode file. `InitializeFramework` must be called first. Then the `RunApplication` message is sent. This is what is happening:
+The framework logic is located in the `levure.livecode` file. `InitializeFramework` must be called first. Then the `RunApplication` message is sent. This is what is happening:
 
 1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file. If `app.yml` is not found then app cannot be loaded.
 2. Process any command line arguments using the `app_files_and_urls` helper.
@@ -161,7 +161,7 @@ Helpers provide additional common functionality to an application. A helper cons
 
 ## Helpers Included with Framework
 
-### app_files_and_urls helper
+### app_files_and_urls
 
 `ProcessFiles` message sent to `app` stack. Check `appGetFilesToProcessOnOpen` when app opens for files passed on command line.
 
