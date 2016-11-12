@@ -102,7 +102,12 @@ This stack is used to build the standalone for the supported platforms. Its prim
 
 ## app.livecode
 
-This stack has `InitializeApplication` and `OpenApplication` handlers. Framework calls these handlers after it finishes loading. Developer uses these handlers to initialize and open the application once.
+This stack has the following handlers for handling framework messages:
+
+- `InitializeApplication`: Initialize your application. Framework has loaded at this point.
+- `OpenApplication`: Open your application window.
+- `ProcessURL`: First parameter is line delimited list of urls that your app has been requested to process.
+- `ProcessFiles`: First parameter is line delimited list of files that your application supports and that you should process.
   
 ## Loading
 
