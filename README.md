@@ -147,7 +147,7 @@ Helpers provide additional common functionality to an application. A helper cons
 - ui stacks
 - externals
 
-## app files and urls helper
+## app_files_and_urls helper
 
 `ProcessFiles` message sent to `app` stack. Check `appGetFilesToProcessOnOpen` when app opens for files passed on command line.
 
