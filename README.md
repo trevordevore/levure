@@ -163,6 +163,8 @@ Helpers provide additional common functionality to an application. A helper cons
 
 ### app_files_and_urls
 
+Helps with files associated with your application as well as when the OS asks your application to process a url. Also includes functions for generating file dialog type filter strings.
+
 `ProcessFiles` message sent to `app` stack. Check `appGetFilesToProcessOnOpen` when app opens for files passed on command line.
 
 `ProcessURL` message sent to `app` stack. Check `appGetURLsToProcessOnOpen()` when app opens for urls passed on the command line.
