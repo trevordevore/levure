@@ -67,12 +67,16 @@ end appleEvent
 * a URL that needs to be processed. Otherwise all params are treated as files and any files with supported
 * extensions are extracted and made available to the application for processing.
 */
-command appProcessCommandLineParameters pParams  
+command appProcessCommandLineParameters pParams
+  local tLineNo
+  
   set the wholeMatches to true
   
   put lineoffset("-url", pParams) into tLineNo
   if tLineNo > 0 then
     if not hasAppLoaded() then
+      local tValue
+      
       put line (tLineNo + 1) of pParams into tValue
       if sURLsToProcessOnOpen is not empty then
         put sURLsToProcessOnOpen into line (the number of lines of tValue + 1) of tValue
@@ -82,7 +86,6 @@ command appProcessCommandLineParameters pParams
       dispatch "ProcessURL" to stack kAppStackName with line (tLineNo + 1) of pParams
     end if
   else
-    local tLineNo, tValue
     local tFiles
     
     put extractAppAssociatedFilesFromList(pParams) into tFiles
