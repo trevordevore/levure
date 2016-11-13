@@ -573,29 +573,17 @@ private function yamlToArray pYaml
             RemoveLastIndexFrom tYamlHeading
           end repeat
           put tIndentation into tPrevIndent
-          if tYamlHeading is empty then
-            do "put tValue into tArray[" & quote & tKey & quote & "]"
-          else
-            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-          end if
+          yamlAddToArray tArray, tYamlHeading, tKey, tValue
           put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
           break
         case tIndentation is tPrevIndent
           RemoveLastIndexFrom tYamlHeading
-          if tYamlHeading is empty then
-            do "put tValue into tArray" & "[" & quote & tKey & quote & "]"
-          else
-            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-          end if
+          yamlAddToArray tArray, tYamlHeading, tKey, tValue
           put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
           break
         case tIndentation > tPrevIndent
           -- add an array index
-          if tYamlHeading is empty then
-            do "put tValue into tArray[" & quote & tKey & quote & "]"
-          else
-            do "put tValue into tArray" & yamlPathToArrayPath(tYamlHeading) & "[" & quote & tKey & quote & "]"
-          end if
+          yamlAddToArray tArray, tYamlHeading, tKey, tValue
           put tKey into item (the number of items of tYamlHeading + 1) of tYamlHeading
           put tIndentation into tPrevIndent
           break
@@ -604,6 +592,14 @@ private function yamlToArray pYaml
   end repeat
   return tArray
 end yamlToArray
+
+private command yamlAddToArray @xArray, pYamlHeading, pKey, pValue
+	if pYamlHeading is empty then
+		do "put pValue into xArray[" & quote & pKey & quote & "]"
+	else
+		do "put pValue into xArray" & yamlPathToArrayPath(pYamlHeading) & "[" & quote & pKey & quote & "]"
+	end if
+end yamlAddToArray
 
 private command RemoveLastIndexFrom @pIndexString
   set the itemdelimiter to comma
