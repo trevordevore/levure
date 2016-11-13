@@ -1,4 +1,4 @@
-﻿script "levureLibrary"
+﻿script "levureFramework"
 
 constant kApplicationExternals = "levureAppExternals"
 

@@ -8,8 +8,8 @@ Levure is an application development framework for LiveCode. The primary goals o
 ## Try Out Sample Application
 
 1. Open the `app/levure.livecodescript` stack in LiveCode 8+.
-2. `dispatch "InitializeFramework" to stack "levureLibrary" with "/Users/USERNAME/development/levure/sample_app"`
-3. `dispatch "RunApplication" to stack "levureLibrary"`
+2. `dispatch "InitializeFramework" to stack "levureFramework" with "/Users/USERNAME/development/levure/sample_app"`
+3. `dispatch "RunApplication" to stack "levureFramework"`
 4. The `MyApp` stack should open up and display some information in a field.
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
