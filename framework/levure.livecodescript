@@ -1,62 +1,147 @@
 ﻿script "levureFramework"
 
+##########
+## This script must be assigned to a behavior of a stack that will be built as a standalone.
+##########
+constant kVersion = "0.0.1.0"
+constant kAppStackName = "app"
 constant kApplicationExternals = "levureAppExternals"
 
-local sRootFolder
+local sRootFolder             # Folder where standalone resides
+local sAppFolder              # Folder where the `app` stack resides
 local sAppA
 local sRuntimePropertiesA
 
-command InitializeFramework pRootFolder
-   local tError, tStacksInApp
-   
-   put false into sRuntimePropertiesA["application has loaded"]
-   
-   if pRootFolder is not empty then
-      if the last char of pRootFolder is "/" then delete the last char of pRootFolder
-      put pRootFolder into sRootFolder
-   else
+
+after mouseDown pBtnNum
+  # Load app if user clicks on button in standalone stack
+  if word 1 of the target is "button" then
+    startup
+  end if
+end mouseDown
+
+
+on startup
+   set visible of me to false
+   set the loc of me to the screenloc
+   levureInitializeAndRunApplication
+end startup
+
+
+on relaunch
+  if sRuntimePropertiesA["application has loaded"] then
+    if sAppA["multiple instances"] then
+      pass relaunch
+    else
+      dispatch "RelaunchApplication" to stack kAppStackName
+
+      local i, tParams
+
+      repeat with i = 1 to the paramcount
+        put param(i) & cr after tParams
+      end repeat
+
+      #
+      # If `background` is returned then the engine won't bring any stacks forward.
+      #
+      # `send` is used to processed outside of relaunch. Saw instances where
+      # url processing opened a pref window but pref window would not come forward
+      # when called. Main window stayed in front. Adding the send in time fixed it.
+      # My guess is code brough a stack forward and then engine brought forward the defaultStack 
+      # after relaunch finished. This may no longer be a bug. Need to test. In any case,
+      # send in time is desirable as engine is going to bring defaultStack forward and
+      # then developer code can handle any special cases.
+      if tParams is not empty then
+        # This handler is defined in a helper
+        send "appProcessCommandLineParameters tParams" to stack kAppStackName in 0 milliseconds
+      end if
+
+      if sAppA["relaunch in background"] then
+        return "background"
+      end if
+    end if
+  end if
+end relaunch
+
+
+command levureInitializeAndRunApplication
+  local tError
+  
+  levureInitializeFramework
+  put the result into tError
+  
+  if tError is empty then
+    ## Use a send so that if any dialogs are displayed in developer handled messages the
+    ## loading process will not stop
+    send "levureRunApplication" to me in 0 milliseconds
+  end if
+  
+  if tError is not empty then
+    answer error "An error occurred while initializaing the application [" &  tError & "]."
+    
+    if the environment is not "development" then
+      quit
+    end if
+  end if
+end levureInitializeAndRunApplication
+
+
+command levureInitializeFramework pRootFolder
+  local tError, tStacksInApp
+
+  put false into sRuntimePropertiesA["application has loaded"]
+
+  if the long id of me is the long id of this me OR word 1 of the long id of me is not "stack" then
+    put "the framework is not assigned to a stack as a behavior" into tError
+  end if
+
+  if tError is empty then
+    if pRootFolder is not empty then
+      put normalizeFolderPath(pRootFolder) into sRootFolder
+    else
       put myFolder() into sRootFolder
-   end if
-   
-   if tError is empty then
-      loadAppConfig
-      put the result into tError
-   end if
-   
-   if tError is empty then
-      loadCommandLineArguments
-      
-      loadAppStack
-      put the result into tError
-   end if
-   
-   if tError is empty then
-      loadHelpers tStacksInApp
-      put the result into tError
-   end if
-   
-   if tError is empty then
-      set the stackFiles of stack "app" to tStacksInApp
-   end if
-   
-   return tError for error
-end InitializeFramework
+    end if
+  end if
+
+  if tError is empty then
+    loadAppConfig
+    put the result into tError
+  end if
+
+  if tError is empty then
+    loadCommandLineArguments
+
+    loadAppStack
+    put the result into tError
+  end if
+
+  if tError is empty then
+    loadHelpers tStacksInApp
+    put the result into tError
+  end if
+
+  if tError is empty then
+    set the stackFiles of stack kAppStackName to tStacksInApp
+  end if
+
+  return tError for error
+end levureInitializeFramework
 
 
-command RunApplication
+command levureRunApplication
   local tError, tStacksInApp
   
   if tError is empty then
-    put the stackFiles of stack "app" into tStacksInApp
+    put the stackFiles of stack kAppStackName into tStacksInApp
     loadAppAssets tStacksInApp
   end if
   
   # Add lookup for all stacks in app. They will be loaded into memory as needed
   # when referenced by name.
   if tError is empty then
-    set the stackFiles of stack "app" to tStacksInApp
+    set the stackFiles of stack kAppStackName to tStacksInApp
     
-    dispatch "InitializeApplication" to stack "app"
+    dispatch "InitializeApplication" to stack kAppStackName
     if it is "handled" and the result is false then
       ## user can quit app if they want
       if lockMessages is true then unlock messages
@@ -74,8 +159,8 @@ command RunApplication
     end if
   end if
   
-  -- tError
-end RunApplication
+  -- display tError
+end levureRunApplication
 
 
 private command loadCommandLineArguments
@@ -98,16 +183,14 @@ end loadCommandLineArguments
 command levurefinishLoadingApplication
   local msgsAreLocked
   
-  dispatch "OpenApplication" to stack "app"
+  dispatch "OpenApplication" to stack kAppStackName
   put true into sRuntimePropertiesA["application has loaded"]
   
-  # Don't fire off any messages when closing the app launcher.
-  if there is a stack "levureStandaloneLauncher" then
-    put the lockMessages into msgsAreLocked
-    lock messages
-    close stack "levureStandaloneLauncher"
-    set the lockMessages to msgsAreLocked
-  end if
+  # Don't fire off any messages when closing the standalone stack
+  put the lockMessages into msgsAreLocked
+  lock messages
+  close me
+  set the lockMessages to msgsAreLocked
 end levurefinishLoadingApplication
 
 
@@ -129,10 +212,19 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
   
-  repeat for each item tKey in "password"
+  repeat for each item tKey in "password,file extensions,file extension groups"
     if tKey is not among the keys of sAppA then
       put empty into sAppA[tKey]
     end if
+  end repeat
+  
+  # Normalize file and folder paths
+  repeat with i = 1 to the number of elements of sAppA["components"]
+    put normalizeRelativeFilename(sAppA["components"][i]["filename"]) into sAppA["components"][i]["filename"]
+  end repeat
+  
+  repeat with i = 1 to the number of elements of sAppA["helper source folders"]
+    put normalizeFolderPath(sAppA["helper source folders"][i]) into sAppA["helper source folders"][i]
   end repeat
   
   return empty for value
@@ -163,9 +255,28 @@ private command loadAppConfig
     
   else
     # Development
-    local i
+        
+    # Search order:
+    # 1. root folder which by default is the folder where the standalone resides
+    # 2. Directly inside any folders alongside the root folder.
     
-    put yamlFileToArray(sRootFolder & "/app.yml") into sAppA
+    # Search folders
+    local tFolders, tFolder
+        
+    if there is a file (sRootFolder & "/app.yml") then
+      put sRootFolder into sAppFolder
+    else
+      put folderListing(sRootFolder) into tFolders
+    
+      repeat for each line tFolder in tFolders
+        if there is a file (tFolder & "/app.yml") then
+          put tFolder into sAppFolder
+          exit repeat
+        end if
+      end repeat
+    end if
+    
+    put yamlFileToArray(sAppFolder & "/app.yml") into sAppA
     put the result into tError
     
     if tError is empty then
@@ -174,11 +285,14 @@ private command loadAppConfig
     
     # If not explicitly configured, load any libraries, frontscripts, or backscripts
     if tError is empty then
+      local i
+      
       if the number of elements of sAppA["libraries"] > 1 then
         repeat with i = 1 to the number of elements of sAppA["libraries"]
           put sRootFolder & "/libraries/" before sAppA["libraries"][i]["filename"]
         end repeat
       else
+        put 0 into i
         repeat for each line tFile in fileListing(sRootFolder & "/libraries")
           add 1 to i
           put tFile into sAppA["libraries"][i]["filename"]
@@ -190,6 +304,7 @@ private command loadAppConfig
           put sRootFolder & "/backscripts/" before sAppA["backscripts"][i]["filename"]
         end repeat
       else
+        put 0 into i
         repeat for each line tFile in fileListing(sRootFolder & "/backscripts")
           add 1 to i
           put tFile into sAppA["backscripts"][i]["backscripts"]
@@ -201,6 +316,7 @@ private command loadAppConfig
           put sRootFolder & "/frontscripts/" before sAppA["frontscripts"][i]["filename"]
         end repeat
       else
+        put 0 into i
         repeat for each line tFile in fileListing(sRootFolder & "/frontscripts")
           add 1 to i
           put tFile into sAppA["frontscripts"][i]["filename"]
@@ -218,15 +334,15 @@ end loadAppConfig
 
 
 private command loadAppStack
-   # app stack will already be in memory if this is a packaged app
-   if there is not a stack "app" then
-      if there is not a stack (sRootFolder & "/app.livecodescript") \
-            AND there is not a stack (sRootFolder & "/app.livecode") then
-         return "app stack not found" for error
-      end if
-   end if
-   
-   return empty for value
+  # app stack will already be in memory if this is a packaged app
+  if there is not a stack kAppStackName then
+    if there is not a stack (sAppFolder & "/app.livecodescript") \
+      AND there is not a stack (sAppFolder & "/app.livecode") then
+      return "app stack not found" for error
+    end if
+  end if
+
+  return empty for value
 end loadAppStack
 
 
@@ -238,7 +354,7 @@ private command loadAppAssets @xStacks
     
     repeat with i = 1 to the number of elements of sAppA["components"]
       put sAppA["components"][i]["name"] & "," & \
-            sRootFolder & "/components/" & prepForUseInPath(sAppA["components"][i]["filename"]) & cr after xStacks
+            sRootFolder & "/components/" & sAppA["components"][i]["filename"] & cr after xStacks
     end repeat
     if the number of elements of sAppA["components"] > 0 then
       delete the last char of xStacks
@@ -271,49 +387,67 @@ end loadMessagePathAssets
 
 
 private command loadHelpers @xStacks
-  local tError
-  local tHelperFolders, tHelper
+  local tError, i
+  local tHelperRootFolders, tHelperRootFolder, tHelperFolders, tHelper
   local tConfigA
   
-  put folderListing(sRootFolder & "/helpers") into tHelperFolders
+  # Helpers are loaded in following order:
+  # 1. levureFrameworkFolder().
+  # 2. sAppFolder (if different than [1]).
+  # 3. "helper source folders" setting.
+  put levureFrameworkFolder() & "/helpers" & cr into tHelperRootFolders
+  if sAppFolder is not line 1 of tHelperRootFolders then
+    put sAppFolder & "/helpers" & cr after tHelperRootFolders
+  end if
+  repeat with i = 1 to the number of elements of sAppA["helper source folders"]
+    put sAppA["helper source folders"][i] & cr after tHelperRootFolders
+  end repeat
+  delete the last char of tHelperRootFolders
+  if the environment is "development" then
+    replace "{{USER_EXTENSIONS}}" with revEnvironmentCustomizationPath() in tHelperRootFolders
+  end if
   
-  repeat for each line tHelper in tHelperFolders
-    put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
-    put the result into tError
+  repeat for each line tHelperRootFolder in tHelperRootFolders
+    put folderListing(tHelperRootFolder) into tHelperFolders
     
-    if tError is empty then
-      local i, tExternals
+    repeat for each line tHelper in tHelperFolders
+      put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
+      put the result into tError
       
-      repeat with i = 1 to the number of elements of tConfigA["stacks"]
-        put tConfigA["stacks"][i]["name"] & "," & \
-              tHelper & "/" & prepForUseInPath(tConfigA["stacks"][i]["filename"]) & cr after xStacks
-      end repeat
-      if the number of elements of tConfigA["stacks"] > 0 then
-        delete the last char of xStacks
+      if tError is empty then
+        local tExternals
+        
+        repeat with i = 1 to the number of elements of tConfigA["stacks"]
+          put tConfigA["stacks"][i]["name"] & "," & \
+                tHelper & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
+        end repeat
+        if the number of elements of tConfigA["stacks"] > 0 then
+          delete the last char of xStacks
+        end if
+        
+        repeat with i = 1 to the number of elements of tConfigA["externals"]
+          put tHelper & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
+        end repeat
+        delete the last char of tExternals
+        
+        repeat with i = 1 to the number of elements of tConfigA["libraries"]
+          put tHelper & "/" before tConfigA["libraries"][i]["filename"]
+        end repeat
+        
+        repeat with i = 1 to the number of elements of tConfigA["backscripts"]
+          put tHelper & "/" before tConfigA["backscripts"][i]["filename"]
+        end repeat
+        
+        repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
+          put tHelper & "/" before tConfigA["frontscripts"][i]["filename"]
+        end repeat
+        
+        loadExternals tExternals
+        loadMessagePathAssets tConfigA
       end if
       
-      repeat with i = 1 to the number of elements of tConfigA["externals"]
-        put tHelper & "/" & prepForUseInPath(tConfigA["externals"][i]["filename"]) & cr after tExternals
-      end repeat
-      delete the last char of tExternals
-      
-      repeat with i = 1 to the number of elements of tConfigA["libraries"]
-        put tHelper & "/" before tConfigA["libraries"][i]["filename"]
-      end repeat
-      
-      repeat with i = 1 to the number of elements of tConfigA["backscripts"]
-        put tHelper & "/" before tConfigA["backscripts"][i]["filename"]
-      end repeat
-      
-      repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
-        put tHelper & "/" before tConfigA["frontscripts"][i]["filename"]
-      end repeat
-      
-      loadExternals tExternals
-      loadMessagePathAssets tConfigA
-    end if
-    
-    if tError is not empty then exit repeat
+      if tError is not empty then exit repeat
+    end repeat
   end repeat
   
   return tError for error
@@ -326,7 +460,7 @@ private command loadExternals pFilenames
   if there is a stack kApplicationExternals then
     delete stack kApplicationExternals
     
-    /*dispatch "PreloadExternals" to stack "app" with pFilenames
+    /*dispatch "PreloadExternals" to stack kAppStackName with pFilenames
     if it is "handled" then
       put the result into pFilenames
     end if*/
@@ -368,14 +502,23 @@ private command unloadExternals --pPurgeFromMemory
 end unloadExternals
 
 
-private function prepForUseInPath pFilename
+private function normalizeRelativeFilename pFilename
   if char 1 of pFilename is "/" then
     delete char 1 of pFilename
   else if char 1 to 2 of pFilename is "./" then
     delete char 1 to 2 of pFilename
   end if
   return pFilename for value
-end prepForUseInPath
+end normalizeRelativeFilename
+
+
+private function normalizeFolderPath pFilename
+  repeat while the last char of pFilename is "/"
+    delete the last char of pFilename
+  end repeat
+  
+  return pFilename
+end normalizeFolderPath
 
 
 private function myFolder
@@ -384,6 +527,14 @@ private function myFolder
   delete the last item of tFolder
   return tFolder for value
 end myFolder
+
+
+function levureFrameworkFolder
+  put the filename of (the long id this me) into tFolder
+  set the itemDelimiter to "/"
+  delete the last item of tFolder
+  return tFolder for value
+end levureFrameworkFolder
 
 
 private function folderListing pFilename
@@ -594,11 +745,11 @@ private function yamlToArray pYaml
 end yamlToArray
 
 private command yamlAddToArray @xArray, pYamlHeading, pKey, pValue
-	if pYamlHeading is empty then
-		do "put pValue into xArray[" & quote & pKey & quote & "]"
-	else
-		do "put pValue into xArray" & yamlPathToArrayPath(pYamlHeading) & "[" & quote & pKey & quote & "]"
-	end if
+  if pYamlHeading is empty then
+    do "put pValue into xArray[" & quote & pKey & quote & "]"
+  else
+    do "put pValue into xArray" & yamlPathToArrayPath(pYamlHeading) & "[" & quote & pKey & quote & "]"
+  end if
 end yamlAddToArray
 
 private command RemoveLastIndexFrom @pIndexString
