@@ -7,21 +7,24 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 ## Try Out Sample Application
 
-1. Open the `app/levure.livecodescript` stack in LiveCode 8+.
-2. `dispatch "InitializeFramework" to stack "levureFramework" with "/Users/USERNAME/development/levure/sample_app"`
-3. `dispatch "RunApplication" to stack "levureFramework"`
-4. The `MyApp` stack should open up and display some information in a field.
+1. Open the `sample_app/standalone.livecode` stack in LiveCode 8+. The `framework/levureFramework.livecodescript` stack is a behavior of this stack.
+2. Switch to the browser tool and click on the `Run Application` button.
+3. The `MyApp` stack should open up and display some information in a field.
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
 
 ## File and Folder Organization
 
-Application stack files are organized using folders. Any UI stacks go in the`components` folder. Each stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
+Application stack files are organized using folders. Any UI stacks go in the`components` folder. Each UI stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
+
+### An example
 
 - app.yml
 - app.livecodescript
 - standalone.livecode
-- levure.livecodescript
+- framework/levure.livecodescript
+- framework/helpers/app_files_and_urls/frontscript.livecodescript
+- framework/helpers/app_files_and_urls/helper.yml
 - components/
   - preferences/
     - preferences.livecode
@@ -63,7 +66,7 @@ Application stack files are organized using folders. Any UI stacks go in the`com
   
 ## app.yml
 
-An application is configured using the `app.yml` file. 
+An application is configured using the `app.yml` file. This file can be located alongside the `standalone.livecode` stack file or directly within any folder located alongside the `standalone.livecode` stack file.
 
 ```
 password: ?????
@@ -82,6 +85,9 @@ frontscripts:
   ...
 backscripts:
   1: [relative path to stack file within backscripts folder]
+  ...
+helper source folders:
+  1: [path to folders from which helpers should be loaded]
   ...
 file extensions:
   JPEG File: jpg,jpeg
@@ -109,25 +115,25 @@ copy files:
 
 ## standalone.livecode
 
-This stack is used to build the standalone for the supported platforms. Its primary function is to load the `levure.livecode` stack and dispatch the `RunApplication` message to it. It will also process the `relaunch` message and call the helper functions that extract command line parameters from that. The stack name in memory is `levureStandaloneLauncher`.
+This stack is used to build the standalone application. The `levureFramework.livecodescript` stack file should be assigned to the stackFiles of this stack. The `levureFramework` stack should be assigned as the behavior of this stack. This stack can be named whatever you would like in memory.
 
 ## app.livecodescript
 
-This stack has the following handlers for handling framework messages:
+This stack file must be located directly alongside the `app.yml` file. The stack must be named `app` in memory. It has the following handlers for handling framework messages:
 
 - `InitializeApplication`: Initialize your application. Framework has loaded at this point.
 - `OpenApplication`: Open your application window.
 - `ProcessURL`: First parameter is line delimited list of urls that your app has been requested to process.
 - `ProcessFiles`: First parameter is line delimited list of files that your application supports and that you should process.
   
-## Loading
+## levureFramework.livecodescript
 
-The framework logic is located in the `levure.livecodescript` file. `InitializeFramework` must be called first. Then the `RunApplication` message is sent. This is what is happening:
+The framework logic is located in the `levure.livecodescript` file. The stack must be assigned as the behavior of another stack which is assumed to be the `standalone.livecode` stack. The `levureInitializeAndRunApplication` will initialize and load the framework. Here is what happens during loading:
 
-1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file. If `app.yml` is not found then app cannot be loaded.
+1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file, searching first alongside the `standalone.livecode` stack file and then directly within any folders that are alongside the `standalone.livecode` stack. If `app.yml` is not found then app cannot be loaded.
 2. Process any command line arguments using the `app_files_and_urls` helper.
-3. Load `app.livecodescript`
-4. Load helpers (Load externals, libraries, backscripts, and frontscripts. Add ui stacks to list of stackFiles to be assigned to `app` stack). `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
+3. Load `app.livecodescript` from folder containing the `app.yml` file.
+4. Load helpers. By default any helpers in a folder named `helpers` that sits alongside the `levure.livecodescript` file or the `app.yml` file will be loaded. You can configure additional folders where helpers are located using the `helper source folders` config property. ` All externals, libraries, backscripts, and frontscripts will be loaded into memory. The ui stacks will be added to the list of stackFiles to be assigned to `app` stack. `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
 8. Add list of stacks defined in `components` key in config file to stackFiles list.
 5. Load app libraries and start using.
 6. Load app backscripts and insert.
@@ -158,6 +164,18 @@ Helpers provide additional common functionality to an application. A helper cons
 - frontscripts
 - ui stacks
 - externals
+
+### Specifying locations of Helpers
+
+The framework will always look for a Helpers folder alongside the framework stack file as well as the `app.yml` file. YOu can specify additional folders that contain Helpers using the `helper source folders` configuration property. You can use the `{{USER_EXTENSIONS}}` variable in a Helper path to specify the path returned by `revEnvironmentCustomizationPath()` in the IDE. This allows you to store commonly used helpers in your LiveCode User Extension folder.
+
+#### Example:
+
+```
+helper source folders:
+  1: ../../../Common Helpers"
+  2: {{USER_EXTENSIONS}}/Helpers"
+```
 
 ## Helpers Included with Framework
 
