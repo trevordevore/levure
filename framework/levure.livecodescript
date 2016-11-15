@@ -218,15 +218,6 @@ private command normalizeAppArray
     end if
   end repeat
   
-  # Normalize file and folder paths
-  repeat with i = 1 to the number of elements of sAppA["components"]
-    put normalizeRelativeFilename(sAppA["components"][i]["filename"]) into sAppA["components"][i]["filename"]
-  end repeat
-  
-  repeat with i = 1 to the number of elements of sAppA["helper source folders"]
-    put normalizeFolderPath(sAppA["helper source folders"][i]) into sAppA["helper source folders"][i]
-  end repeat
-  
   return empty for value
 end normalizeAppArray
 
@@ -285,49 +276,94 @@ private command loadAppConfig
     
     # If not explicitly configured, load any libraries, frontscripts, or backscripts
     if tError is empty then
-      local i
+      local i, j
+      local tFilesA
       
-      if the number of elements of sAppA["libraries"] > 1 then
-        repeat with i = 1 to the number of elements of sAppA["libraries"]
-          put sRootFolder & "/libraries/" before sAppA["libraries"][i]["filename"]
-        end repeat
-      else
-        put 0 into i
-        repeat for each line tFile in fileListing(sRootFolder & "/libraries")
-          add 1 to i
-          put tFile into sAppA["libraries"][i]["filename"]
+      ##########
+      # Libaries, Backscripts, Frontscripts
+      ##########
+      local tSource
+      
+      repeat for each item tSource in "libraries,backscripts,frontscripts"
+        put empty into tFilesA
+        put 0 into j
+      
+        if there is a folder (levureFrameworkFolder() & "/" & tSource) then
+          add 1 to j
+          put levureFrameworkFolder() & "/" & tSource into tFilesA[j]["folder"]
+        end if
+        if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/" & tSource) then
+          add 1 to j
+          put sAppFolder & "/" & tSource into tFilesA[j]["folder"]
+        end if
+      
+        if the number of elements of sAppA[tSource] > 1 then        
+          repeat with i = 1 to the number of elements of sAppA[tSource]
+            add 1 to j
+            put sAppA[tSource][i] into tFilesA[j]
+          end repeat
+        end if
+      
+        put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
+      end repeat
+      
+      ##########
+      # Components
+      ##########      
+      put empty into tFilesA
+      put 0 into j
+      
+      if there is a folder (levureFrameworkFolder() & "/components") then
+        add 1 to j
+        put levureFrameworkFolder() & "/components" into tFilesA[j]["folder"]
+      end if
+      if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/components") then
+        add 1 to j
+        put sAppFolder & "/components" into tFilesA[j]["folder"]
+      end if
+      
+      if the number of elements of sAppA["components"] > 1 then        
+        repeat with i = 1 to the number of elements of sAppA["components"]
+          add 1 to j
+          put sAppA["components"][i] into tFilesA[j]
         end repeat
       end if
       
-      if the number of elements of sAppA["backscripts"] > 1 then
-        repeat with i = 1 to the number of elements of sAppA["backscripts"]
-          put sRootFolder & "/backscripts/" before sAppA["backscripts"][i]["filename"]
-        end repeat
-      else
-        put 0 into i
-        repeat for each line tFile in fileListing(sRootFolder & "/backscripts")
-          add 1 to i
-          put tFile into sAppA["backscripts"][i]["backscripts"]
+      if the number of elements of sAppA["components"] > 1 then
+        put expandComponentAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["components"]
+      end if
+      
+      ##########
+      # Helpers
+      ##########
+      put empty into tFilesA
+      put 0 into j
+      
+      if there is a folder (levureFrameworkFolder() & "/helpers") then
+        add 1 to j
+        put levureFrameworkFolder() & "/helpers" into tFilesA[j]["folder"]
+      end if
+      if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/helpers") then
+        add 1 to j
+        put sAppFolder & "/helpers" into tFilesA[j]["folder"]
+      end if
+      
+      if the number of elements of sAppA["helpers"] > 1 then        
+        repeat with i = 1 to the number of elements of sAppA["helpers"]
+          add 1 to j
+          put sAppA["helpers"][i] into tFilesA[j]
         end repeat
       end if
       
-      if the number of elements of sAppA["frontscripts"] > 1 then
-        repeat with i = 1 to the number of elements of sAppA["frontscripts"]
-          put sRootFolder & "/frontscripts/" before sAppA["frontscripts"][i]["filename"]
-        end repeat
-      else
-        put 0 into i
-        repeat for each line tFile in fileListing(sRootFolder & "/frontscripts")
-          add 1 to i
-          put tFile into sAppA["frontscripts"][i]["filename"]
-        end repeat
-      end if
+      put expandHelperAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["helpers"]
     end if
   end if
   
   if sAppA is not an array then
     put "invalid app.yml file" into tError
   end if
+  
+  breakpoint
   
   return tError for error
 end loadAppConfig
@@ -355,6 +391,12 @@ private command loadAppAssets @xStacks
     local i
     
     repeat with i = 1 to the number of elements of sAppA["components"]
+      if sAppA["components"][i]["folder"] is not empty then
+      
+      else if sAppA["components"][i]["filename"] is not empty then
+
+      end if
+      
       put sAppA["components"][i]["name"] & "," & \
             sRootFolder & "/components/" & sAppA["components"][i]["filename"] & cr after xStacks
     end repeat
@@ -393,16 +435,13 @@ private command loadHelpers @xStacks
   local tHelperRootFolders, tHelperRootFolder, tHelperFolders, tHelper
   local tConfigA
   
-  # Helpers are loaded in following order:
-  # 1. levureFrameworkFolder().
-  # 2. sAppFolder (if different than [1]).
-  # 3. "helper source folders" setting.
+  
   put levureFrameworkFolder() & "/helpers" & cr into tHelperRootFolders
   if sAppFolder is not line 1 of tHelperRootFolders then
     put sAppFolder & "/helpers" & cr after tHelperRootFolders
   end if
-  repeat with i = 1 to the number of elements of sAppA["helper source folders"]
-    put resolveRelativeFolderReference(sAppA["helper source folders"][i], sAppFolder) & cr after tHelperRootFolders
+  repeat with i = 1 to the number of elements of sAppA["helpers"]
+    put resolveRelativeFilenameReference(sAppA["helpers"][i], sAppFolder) & cr after tHelperRootFolders
     put the result into tError
     
     if tError is not empty then exit repeat
@@ -414,8 +453,6 @@ private command loadHelpers @xStacks
       replace "{{USER_EXTENSIONS}}" with revEnvironmentCustomizationPath() in tHelperRootFolders
     end if
   end if
-  
-  answer tHelperRootFolders
   
   if tError is empty then
     repeat for each line tHelperRootFolder in tHelperRootFolders
@@ -442,15 +479,15 @@ private command loadHelpers @xStacks
           delete the last char of tExternals
         
           repeat with i = 1 to the number of elements of tConfigA["libraries"]
-            put tHelper & "/" before tConfigA["libraries"][i]["filename"]
+            put tHelper & "/" before tConfigA["libraries"][i]
           end repeat
         
           repeat with i = 1 to the number of elements of tConfigA["backscripts"]
-            put tHelper & "/" before tConfigA["backscripts"][i]["filename"]
+            put tHelper & "/" before tConfigA["backscripts"][i]
           end repeat
         
           repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
-            put tHelper & "/" before tConfigA["frontscripts"][i]["filename"]
+            put tHelper & "/" before tConfigA["frontscripts"][i]
           end repeat
         
           loadExternals tExternals
@@ -549,7 +586,196 @@ function levureFrameworkFolder
 end levureFrameworkFolder
 
 
-private function resolveRelativeFolderReference pFilename, pRootFolder
+private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
+  local tFilesA, i, j
+  
+  repeat with i = 1 to the number of elements of pFilesA      
+    if pFilesA[i]["folder"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
+      
+      # expand the folder listing. Assume every file is a file to load.
+      local tFile
+      
+      repeat for each line tFile in fileListing(pFilesA[i]["folder"])
+        if isFilenameUniqueInFilesArray(tFile, tFilesA) then
+          add 1 to j
+          put tFile into tFilesA[j]["filename"]
+        end if
+      end repeat
+    else if pFilesA[i]["filename"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
+        into pFilesA[i]["filename"]
+      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        add 1 to j
+        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+      end if
+    end if
+  end repeat
+  
+  replaceVariablesInPaths tFilesA
+  
+  return tFilesA
+end expandMessagePathAssetsFileReferenceArray
+
+
+private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
+  local tFilesA, i, j
+  
+  repeat with i = 1 to the number of elements of pFilesA      
+    if pFilesA[i]["folder"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
+      
+      # expand the folder listing. Assume every folder is a helper to load.
+      local tFile
+      
+      repeat for each line tFile in folderListing(pFilesA[i]["folder"])
+        if isFilenameUniqueInFilesArray(tFile, tFilesA) then
+          add 1 to j
+          put tFile into tFilesA[j]["filename"]
+        end if
+      end repeat
+    else if pFilesA[i]["filename"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
+        into pFilesA[i]["filename"]
+      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        add 1 to j
+        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+      end if
+    end if
+  end repeat
+  
+  replaceVariablesInPaths tFilesA
+  
+  return tFilesA
+end expandHelperAssetsFileReferenceArray
+
+
+private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
+  local tFilesA, i, j
+  
+  repeat with i = 1 to the number of elements of pFilesA      
+    if pFilesA[i]["folder"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]
+      
+      # expand the folder listing. Assume every folder is a component to load.
+      local tError, tFolder, tFiles, tFile, tFileA
+      
+      repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
+        put empty into tError
+        put empty into tFileA
+        
+        put fileListing(tFolder) into tFiles
+        filter tFiles matching ".*\.livecode$|.*\.livecodescript$"
+        
+        if tFiles is not empty then
+          # Has any file in this folder been loaded already?
+          repeat for each line tFile in tFiles
+            if not isFilenameUniqueInFilesArray(tFile, tFilesA) then
+              put "already loaded" into tError
+              exit repeat
+            end if
+          end repeat
+        
+          if tError is empty then
+            put line 1 of tFiles into tFileA["filename"]
+            put ensureStackNameIsPresent(tFileA) into tFileA
+          
+            if tFileA["name"] is not empty then
+              add 1 to j
+              put tFileA into tFilesA[j]
+            end if
+          end if
+        end if
+      end repeat
+      
+    else if pFilesA[i]["filename"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
+        into pFilesA[i]["filename"]
+        
+      put ensureStackNameIsPresent(pFilesA[i]) into pFilesA[i]
+      
+      if pFilesA[i]["name"] is not empty AND isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        add 1 to j
+        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+        put pFilesA[i]["name"] into tFilesA[j]["name"]
+      end if
+    end if
+  end repeat
+  
+  replaceVariablesInPaths tFilesA
+  
+  return tFilesA
+end expandComponentAssetsFileReferenceArray
+
+
+private command replaceVariablesInPaths @pFilesA
+  if the environment is "development" then
+    local tUserExtensionsFolder, i
+    
+    put revEnvironmentCustomizationPath() into tUserExtensionsFolder
+    
+    repeat with i = 1 to the number of elements of pFilesA
+      replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i]["filename"]
+    end repeat
+  end if
+  
+  return empty for value
+end replaceVariablesInPaths
+
+
+private function isFilenameUniqueInFilesArray pFilesA, pFilename
+  local i
+  
+  repeat with i = 1 to the number of elements of pFilesA
+    if pFilesA[i]["filename"] is pFilename then
+      return false
+    end if
+  end repeat
+  
+  return true
+end isFilenameUniqueInFilesArray
+
+
+private function ensureStackNameIsPresent pFileA
+  # Grab stack name in memory if not provided.
+  if pFileA["name"] is empty then
+    local tStackIsLoaded
+    
+    put there is a stack pFileA["filename"] into tStackIsLoaded
+    if tStackIsLoaded then
+      put the short name of stack pFileA["filename"] into pFileA["name"]
+      delete stack pFileA["filename"]
+    end if
+  end if
+  
+  return pFileA
+end ensureStackNameIsPresent
+
+
+private function resolveFilenameReference pFilename, pRootFolder
+  put normalizeRelativeFilename(pFilename) into pFilename
+  
+  if pFilename begins with "../" then
+    return resolveRelativeFilenameReference(pFilename, pRootFolder) for value
+  else
+    return pRootFolder & "/" & pFilename
+  end if
+end resolveFilenameReference
+
+
+private function fileExtension pFilename
+  set the itemdelimiter to "/"
+  put the last item of pFilename into tExt
+  set the itemdelimiter to "."
+  if the number of items of tExt > 1 then
+    return the last item of tExt
+  else
+    return empty
+  end if
+end fileExtension
+
+
+private function resolveRelativeFilenameReference pFilename, pRootFolder
   set the itemDelimiter to "/"
   
   repeat while pFilename begins with "../"
@@ -562,7 +788,7 @@ private function resolveRelativeFolderReference pFilename, pRootFolder
   end repeat
   
   return pRootFolder & "/" & pFilename for value
-end resolveRelativeFolderReference
+end resolveRelativeFilenameReference
 
 
 private function folderListing pFilename
@@ -626,7 +852,7 @@ private function readFileContents pFilename
   if tError is empty then
     return it for value
   else
-    return tError for error
+    return tError && "[" & pFilename & "]" for error
   end if
 end readFileContents
 
