@@ -223,6 +223,7 @@ end normalizeAppArray
 
 
 private command unloadApp
+  # TODO: This isn't complete. Helpers can have scripts as well.
   repeat with i = 1 to the number of elements of sAppA["frontscripts"]
     remove stack sAppA["frontscripts"][i]["filename"] from front
   end repeat
@@ -292,19 +293,20 @@ private command loadAppConfig
           add 1 to j
           put levureFrameworkFolder() & "/" & tSource into tFilesA[j]["folder"]
         end if
-        if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/" & tSource) then
-          add 1 to j
-          put sAppFolder & "/" & tSource into tFilesA[j]["folder"]
-        end if
       
         if the number of elements of sAppA[tSource] > 1 then        
           repeat with i = 1 to the number of elements of sAppA[tSource]
             add 1 to j
             put sAppA[tSource][i] into tFilesA[j]
           end repeat
+        else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/" & tSource) then
+          add 1 to j
+          put sAppFolder & "/" & tSource into tFilesA[j]["folder"]
         end if
       
-        put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
+        if the number of elements of tFilesA > 0 then
+          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
+        end if
       end repeat
       
       ##########
@@ -312,14 +314,10 @@ private command loadAppConfig
       ##########      
       put empty into tFilesA
       put 0 into j
-      
+
       if there is a folder (levureFrameworkFolder() & "/components") then
         add 1 to j
         put levureFrameworkFolder() & "/components" into tFilesA[j]["folder"]
-      end if
-      if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/components") then
-        add 1 to j
-        put sAppFolder & "/components" into tFilesA[j]["folder"]
       end if
       
       if the number of elements of sAppA["components"] > 1 then        
@@ -327,9 +325,12 @@ private command loadAppConfig
           add 1 to j
           put sAppA["components"][i] into tFilesA[j]
         end repeat
+      else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/components") then
+        add 1 to j
+        put sAppFolder & "/components" into tFilesA[j]["folder"]
       end if
       
-      if the number of elements of sAppA["components"] > 1 then
+      if the number of elements of tFilesA > 0 then
         put expandComponentAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["components"]
       end if
       
@@ -343,27 +344,26 @@ private command loadAppConfig
         add 1 to j
         put levureFrameworkFolder() & "/helpers" into tFilesA[j]["folder"]
       end if
-      if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/helpers") then
-        add 1 to j
-        put sAppFolder & "/helpers" into tFilesA[j]["folder"]
-      end if
       
       if the number of elements of sAppA["helpers"] > 1 then        
         repeat with i = 1 to the number of elements of sAppA["helpers"]
           add 1 to j
           put sAppA["helpers"][i] into tFilesA[j]
         end repeat
+      else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/helpers") then
+        add 1 to j
+        put sAppFolder & "/helpers" into tFilesA[j]["folder"]
       end if
       
-      put expandHelperAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["helpers"]
+      if the number of elements of tFilesA > 0 then
+        put expandHelperAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["helpers"]
+      end if
     end if
   end if
   
   if sAppA is not an array then
     put "invalid app.yml file" into tError
   end if
-  
-  breakpoint
   
   return tError for error
 end loadAppConfig
@@ -390,15 +390,9 @@ private command loadAppAssets @xStacks
   if tError is empty then
     local i
     
-    repeat with i = 1 to the number of elements of sAppA["components"]
-      if sAppA["components"][i]["folder"] is not empty then
-      
-      else if sAppA["components"][i]["filename"] is not empty then
-
-      end if
-      
+    repeat with i = 1 to the number of elements of sAppA["components"]      
       put sAppA["components"][i]["name"] & "," & \
-            sRootFolder & "/components/" & sAppA["components"][i]["filename"] & cr after xStacks
+            sAppA["components"][i]["filename"] & cr after xStacks
     end repeat
     if the number of elements of sAppA["components"] > 0 then
       delete the last char of xStacks
@@ -432,72 +426,46 @@ end loadMessagePathAssets
 
 private command loadHelpers @xStacks
   local tError, i
-  local tHelperRootFolders, tHelperRootFolder, tHelperFolders, tHelper
   local tConfigA
-  
-  
-  put levureFrameworkFolder() & "/helpers" & cr into tHelperRootFolders
-  if sAppFolder is not line 1 of tHelperRootFolders then
-    put sAppFolder & "/helpers" & cr after tHelperRootFolders
-  end if
+      
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    put resolveRelativeFilenameReference(sAppA["helpers"][i], sAppFolder) & cr after tHelperRootFolders
+    put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
     put the result into tError
+  
+    if tError is empty then
+      local tExternals
     
+      repeat with i = 1 to the number of elements of tConfigA["stacks"]
+        put tConfigA["stacks"][i]["name"] & "," & \
+              sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
+      end repeat
+      if the number of elements of tConfigA["stacks"] > 0 then
+        delete the last char of xStacks
+      end if
+    
+      repeat with i = 1 to the number of elements of tConfigA["externals"]
+        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
+      end repeat
+      delete the last char of tExternals
+    
+      repeat with i = 1 to the number of elements of tConfigA["libraries"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][i]
+      end repeat
+    
+      repeat with i = 1 to the number of elements of tConfigA["backscripts"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["backscripts"][i]
+      end repeat
+    
+      repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["frontscripts"][i]
+      end repeat
+    
+      loadExternals tExternals
+      loadMessagePathAssets tConfigA
+    end if
+  
     if tError is not empty then exit repeat
   end repeat
-  
-  if tError is empty then
-    delete the last char of tHelperRootFolders
-    if the environment is "development" then
-      replace "{{USER_EXTENSIONS}}" with revEnvironmentCustomizationPath() in tHelperRootFolders
-    end if
-  end if
-  
-  if tError is empty then
-    repeat for each line tHelperRootFolder in tHelperRootFolders
-      put folderListing(tHelperRootFolder) into tHelperFolders
-    
-      repeat for each line tHelper in tHelperFolders
-        put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
-        put the result into tError
-      
-        if tError is empty then
-          local tExternals
-        
-          repeat with i = 1 to the number of elements of tConfigA["stacks"]
-            put tConfigA["stacks"][i]["name"] & "," & \
-                  tHelper & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
-          end repeat
-          if the number of elements of tConfigA["stacks"] > 0 then
-            delete the last char of xStacks
-          end if
-        
-          repeat with i = 1 to the number of elements of tConfigA["externals"]
-            put tHelper & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
-          end repeat
-          delete the last char of tExternals
-        
-          repeat with i = 1 to the number of elements of tConfigA["libraries"]
-            put tHelper & "/" before tConfigA["libraries"][i]
-          end repeat
-        
-          repeat with i = 1 to the number of elements of tConfigA["backscripts"]
-            put tHelper & "/" before tConfigA["backscripts"][i]
-          end repeat
-        
-          repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
-            put tHelper & "/" before tConfigA["frontscripts"][i]
-          end repeat
-        
-          loadExternals tExternals
-          loadMessagePathAssets tConfigA
-        end if
-      
-        if tError is not empty then exit repeat
-      end repeat
-    end repeat
-  end if
   
   return tError for error
 end loadHelpers
@@ -652,10 +620,10 @@ end expandHelperAssetsFileReferenceArray
 
 private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
-  
+    
   repeat with i = 1 to the number of elements of pFilesA      
     if pFilesA[i]["folder"] is not empty then
-      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]
+      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
       
       # expand the folder listing. Assume every folder is a component to load.
       local tError, tFolder, tFiles, tFile, tFileA
@@ -665,7 +633,7 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
         put empty into tFileA
         
         put fileListing(tFolder) into tFiles
-        filter tFiles matching ".*\.livecode$|.*\.livecodescript$"
+        filter tFiles with regex pattern ".*\.livecode$|.*\.livecodescript$"
         
         if tFiles is not empty then
           # Has any file in this folder been loaded already?
@@ -723,7 +691,7 @@ private command replaceVariablesInPaths @pFilesA
 end replaceVariablesInPaths
 
 
-private function isFilenameUniqueInFilesArray pFilesA, pFilename
+private function isFilenameUniqueInFilesArray pFilename, pFilesA
   local i
   
   repeat with i = 1 to the number of elements of pFilesA
@@ -753,14 +721,24 @@ end ensureStackNameIsPresent
 
 
 private function resolveFilenameReference pFilename, pRootFolder
-  put normalizeRelativeFilename(pFilename) into pFilename
-  
-  if pFilename begins with "../" then
-    return resolveRelativeFilenameReference(pFilename, pRootFolder) for value
+  if isFilenameRelative(pFilename) then
+    put normalizeRelativeFilename(pFilename) into pFilename
+    
+    if pFilename begins with "../" then
+      return resolveRelativeFilenameReference(pFilename, pRootFolder) for value
+    else
+      return pRootFolder & "/" & pFilename
+    end if
   else
-    return pRootFolder & "/" & pFilename
+    return pFilename
   end if
 end resolveFilenameReference
+
+
+private function isFilenameRelative pFilename
+  set the itemDelimiter to "/"
+  return not ((the platform is "win32" and item 1 of pFilename contains ":") or pFilename begins with "/")
+end isFilenameRelative
 
 
 private function fileExtension pFilename
@@ -852,7 +830,7 @@ private function readFileContents pFilename
   if tError is empty then
     return it for value
   else
-    return tError && "[" & pFilename & "]" for error
+    return tError && "(" & pFilename & ")" for error
   end if
 end readFileContents
 
@@ -954,6 +932,7 @@ private function yamlToArray pYaml
   local tWorkingLine
   local tYamlHeading
   local tKey, tValue
+  local tSpacesPerIndent
   
   repeat for each line tLine in pYaml
     put tLine into tWorkingLine
@@ -973,10 +952,16 @@ private function yamlToArray pYaml
       put tKey into tYamlHeading
       put tValue into tArray[tYamlHeading]
     else
+      -- When indentation decreases we need to guess how many levels down the user is going.
+      -- Otherwise nested arrays won't work very well.
+      if tSpacesPerIndent is empty AND tPrevIndent is 0 and tIndentation > 0 then
+        put tIndentation into tSpacesPerIndent
+      end if
+      
       switch
         case tIndentation < tPrevIndent
-          -- remove the last array index
-          repeat with i = tPrevIndent down to tIndentation+1
+          -- remove the array indexes depending on change in hierarchy
+          repeat with i = (tPrevIndent/tSpacesPerIndent) down to (tIndentation/tSpacesPerIndent)
             RemoveLastIndexFrom tYamlHeading
           end repeat
           put tIndentation into tPrevIndent
