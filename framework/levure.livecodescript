@@ -341,6 +341,8 @@ private command loadAppStack
       return "app stack not found" for error
     end if
   end if
+  
+  start using stack kAppStackName
 
   return empty for value
 end loadAppStack
@@ -400,55 +402,65 @@ private command loadHelpers @xStacks
     put sAppFolder & "/helpers" & cr after tHelperRootFolders
   end if
   repeat with i = 1 to the number of elements of sAppA["helper source folders"]
-    put sAppA["helper source folders"][i] & cr after tHelperRootFolders
+    put resolveRelativeFolderReference(sAppA["helper source folders"][i], sAppFolder) & cr after tHelperRootFolders
+    put the result into tError
+    
+    if tError is not empty then exit repeat
   end repeat
-  delete the last char of tHelperRootFolders
-  if the environment is "development" then
-    replace "{{USER_EXTENSIONS}}" with revEnvironmentCustomizationPath() in tHelperRootFolders
+  
+  if tError is empty then
+    delete the last char of tHelperRootFolders
+    if the environment is "development" then
+      replace "{{USER_EXTENSIONS}}" with revEnvironmentCustomizationPath() in tHelperRootFolders
+    end if
   end if
   
-  repeat for each line tHelperRootFolder in tHelperRootFolders
-    put folderListing(tHelperRootFolder) into tHelperFolders
+  answer tHelperRootFolders
+  
+  if tError is empty then
+    repeat for each line tHelperRootFolder in tHelperRootFolders
+      put folderListing(tHelperRootFolder) into tHelperFolders
     
-    repeat for each line tHelper in tHelperFolders
-      put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
-      put the result into tError
+      repeat for each line tHelper in tHelperFolders
+        put yamlFileToArray(tHelper & "/helper.yml") into tConfigA
+        put the result into tError
       
-      if tError is empty then
-        local tExternals
+        if tError is empty then
+          local tExternals
         
-        repeat with i = 1 to the number of elements of tConfigA["stacks"]
-          put tConfigA["stacks"][i]["name"] & "," & \
-                tHelper & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
-        end repeat
-        if the number of elements of tConfigA["stacks"] > 0 then
-          delete the last char of xStacks
+          repeat with i = 1 to the number of elements of tConfigA["stacks"]
+            put tConfigA["stacks"][i]["name"] & "," & \
+                  tHelper & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
+          end repeat
+          if the number of elements of tConfigA["stacks"] > 0 then
+            delete the last char of xStacks
+          end if
+        
+          repeat with i = 1 to the number of elements of tConfigA["externals"]
+            put tHelper & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
+          end repeat
+          delete the last char of tExternals
+        
+          repeat with i = 1 to the number of elements of tConfigA["libraries"]
+            put tHelper & "/" before tConfigA["libraries"][i]["filename"]
+          end repeat
+        
+          repeat with i = 1 to the number of elements of tConfigA["backscripts"]
+            put tHelper & "/" before tConfigA["backscripts"][i]["filename"]
+          end repeat
+        
+          repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
+            put tHelper & "/" before tConfigA["frontscripts"][i]["filename"]
+          end repeat
+        
+          loadExternals tExternals
+          loadMessagePathAssets tConfigA
         end if
-        
-        repeat with i = 1 to the number of elements of tConfigA["externals"]
-          put tHelper & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
-        end repeat
-        delete the last char of tExternals
-        
-        repeat with i = 1 to the number of elements of tConfigA["libraries"]
-          put tHelper & "/" before tConfigA["libraries"][i]["filename"]
-        end repeat
-        
-        repeat with i = 1 to the number of elements of tConfigA["backscripts"]
-          put tHelper & "/" before tConfigA["backscripts"][i]["filename"]
-        end repeat
-        
-        repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
-          put tHelper & "/" before tConfigA["frontscripts"][i]["filename"]
-        end repeat
-        
-        loadExternals tExternals
-        loadMessagePathAssets tConfigA
-      end if
       
-      if tError is not empty then exit repeat
+        if tError is not empty then exit repeat
+      end repeat
     end repeat
-  end repeat
+  end if
   
   return tError for error
 end loadHelpers
@@ -535,6 +547,22 @@ function levureFrameworkFolder
   delete the last item of tFolder
   return tFolder for value
 end levureFrameworkFolder
+
+
+private function resolveRelativeFolderReference pFilename, pRootFolder
+  set the itemDelimiter to "/"
+  
+  repeat while pFilename begins with "../"
+    if pRootFolder is empty then
+      return "relative path is too deep for root folder" for error
+    else
+      delete the last item of pRootFolder
+      delete char 1 to 3 of pFilename
+    end if
+  end repeat
+  
+  return pRootFolder & "/" & pFilename for value
+end resolveRelativeFolderReference
 
 
 private function folderListing pFilename
@@ -703,6 +731,8 @@ private function yamlToArray pYaml
   
   repeat for each line tLine in pYaml
     put tLine into tWorkingLine
+    if word 1 to -1 of tWorkingLine is empty then next repeat
+    
     set the itemdelimiter to ":"
     put item 1 of tWorkingLine into tKey
     repeat while char -1 of tKey is in ": "
