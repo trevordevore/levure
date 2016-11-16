@@ -35,8 +35,7 @@ In the `app.yml` file you can load components, libraries, backscripts, frontscri
 - app.livecodescript
 - standalone.livecode
 - framework/levure.livecodescript
-- framework/helpers/app_files_and_urls/frontscript.livecodescript
-- framework/helpers/app_files_and_urls/helper.yml
+- framework/libraries/appFilesAndURLs.livecodescript
 - components/
   - preferences/
     - preferences.livecode
@@ -55,14 +54,8 @@ In the `app.yml` file you can load components, libraries, backscripts, frontscri
 - backscripts/
   - mybackscript.livecodescript
 - frontscripts/
-  - myfrontscripts.livecodescript
+  - myfrontscript.livecodescript
 - helpers/
-  - miscellaneous/
-    - helper.yml
-    - ui.livecode
-    - frontscript.livecodescript
-    - backscript.livecodescript
-    - library.livecodescript
   - logging/
     - helper.yml
     - library.livecodescript
@@ -70,6 +63,11 @@ In the `app.yml` file you can load components, libraries, backscripts, frontscri
     - helper.yml
     - library.livecodescript
     - preference.bundle
+  - oauth2
+    - helper.yml
+    - ui.livecode
+    - behaviors/stack.livecode
+    - oauthlib.livecodescript
   - my external
     - helper.yml
     - macos.bundle
