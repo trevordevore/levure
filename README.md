@@ -13,9 +13,17 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
 
-## File and Folder Organization
+## Organizing a Levure Framework Application
 
-Application stack files are organized using folders. Any UI stacks go in the`components` folder. Each UI stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
+The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
+
+Your app is configured using the `app.yml` YAML file. This file can be alongside the `standalone.livecode` stack file or directly within a folder that resides alongside the `standalone.livecode` stack file.
+
+Alongside the `app.yml` file is the `app.livecodescript` stack file.
+
+Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, or `helpers` folder. 
+
+The `components` folder is where you will store the stacks used for your user interface. Each UI stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
 
 ### An example
 
@@ -76,18 +84,31 @@ components:
   1:
     name: [stack name in memory]
     filename: [relative path to stack file within components folder]
-  ...
+  2:
+    folder: [path to folder containing components]
 libraries:
-  1: [relative path to stack file within libraries folder]
+  1: 
+    filename: [relative path to stack file within libraries folder]
+  2: 
+    folder: [relative path a folder with library stacks]
   ...
 frontscripts:
-  1: [relative path to stack file within frontscripts folder]
+  1: 
+    filename: [relative path to stack file within frontscripts folder]
+  2: 
+    folder: [relative path a folder with frontscript stacks]
   ...
 backscripts:
-  1: [relative path to stack file within backscripts folder]
+  1: 
+    filename: [relative path to stack file within backscript folder]
+  2: 
+    folder: [relative path a folder with backscript stacks]
   ...
-helper source folders:
-  1: [path to folders from which helpers should be loaded]
+helpers:
+  1: 
+    filename: [relative path to folder containing helper]
+  2: 
+    folder: [relative path a folder with helper folders]
   ...
 file extensions:
   JPEG File: jpg,jpeg
