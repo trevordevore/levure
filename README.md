@@ -190,13 +190,16 @@ The component the you target with `filename` will be loaded first and then the f
 
 ### Helpers
 
-Helpers consist of a folder with a `config.yml` file in it. The `config.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following;
+Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following:
 
-- library stacks
+- stacks
+- libraries
 - backscripts
 - frontscripts
-- ui stacks
+- behaviors
 - externals
+
+If no `helper.yml` file is found then the framework will try to load up each file in the folder as a stack.
 
 TODO: example config.yml file
 
@@ -293,3 +296,7 @@ Helps with files associated with your application as well as when the OS asks yo
 - MAS (security-scoped filenames and licensing)
 - auto update
 - error dialog
+
+## Known Issues
+
+- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it.
