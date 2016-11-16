@@ -285,7 +285,7 @@ private command loadAppConfig
       ##########
       local tSource
       
-      repeat for each item tSource in "libraries,backscripts,frontscripts"
+      repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
         put empty into tFilesA
         put 0 into j
       
@@ -408,6 +408,12 @@ end loadAppAssets
 
 
 private command loadMessagePathAssets pArrayA
+  local tFileIsLoaded
+  
+  repeat with i = 1 to the number of elements of pArrayA["behaviors"]
+    put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
+  end repeat
+  
   repeat with i = 1 to the number of elements of pArrayA["libraries"]
     start using stack pArrayA["libraries"][i]["filename"]
   end repeat
@@ -447,6 +453,10 @@ private command loadHelpers @xStacks
         put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
       end repeat
       delete the last char of tExternals
+      
+      repeat with i = 1 to the number of elements of tConfigA["behaviors"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["behaviors"][i]
+      end repeat
     
       repeat with i = 1 to the number of elements of tConfigA["libraries"]
         put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][i]
