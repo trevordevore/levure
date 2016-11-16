@@ -38,15 +38,25 @@ put "card" into tTarget
 put the short name of this stack into tStack
 if tTarget is "stack" then
   put the long id of stack tStack into tObject
+  put "stack" into tTargetName
+  put tStack && toUpper(char 1 of tTarget) & char 2 to -1 of tTarget && \
+    "Behavior" into tBehaviorStackName
 else
   put the long id of this card of stack tStack into tObject
+  if the short name of tObject is not empty then
+    put tolower(the short name of tObject) & "_card" into tTargetName
+    put tStack && tTargetName && toUpper(char 1 of tTarget) & char 2 to -1 of tTarget && \
+      "Behavior" into tBehaviorStackName
+  else
+    put "card" into tTargetName
+    put tStack && toUpper(char 1 of tTarget) & char 2 to -1 of tTarget && \
+      "Behavior" into tBehaviorStackName
+  end if
 end if
 put the script of tObject into tScript
 put the filename of stack tStack into tFilename
 set the itemDelimiter to "/"
-put "behaviors/" & tTarget & ".livecodescript" into the last item of tFilename
-put tStack && toUpper(char 1 of tTarget) & char 2 to -1 of tTarget && \
-  "Behavior" into tBehaviorStackName
+put "behaviors/" & tTargetName & ".livecodescript" into the last item of tFilename
 put "script " & quote & tBehaviorStackName & quote & cr & cr & tScript into URL("file:" & tFilename)
 set the script of tObject to empty
 put the stackfiles of stack tStack into tStackFiles
