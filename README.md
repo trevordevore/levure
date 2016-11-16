@@ -76,7 +76,9 @@ In the `app.yml` file you can load components, libraries, backscripts, frontscri
   
 ## app.yml
 
-An application is configured using the `app.yml` file. This file can be located alongside the `standalone.livecode` stack file or directly within any folder located alongside the `standalone.livecode` stack file.
+The `app.yml` file is a YAML file that describes your application. The framework will use these settings when loading your application into the IDE as well as when packaging your application for distribution.
+
+Important note: Make sure you use the same number of spaces for each indentation level in the YAML file. The current YAML parser is rather limited and may not load your configuration file correctly if you use two spaces to indent one level but three spaces to indicate indentation in a different level.
 
 ```
 password: ?????
@@ -84,7 +86,6 @@ multiple instances: true|false
 relaunch in background: true|false
 components:
   1:
-    name: [stack name in memory]
     filename: [relative path to stack file within components folder]
   2:
     folder: [path to folder containing components]
@@ -113,18 +114,13 @@ helpers:
     folder: [relative path a folder with helper folders]
   ...
 file extensions:
-  JPEG File: jpg,jpeg
+  [Description]: [Extensions (comma-delimited)]
 file extension groups:
-  Media Files:
+  [Group Name]:
     1:
-      name: All Supported Files
-      extensions: png,gif,bmp,txt
-    2:
-      name: Text Files
-      extensions: txt
-    3:
-      name: Image Files
-      extensions: png,gif,bmp
+      name: [Category Name]
+      extensions: [Extensions (comma-delimited)]
+    ...
 copy files:
   all:
     ...
@@ -134,6 +130,97 @@ copy files:
     ...
   linux:
     ...
+```
+
+### components
+
+There are two different ways to load extensions. The first is to target a specific stack that represents the component. The second is to specify a folder containing folders of components.
+
+#### Example 1
+
+```
+components:
+  1: 
+    filename: ./components/main_window/main_window.livecode
+```
+
+#### Example 2
+
+```
+components:
+  1: 
+    folder: ./components
+```
+
+If you specify a folder containing folders of components (Example 2) then the framework will assume that the first file ending in *.livecode or *.livecodescript is the stack to use for the component. As long as you only have one stack file for each component then you can load components this way.
+
+You can mix targeting specific files to load with bulk loading. For example, let's say you have 10 components and one of the components has two stack files in its folder but the rest only have one stack file.
+
+```
+components:
+  1: 
+    filename: ./components/complex_component/ui.livecode
+  2: 
+    folder: ./components
+```
+
+The component the you target with `filename` will be loaded first and then the folder of components will be loaded. The framework will see that the `complex_component` has already been loaded and will skip it when loading the folder of components.
+
+### libraries, frontscripts, and backscripts
+
+Libraries, frontscripts, and backscripts can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack.
+
+```
+libraries:
+  1: 
+    filename: ../../shared/mylibrary.livecodescript
+  2: 
+    folder: ./libraries
+```
+
+### Helpers
+
+Helpers consist of a folder with a `config.yml` file in it. The `config.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following;
+
+- library stacks
+- backscripts
+- frontscripts
+- ui stacks
+- externals
+
+TODO: example config.yml file
+
+### Targeting files in the LiveCode user extensions folder.
+
+You can use the `{{USER_EXTENSIONS}}` variable in a any path to use the value returned by `revEnvironmentCustomizationPath()` in the IDE. This allows you to store commonly used resources in your LiveCode User Extension folder.
+
+#### Example:
+
+```
+helpers:
+  1: {{USER_EXTENSIONS}}/Helpers"
+```
+
+### file extensions example
+
+```
+file extensions:
+  JPEG Files: jpg,jpeg
+```
+
+### file extension groups example
+
+```
+Media Files:
+    1:
+      name: All Supported Files
+      extensions: png,gif,bmp,txt
+    2:
+      name: Text Files
+      extensions: txt
+    3:
+      name: Image Files
+      extensions: png,gif,bmp
 ```
 
 ## standalone.livecode
@@ -177,28 +264,6 @@ When the `relaunch` message is processed by the levure standalone a `RelaunchApp
 
 - Create a stack for behaviors
   - Make all behavior stacks substacks of that stack.
-
-## Helpers (plugins)
-
-Helpers provide additional common functionality to an application. A helper consists of a folder, a config.yml file, and any supporting files. A helper can be made up of the following;
-
-- library stacks
-- backscripts
-- frontscripts
-- ui stacks
-- externals
-
-### Specifying locations of Helpers
-
-The framework will always look for a Helpers folder alongside the framework stack file as well as the `app.yml` file. YOu can specify additional folders that contain Helpers using the `helper source folders` configuration property. You can use the `{{USER_EXTENSIONS}}` variable in a Helper path to specify the path returned by `revEnvironmentCustomizationPath()` in the IDE. This allows you to store commonly used helpers in your LiveCode User Extension folder.
-
-#### Example:
-
-```
-helper source folders:
-  1: ../../../Common Helpers"
-  2: {{USER_EXTENSIONS}}/Helpers"
-```
 
 ## Helpers Included with Framework
 
