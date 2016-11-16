@@ -21,9 +21,11 @@ Your app is configured using the `app.yml` YAML file. This file can be alongside
 
 Alongside the `app.yml` file is the `app.livecodescript` stack file.
 
-Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, or `helpers` folder. 
+Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders. 
 
-The `components` folder is where you will store the stacks used for your user interface. Each UI stack has a folder for the binary stack and a subfolder named behaviors for any behaviors assigned to the stack. The behavior stacks should be assigned to the `stackfiles` property of the UI stack so that they are loaded into memory as needed.
+The `components` folder is where you will store the stacks used for your user interface. Each UI stack consistes of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
+
+The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. And behaviors will be loaded into memory so that the stack is available globally.
 
 The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals.
 
@@ -48,6 +50,8 @@ In the `app.yml` file you can load components, libraries, backscripts, frontscri
       - card.livecodescript
       - stack.livecodescript
       - tools.livecodescript
+- behaviors/
+  - field_editor.livecodescript
 - libraries/
   - libcontrols.livecodescript
   - libdatahelpers.livecodescript
@@ -89,23 +93,29 @@ components:
     filename: [relative path to stack file within components folder]
   2:
     folder: [path to folder containing components]
+behaviors:
+  1: 
+    filename: [relative path to stack file within behaviors folder]
+  2: 
+    folder: [relative path a folder with behavior stack files]
+  ...
 libraries:
   1: 
     filename: [relative path to stack file within libraries folder]
   2: 
-    folder: [relative path a folder with library stacks]
+    folder: [relative path a folder with library stack files]
   ...
 frontscripts:
   1: 
     filename: [relative path to stack file within frontscripts folder]
   2: 
-    folder: [relative path a folder with frontscript stacks]
+    folder: [relative path a folder with frontscript stack files]
   ...
 backscripts:
   1: 
     filename: [relative path to stack file within backscript folder]
   2: 
-    folder: [relative path a folder with backscript stacks]
+    folder: [relative path a folder with backscript stack files]
   ...
 helpers:
   1: 
@@ -130,6 +140,18 @@ copy files:
     ...
   linux:
     ...
+```
+
+### libraries, frontscripts, backscripts, and behaviors
+
+Libraries, frontscripts, backscripts, and behaviors can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack.
+
+```
+libraries:
+  1: 
+    filename: ../../shared/mylibrary.livecodescript
+  2: 
+    folder: ./libraries
 ```
 
 ### components
@@ -165,18 +187,6 @@ components:
 ```
 
 The component the you target with `filename` will be loaded first and then the folder of components will be loaded. The framework will see that the `complex_component` has already been loaded and will skip it when loading the folder of components.
-
-### libraries, frontscripts, and backscripts
-
-Libraries, frontscripts, and backscripts can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack.
-
-```
-libraries:
-  1: 
-    filename: ../../shared/mylibrary.livecodescript
-  2: 
-    folder: ./libraries
-```
 
 ### Helpers
 
