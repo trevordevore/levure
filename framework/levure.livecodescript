@@ -435,8 +435,28 @@ private command loadHelpers @xStacks
   local tConfigA
       
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
-    put the result into tError
+    if there is a file (sAppA["helpers"][i]["filename"] & "/helper.yml") then
+      put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
+      put the result into tError
+    else
+      # Load up any stacks
+      local tFile, tIsAStack, j
+      
+      set the itemDelimiter to "/"
+      
+      repeat for each file tFile in fileListing(sAppA["helpers"][i]["filename"])
+        put there is a stack tFile into tIsAStack
+        if tIsAStack then
+          add 1 to j
+          
+          put the short name of stack tFile into tConfigA["stacks"][j]["name"]
+          put the last item of tFile into tConfigA["stacks"][j]["filename"]
+          delete stack tFile
+        end if
+      end repeat
+      
+      set the itemDelimiter to ","
+    end if
   
     if tError is empty then
       local tExternals
