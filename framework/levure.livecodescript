@@ -429,7 +429,7 @@ private command loadHelpers @xStacks
   local tConfigA
       
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/config.yml") into tConfigA
+    put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
     put the result into tError
   
     if tError is empty then
