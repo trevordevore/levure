@@ -591,15 +591,11 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
       
-      # expand the folder listing. Assume every file is a file to load.
-      local tFile
+      # expand the folder listing. Assume every file is a file to load.      
+      addFolderToFilesArray pFilesA[i]["folder"], tFilesA
       
-      repeat for each line tFile in fileListing(pFilesA[i]["folder"])
-        if isFilenameUniqueInFilesArray(tFile, tFilesA) then
-          add 1 to j
-          put tFile into tFilesA[j]["filename"]
-        end if
-      end repeat
+      put the number of elements of tFilesA into j
+      
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
         into pFilesA[i]["filename"]
@@ -614,6 +610,24 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
   
   return tFilesA
 end expandMessagePathAssetsFileReferenceArray
+
+
+private command addFolderToFilesArray pFolder, @xFilesA
+  local tFolder, tFile, i
+  
+  repeat for each line tFolder in folderListing(pFolder)
+    addFolderToFilesArray tFolder, @xFilesA
+  end repeat
+  
+  put the number of elements of xFilesA into i
+  
+  repeat for each line tFile in fileListing(pFolder)
+    if isFilenameUniqueInFilesArray(tFile, xFilesA) then
+      add 1 to i
+      put tFile into xFilesA[i]["filename"]
+    end if
+  end repeat
+end addFolderToFilesArray
 
 
 private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
