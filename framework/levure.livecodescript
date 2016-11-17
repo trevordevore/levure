@@ -412,6 +412,10 @@ private command loadMessagePathAssets pArrayA
   
   repeat with i = 1 to the number of elements of pArrayA["behaviors"]
     put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
+    if tFileIsLoaded then
+      # Enable a script only behavior stack to set its own behavior
+      dispatch "LoadBehavior" to stack tFileIsLoaded
+    end if
   end repeat
   
   repeat with i = 1 to the number of elements of pArrayA["libraries"]
