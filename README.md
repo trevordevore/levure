@@ -25,7 +25,7 @@ Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscr
 
 The `components` folder is where you will store the stacks used for your user interface. Each UI stack consistes of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
 
-The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. And behaviors will be loaded into memory so that the stack is available globally.
+The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. Behaviors will be loaded into memory so that the stack is available globally. After the stack is loaded into memory the `LoadBehavior` message will sent dispatched to it. This enables a script only stack to set its own behavior.
 
 The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals.
 
@@ -144,7 +144,7 @@ copy files:
 
 ### libraries, frontscripts, backscripts, and behaviors
 
-Libraries, frontscripts, backscripts, and behaviors can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack.
+Libraries, frontscripts, backscripts, and behaviors can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack. The folder will be loaded recursively so any subfolders will be loaded as well.
 
 ```
 libraries:
@@ -235,6 +235,10 @@ Media Files:
       name: Image Files
       extensions: png,gif,bmp
 ```
+
+### Examples of where to put resource files
+
+TODO: Describe a resource and then show where to put it
 
 ## standalone.livecode
 
