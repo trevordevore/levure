@@ -463,7 +463,7 @@ private command loadHelpers @xStacks
     end if
   
     if tError is empty then
-      local tExternals
+      local tExternals, tKey
     
       repeat with i = 1 to the number of elements of tConfigA["stacks"]
         put tConfigA["stacks"][i]["name"] & "," & \
@@ -472,9 +472,12 @@ private command loadHelpers @xStacks
       if the number of elements of tConfigA["stacks"] > 0 then
         delete the last char of xStacks
       end if
+      
+      if the platform is "win32" then put "win" into tKey
+      else put the platform into tKey
     
-      repeat with i = 1 to the number of elements of tConfigA["externals"]
-        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][i]["filename"]) & cr after tExternals
+      repeat with i = 1 to the number of elements of tConfigA["externals"][tKey]
+        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][i]["filename"]) & cr after tExternals
       end repeat
       delete the last char of tExternals
       
