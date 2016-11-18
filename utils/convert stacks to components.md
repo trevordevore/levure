@@ -20,10 +20,12 @@ ask file "Save As:" with tDefaultName & ".livecode"
 put it into tFilename
 
 if tFilename is not empty then
+  lock messages
   put the mainstack of stack tStack into tMainStack
   set the mainstack of stack tStack to tStack
   save stack tStack as tFilename
   set the mainstack of stack tStack to tMainStack
+  unlock messages
 end if
 ```
 
