@@ -47,6 +47,7 @@ else
   put the long id of this card of stack tStack into tObject
   if the short name of tObject is not empty AND not (the short name of tObject begins with "card id ") then
     put tolower(the short name of tObject) & "_card" into tTargetName
+    replace space with "_" in tTargetName
     put tStack && tTargetName && toUpper(char 1 of tTarget) & char 2 to -1 of tTarget && \
       "Behavior" into tBehaviorStackName
   else
