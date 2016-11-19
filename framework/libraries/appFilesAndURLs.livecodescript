@@ -1,6 +1,4 @@
 ﻿script "appFilesAndURLsFrontscript"
-
-constant kFrameworkStackName = "levureFramework"
 constant kAppStackName = "app"
 
 local sURLsToProcessOnOpen
@@ -160,6 +158,41 @@ function appFileDialogTypeFilterFromGroup pFileExtGroupName
 end appFileDialogTypeFilterFromGroup
 
 
+/** 
+* \brief Registers the application to process a particular URL handler on Windows.
+*
+* \param pProtocol The protocol to register (i.e. x-myapplication).
+* \param pDescription Description of the protocol.
+*
+* Calling this handler on platforms other than Windows does nothing.
+* http://msdn.microsoft.com/en-us/library/aa767914(v=vs.85).aspx
+*
+* \return Error
+*/
+command appRegisterURLProtocol pProtocol, pDescription
+  local tError
+  
+  if pDescription is empty then put pProtocol && "Protocol" into pDescription
+  
+  switch the platform
+    case "win32"
+      local tFilename, wasSuccessful
+      
+      put levureStandaloneFilename() into tFilename
+      replace "/" with "\" in tFilename
+      put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\", "URL:" & pDescription) into wasSuccessful ## default value
+      put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\URL Protocol", " ") into wasSuccessful
+      put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\Default Icon\", tFilename & ",1") into wasSuccessful ## default value
+      put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\shell\open\command\", \
+            quote & tFilename & quote && "-url" && quote & "%1" & quote) into wasSuccessful ## default value
+      put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\UseOriginalUrlEncoding", "1") into wasSuccessful # IE9 recognizes this and won't decode URL prior to passing to app
+      break
+  end switch
+  
+  return tError
+end appRegisterURLProtocol
+
+
 /**
 * Returns a file type filter string suitable for use with 'ask file with type'.
 *
@@ -240,14 +273,12 @@ end appFileExtensionGroupExtensionsForCategory
 
 
 private function getFileExtensionsArray
-  dispatch "levureAppGet" to stack kFrameworkStackName with "file extensions"
-  return the result
+  return levureAppGet("file extensions")
 end getFileExtensionsArray
 
 
 private function getFileExtensionsGroupsArray
-  dispatch "levureAppGet" to stack kFrameworkStackName with "file extension groups"
-  return the result
+  return levureAppGet("file extension groups")
 end getFileExtensionsGroupsArray
 
 
@@ -267,7 +298,7 @@ private function extractAppAssociatedFilesFromList pFiles
   set the wholeMatches to true
   
   put appSupportedFileExtensionsList(empty) into tExtensions
-  
+   
   repeat for each line tFile in pFiles
     put _longFilePath(tFile) into tCorrectedFilepath
     
@@ -294,8 +325,7 @@ end extractAppAssociatedFilesFromList
 
 
 private function hasAppLoaded
-  dispatch function "levureApplicationHasLoaded" to stack kFrameworkStackName
-  return the result
+  return levureApplicationHasLoaded()
 end hasAppLoaded
 
 
