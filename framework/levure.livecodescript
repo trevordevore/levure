@@ -437,7 +437,7 @@ end loadMessagePathAssets
 private command loadHelpers @xStacks
   local tError, i
   local tConfigA
-      
+  
   repeat with i = 1 to the number of elements of sAppA["helpers"]
     if there is a file (sAppA["helpers"][i]["filename"] & "/helper.yml") then
       put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
@@ -448,7 +448,7 @@ private command loadHelpers @xStacks
       
       set the itemDelimiter to "/"
       
-      repeat for each file tFile in fileListing(sAppA["helpers"][i]["filename"])
+      repeat for each line tFile in fileListing(sAppA["helpers"][i]["filename"])
         put there is a stack tFile into tIsAStack
         if tIsAStack then
           add 1 to j
@@ -461,10 +461,11 @@ private command loadHelpers @xStacks
       
       set the itemDelimiter to ","
     end if
-  
+    
     if tError is empty then
       local tExternals, tKey
-    
+      local tExternalPackagesInMemory, tExternalsToVerify, tExternalPackageName
+      
       repeat with i = 1 to the number of elements of tConfigA["stacks"]
         put tConfigA["stacks"][i]["name"] & "," & \
               sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
@@ -475,32 +476,47 @@ private command loadHelpers @xStacks
       
       if the platform is "win32" then put "win" into tKey
       else put the platform into tKey
-    
+      
+      put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
+      set the wholematches to true
+      
       repeat with i = 1 to the number of elements of tConfigA["externals"][tKey]
-        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][i]["filename"]) & cr after tExternals
+        if tConfigA["externals"][tKey][i]["name"] is not empty \
+              and tConfigA["externals"][tKey][i]["name"] is not among the lines of tExternalPackagesInMemory then
+          put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][i]["filename"]) & cr after tExternals
+          put tConfigA["externals"][tKey][i]["name"] & cr after tExternalsToVerify
+        end if
       end repeat
       delete the last char of tExternals
       
       repeat with i = 1 to the number of elements of tConfigA["behaviors"]
         put sAppA["helpers"][i]["filename"] & "/" before tConfigA["behaviors"][i]
       end repeat
-    
+      
       repeat with i = 1 to the number of elements of tConfigA["libraries"]
         put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][i]
       end repeat
-    
+      
       repeat with i = 1 to the number of elements of tConfigA["backscripts"]
         put sAppA["helpers"][i]["filename"] & "/" before tConfigA["backscripts"][i]
       end repeat
-    
+      
       repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
         put sAppA["helpers"][i]["filename"] & "/" before tConfigA["frontscripts"][i]
       end repeat
-    
+      
       loadExternals tExternals
       loadMessagePathAssets tConfigA
+      
+      put levureExternalsLoadedInMemory() into tExternalsInMemory
+      repeat for each line tExternalPackageName in tExternalsToVerify
+        if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
+          put "unable to load external" && tExternalPackageName & cr after tError
+        end if
+      end repeat
+      delete the last char of tError
     end if
-  
+    
     if tError is not empty then exit repeat
   end repeat
   
@@ -847,6 +863,34 @@ private function fileListing pFilename
   
   return tFullPathFiles for value
 end fileListing
+
+
+function levureExternalsLoadedInMemory
+    local tPackage,tPackages,tPackagesA,tStack
+    local tStacks,tSubstack,tSubstacks
+    
+    put stacksInUse into tStacks
+    if the environment is "development" then
+        put "home" into line (the number of lines of tStacks + 1) of tStacks
+    end if
+    
+    repeat for each line tStack in tStacks
+        put the externalPackages of stack tStack into tPackages
+        repeat for each line tPackage in tPackages
+            put empty into tPackagesA[tPackage]
+        end repeat
+         
+        put substacks of stack tStack into tSubstacks
+        repeat for each line tSubstack in tSubstacks
+            put the externalPackages of stack tSubstack into tPackages
+            repeat for each line tPackage in tPackages
+                put empty into tPackagesA[tPackage]
+            end repeat
+        end repeat
+    end repeat
+    
+    return keys of tPackagesA
+end levureExternalsLoadedInMemory
 
 
 private function yamlFileToArray pFilename
