@@ -99,7 +99,7 @@ command levureInitializeFramework pRootFolder
     if pRootFolder is not empty then
       put normalizeFolderPath(pRootFolder) into sRootFolder
     else
-      put myFolder() into sRootFolder
+      put levureStandaloneFolder() into sRootFolder
     end if
   end if
 
@@ -591,12 +591,39 @@ private function normalizeFolderPath pFilename
 end normalizeFolderPath
 
 
-private function myFolder
+function levureAppFolder
+  return sAppFolder for value
+end levureAppFolder
+
+
+function levureStandaloneFolder
+  local tFolder
+  
   put the effective filename of this stack into tFolder
   set the itemDelimiter to "/"
   delete the last item of tFolder
   return tFolder for value
-end myFolder
+end levureStandaloneFolder
+
+
+function levureStandaloneFilename
+  local tFilename
+  
+  put the cRevStandaloneSettings["name"] of me into tFilename
+  switch the platform
+    case "macos"
+      put ".app" after tFilename
+      break
+    case "win32"
+      put ".exe" after tFilename
+      break
+    case "linux"
+    default
+    
+      break
+  end switch
+  return levureStandaloneFolder() & "/" & tFilename
+end levureStandaloneFilename
 
 
 function levureFrameworkFolder
