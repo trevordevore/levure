@@ -920,7 +920,7 @@ function levureExternalsLoadedInMemory
 end levureExternalsLoadedInMemory
 
 
-private function yamlFileToArray pFilename
+function yamlFileToArray pFilename
   local tError
   
   put readFileContents(pFilename) into tYaml
