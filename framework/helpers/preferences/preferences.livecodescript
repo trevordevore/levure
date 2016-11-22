@@ -258,7 +258,7 @@ function appGetPreferenceFile pType
     if pType is "user" then
       return _systemPreferencesFolder() & slash & tFile
     else
-      return _systemApplicationDataFolder("shared") & slash & tFile
+      return levureApplicationDataFolder("shared") & slash & tFile
     end if
   else
     return empty
@@ -267,66 +267,16 @@ end appGetPreferenceFile
 
 
 private function _systemPreferencesFolder
-  if the platform is "macos" then
-    return specialFolderPath("preferences")
-  else if the platform is "win32" then
-    return _systemApplicationDataFolder("user")
-  else if the platform is "linux" then
-    return specialFolderPath("home")
-  else
-    return empty
-  end if
+  switch the platform
+    case "macos"
+      return specialFolderPath("preferences")
+    case "win32"
+    case "linux"
+      return levureApplicationDataFolder("user")
+    default
+      return empty
+  end switch
 end _systemPreferencesFolder
-
-
-private function _systemApplicationDataFolder pUserOrShared
-  local tDefaultFolder
-  local tPath
-  
-  if pUserOrShared is not "shared" then
-    put "user" into pUserOrShared
-  end if
-  
-  if pUserOrShared is "user" then
-    if the platform is "macos" then
-      put specialFolderPath("support") into tPath
-    else if the platform is "linux" then
-      put specialFolderPath("home") into tPath
-    else if the platform is "win32" then
-      ## VERSIONS PRIOR TO WIN2000 USE REGISTRY SINCE SPECIALFOLDERPATH DOESN'T RETURN PROPER VALUE
-      if word 2 of the systemVersion >= 5 then
-        put specialFolderPath(26) into tPath ## USER APPLICATION DATA FOLDER
-      end if
-      
-      if tPath is empty or tPath is "\\" then # Seen "\\" returned for redirected folder in a domain
-        put queryRegistry("HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\" & \
-              "CurrentVersion\Explorer\Shell Folders\AppData") into tPath
-        replace "\" with "/" in tPath ## Convert to LiveCode slashes
-      end if
-    end if
-    
-  else
-    ## SHARED
-    if the platform is "macos" then
-      put specialFolderPath("asup") into tPath
-    else if the platform is "linux" then
-      put "/opt" into tPath
-    else                    
-      ## VERSIONS PRIOR TO WIN2000 USE REGISTRY SINCE SPECIALFOLDERPATH DOESN'T RETURN PROPER VALUE
-      if word 2 of the systemVersion >= 5 then
-        put specialFolderPath(35) into tPath
-      end if
-      
-      if tPath is empty or tPath is "\\" then
-        put queryRegistry("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\" & \
-              "CurrentVersion\Explorer\Shell Folders\Common AppData") into tPath
-        replace "\" with "/" in tPath
-      end if
-    end if
-  end if
-  
-  return tPath
-end _systemApplicationDataFolder
 
 
 private command _ensurePrefsAreLoaded pUserOrShared
