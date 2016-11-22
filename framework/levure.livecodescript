@@ -196,6 +196,32 @@ command levurefinishLoadingApplication
 end levurefinishLoadingApplication
 
 
+function levureApplicationDataFolder pUserOrShared
+  if pUserOrShared is not "shared" then
+    switch the platform
+      case "win32"
+      case "macos"
+        return normalizeFolderPath(specialFolderPath("support") & "/" & sAppA["application data folder"])
+      case "linux"
+        return normalizeFolderPath(specialFolderPath("home") & "/." & sAppA["application data folder"])
+      default
+        return empty
+    end switch
+  else
+    switch the platform
+      case "macos"
+        return normalizeFolderPath(specialFolderPath("asup") & "/" & sAppA["application data folder"])
+      case "win32"
+        return normalizeFolderPath(specialFolderPath("35") & "/" & sAppA["application data folder"])
+      case "linux"
+        return normalizeFolderPath("/opt/." & sAppA["application data folder"])_
+      default
+        return empty
+    end switch
+  end if
+end levureUserDataFolder
+
+
 function levureApplicationHasLoaded
   return sRuntimePropertiesA["loading state"] is "loaded"
 end levureApplicationHasLoaded
@@ -210,9 +236,23 @@ function levureAppGet pProp
 end levureAppGet
 
 
+function levureBuildProfile
+  if the environment is "development" then
+    return "development"
+  else
+    return sAppA["active build profile"] # Created at build time
+  end if
+end levureBuildProfile
+
+
 private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
+  
+  put normalizeFolderPath(sAppA["application data folder"]) into sAppA["application data folder"]
+  repeat while char 1 of sAppA["application data folder"] is "/"
+    delete char 1 of sAppA["application data folder"]
+  end repeat
   
   repeat for each item tKey in "password,file extensions,file extension groups"
     if tKey is not among the keys of sAppA then
