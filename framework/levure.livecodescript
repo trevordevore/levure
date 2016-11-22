@@ -214,7 +214,7 @@ function levureApplicationDataFolder pUserOrShared
       case "win32"
         return normalizeFolderPath(specialFolderPath("35") & "/" & sAppA["application data folder"])
       case "linux"
-        return normalizeFolderPath("/opt/." & sAppA["application data folder"])_
+        return normalizeFolderPath("/opt/." & sAppA["application data folder"])
       default
         return empty
     end switch
