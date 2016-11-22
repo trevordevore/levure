@@ -1055,7 +1055,7 @@ yamlToArray
 Convert yaml format text to a LiveCode array
 */
 private function yamlToArray pYaml
-  local tArray
+  local tArray, tDelOffset
   local tIndentation, tPrevIndent
   local tWorkingLine
   local tYamlHeading
@@ -1063,15 +1063,42 @@ private function yamlToArray pYaml
   local tSpacesPerIndent
   
   repeat for each line tLine in pYaml
+    put empty into tKey
+    
     put tLine into tWorkingLine
     if word 1 to -1 of tWorkingLine is empty then next repeat
     
-    set the itemdelimiter to ":"
-    put item 1 of tWorkingLine into tKey
-    repeat while char -1 of tKey is in ": "
-      delete char -1 of tKey
-    end repeat
-    put word 1 to -1 of item 2 of tWorkingLine into tValue
+    # Support keys wrapped in quotes
+    put offset(":", tWorkingLine) into tDelOffset
+    if tDelOffset > 1 then
+      local tStartQuoteCharOffset, tEndQuoteCharOffset
+      
+      put offset(quote, tWorkingLine) into tStartQuoteCharOffset 
+      if tStartQuoteCharOffset < tDelOffset then
+        put offset(quote, tWorkingLine, tDelOffset) into tEndQuoteCharOffset
+        if tEndQuoteCharOffset > 0 then
+          add tDelOffset to tEndQuoteCharOffset
+          put char 1 to tEndQuoteCharOffset of tWorkingLine into tKey
+          delete the last char of tKey
+          delete char tStartQuoteCharOffset of tKey
+          put char tEndQuoteCharOffset + 1 to -1 of tWorkingLine into tValue
+          repeat while char 1 of tValue is in ": "
+            delete char 1 of tValue
+          end repeat
+          put word 1 to -1 of tValue into tValue
+        end if
+      end if
+    end if
+    
+    if tKey is empty then
+      set the itemdelimiter to ":"
+      put item 1 of tWorkingLine into tKey
+      repeat while char -1 of tKey is in ": "
+        delete char -1 of tKey
+      end repeat
+      put word 1 to -1 of item 2 of tWorkingLine into tValue
+    end if
+    
     put indentationLevel(tKey) into tIndentation
     set the itemdelimiter to ","
     if tPrevIndent is empty then
