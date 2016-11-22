@@ -202,7 +202,7 @@ end levureApplicationHasLoaded
 
 
 function levureAppGet pProp
-  if pProp is among the keys of pProp then
+  if pProp is an array or pProp is among the keys of pProp then
     return sAppA[pProp]
   else
     throw "invalid levure app property:" && pProp
