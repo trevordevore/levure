@@ -1,0 +1,6 @@
+externals:
+  macos:
+    1:
+      filename: mergSparkle.bundle
+      name: mergSparkle
+  win:
