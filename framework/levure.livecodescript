@@ -16,20 +16,24 @@ local sRuntimePropertiesA
 after mouseDown pBtnNum
   # Load app if user clicks on button in standalone stack
   if word 1 of the target is "button" then
-    startup
+    if sRuntimePropertiesA["loading state"] is empty then
+      start using me
+      startup
+    end if
   end if
 end mouseDown
 
 
 on startup
-   set visible of me to false
-   set the loc of me to the screenloc
-   levureInitializeAndRunApplication
+  put "loading" into sRuntimePropertiesA["loading state"]
+  set visible of me to false
+  set the loc of me to the screenloc
+  levureInitializeAndRunApplication
 end startup
 
 
 on relaunch
-  if sRuntimePropertiesA["application has loaded"] then
+  if sRuntimePropertiesA["loading state"] is "loaded" then
     if sAppA["multiple instances"] then
       pass relaunch
     else
@@ -77,7 +81,7 @@ command levureInitializeAndRunApplication
   end if
   
   if tError is not empty then
-    answer error "An error occurred while initializaing the application [" &  tError & "]."
+    answer error "An error occurred while initializing the application [" &  tError & "]."
     
     if the environment is not "development" then
       quit
@@ -88,8 +92,6 @@ end levureInitializeAndRunApplication
 
 command levureInitializeFramework pRootFolder
   local tError, tStacksInApp
-
-  put false into sRuntimePropertiesA["application has loaded"]
 
   if the long id of me is the long id of this me OR word 1 of the long id of me is not "stack" then
     put "the framework is not assigned to a stack as a behavior" into tError
@@ -184,7 +186,7 @@ command levurefinishLoadingApplication
   local msgsAreLocked
   
   dispatch "OpenApplication" to stack kAppStackName
-  put true into sRuntimePropertiesA["application has loaded"]
+  put "loaded" into sRuntimePropertiesA["loading state"]
   
   # Don't fire off any messages when closing the standalone stack
   put the lockMessages into msgsAreLocked
@@ -195,7 +197,7 @@ end levurefinishLoadingApplication
 
 
 function levureApplicationHasLoaded
-  return sRuntimePropertiesA["application has loaded"]
+  return sRuntimePropertiesA["loading state"] is "loaded"
 end levureApplicationHasLoaded
 
 
