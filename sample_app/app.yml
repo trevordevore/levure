@@ -1,5 +1,11 @@
 multiple instances: false
 relaunch in background: false
+application data folder: MyApp/1.0
+preferences:
+  macos:
+    filename: com.my-company.myapp_osx
+  win:
+    filename: MyApp/1.0/MyApp Preferences.dat
 file extensions:
   Text File: txt
 file extension groups:
