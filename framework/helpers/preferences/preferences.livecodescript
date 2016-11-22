@@ -1,19 +1,33 @@
-﻿script "Application Preferences"
+﻿script "Application Preferences Library"
 constant kUserPrefStackname = "pref stack - user"
 constant kSharedPrefStackname = "pref stack - shared"
 
 local sUseExternal
 local sDefaultPrefsA, sDefaultSharedPrefsA
+local sPrefsA
 
-private function useExternal
-  if sUseExternal is empty then
-    _loadDefaultPreferences
-    
+
+on libraryStack
+  if the target is not me then pass libraryStack
+  
+  put null into sPrefsA
+  
+  _loadDefaultPreferences
+end libraryStack
+
+
+on releaseStack
+  if the target is not me then pass releaseStack
+end releaseStack
+
+
+private function useExternal pUserOrShared
+  if sUseExternal is empty then    
     set the wholematches to true
     put the platform is "macos" and "Preferences" is among the lines of levureExternalsLoadedInMemory() into sUseExternal
   end if
   
-  return sUseExternal
+  return sUseExternal and (pUserOrShared is "user")
 end useExternal
 
 
@@ -50,6 +64,34 @@ private command _loadDefaultPreferences
 end _loadDefaultPreferences
 
 
+function appGetDefaultPrefs pUserOrShared
+  if pUserOrShared is "shared" then
+    return sDefaultSharedPrefsA
+  else
+    return sDefaultPrefsA
+  end if
+end appGetDefaultPrefs
+
+
+command appResetPrefs pUserOrShared
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  
+  ## OS X external behavior
+  if useExternal(pUserOrShared) then
+    /* 
+    Implement once we switch to a module
+    http://stackoverflow.com/questions/8259786/cocoa-resetting-nsuserdefaults
+    */
+  else
+    put empty into sPrefsA
+    appSavePrefs
+    
+    put 1 into sPrefsA["init"]
+    delete local sPrefsA["init"]
+  end if
+end appResetPrefs
+
+
 /**
 * \brief Sets an application preference.
 * \param pKey Name of preference to set.
@@ -64,68 +106,32 @@ end _loadDefaultPreferences
 command appSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
   
-  if pUserOrShared is "shared" then
-    put kSharedPrefStackname into tStack
-  else
-    put kUserPrefStackname into tStack
-  end if   
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
   
   ## OS X external behavior
-  if the platform is "macos" and useExternal() then
+  if useExternal(pUserOrShared) then
     if the keys of pValue is empty then
       if pValue contains NULL OR pType is "binary" then
         osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform()
       else
-        osxHLPrefSetString pKey, pValue, prefFilenameForPlatform()
+        # encode strings as UTF8 or this will fail in LC 8. Convert to module at some point.
+        osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform()
       end if
     else
       put "_LCA" & arrayEncode(pValue) into pValue
       osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform()
     end if
-    put the result into theError
+    put the result into tError
     
   else
-    local tCustomSets, tCustomKeys, tLineNo
-    
-    ## Verify pref stack is available
-    _EnsurePrefStackIsLoaded tStack
-    if not the result then
-      answer param(0) && "tried to access preference but preferences have not been initialized:" && pKey & "."
-      return empty
-    end if
-    
-    set wholeMatches to true
-    put long name of stack tStack into tStack
-    
-    ## TO AVOID PROPERTY NAME CONFLICTS WE PREPEND
-    put "u" before pKey
-    
-    ## DELETE customKey OR customPropertySet OF STACK
-    put customPropertySets of tStack into tCustomSets
-    put lineOffset(pKey, tCustomSets) into tLineNo
-    if theLineNo > 0 then delete line tLineNo of tCustomSets
-    set customPropertySets of tStack to tCustomSets
-    
-    put customKeys of tStack into tCustomKeys
-    put lineOffset(pKey, tCustomKeys) into tLineNo
-    if tLineNo > 0 then delete line tLineNo of tCustomKeys
-    set customKeys of tStack to tCustomKeys
-    
-    ## STORE STRINGS IN THE STACK DEFAULT CUSTOM PROPS
-    ## STORE ARRAYS AS CUSTOM PROPERTY SETS OF THE STACK
-    if the keys of pValue is empty then
-      set the pKey of tStack to pValue
-    else        
-      set the customProperties[pKey] of tStack to pValue
-    end if
-    
-    delete char 1 of pKey -- get rid of "u" prefix
+    _ensurePrefsAreLoaded pUserOrShared
+    put pValue into sPrefsA[pUserOrShared][pKey]
   end if
   
   # Broadcasting is one of framework helpers
   appBroadcast "prefs", pKey, empty
   
-  return theError
+  return tError
 end appSetPref
 
 
@@ -140,28 +146,16 @@ end appSetPref
 function appGetPref pKey, pUserOrShared
   local tStack, tValue
   
-  if pUserOrShared is "shared" then
-    put kSharedPrefStackname into tStack
-  else
-    put kUserPrefStackname into tStack
-  end if
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
   
-  ##########
-  ## If pref isn't set then look for default value
-  ##########
   if not appPrefIsSet(pKey, pUserOrShared) then    
     if pUserOrShared is "shared" then
       put sDefaultSharedPrefsA[pKey] into tValue
     else
       put sDefaultPrefsA[pKey] into tValue
-    end if
-    
+    end if  
   else
-    
-    ##########
-    ## OS X external behavior
-    ##########
-    if the platform is "macos" and useExternal() then
+    if useExternal(pUserOrShared) then
       local tValueA
       
       osxHLPrefGet pKey, "tValueA", prefFilenameForPlatform()
@@ -178,38 +172,81 @@ function appGetPref pKey, pUserOrShared
             break
           case "string"
           default
-            put tValueA["value"] into tValue
+            put textDecode(tValueA["value"], "utf8") into tValue
             break
         end switch
       end if
       
     else
-      
-      ##########
-      ## Stack behavior
-      ##########
-      _EnsurePrefStackIsLoaded tStack
-      if not the result then
-        answer param(0) && "tried to access preference but preferences have not been initialized:" && pKey & "."
-        return empty
-      end if
-      
-      set the wholeMatches to true
-      put long name of stack tStack into tStack
-      
-      ## TO AVOID PROPERTY NAME CONFLICTS WE PREPEND
-      put "u" before pKey
-      if pKey is among lines of customPropertySets of tStack then
-        put the customProperties[pKey] of tStack into tValue
-      else
-        put the pKey of tStack into tValue
-      end if
+      _ensurePrefsAreLoaded pUserOrShared
+      put sPrefsA[pUserOrShared][pKey] into tValue
     end if
     
   end if
   
-  return theValue
+  return tValue
 end appGetPref
+
+
+/**
+* \brief Checks if a preference has been set on the computer the application is running on.
+* \param pKey Name of preference to check.
+*
+* \return true/false
+*/
+function appPrefIsSet pKey, pUserOrShared
+  local tStack
+  
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  
+  ## OS X external behavior
+  if useExternal(pUserOrShared) then
+    
+    return osxHLPrefExists(pKey, prefFilenameForPlatform())
+    
+  else
+    _ensurePrefsAreLoaded pUserOrShared
+    if not the result then
+      answer param(0) && "tried to check preference but preferences could not be loaded:" && pKey & "."
+      return false
+    end if
+    
+    return pKey is among the keys of sPrefsA
+  end if
+end appPrefIsSet
+
+
+/**
+* \brief Saves preferences to disk.
+* \param pKey Name of preference to check.
+*
+* When setting preferences the preference is updated in memory. To permanently
+* store changes on disk use this command.
+*
+* \return Error message
+*/
+command appSavePrefs pUserOrShared
+  local tError, tFile
+  
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  
+  put appGetPreferenceFile(pUserOrShared) into tFile
+  
+  ## OS X external behavior
+  if useExternal(pUserOrShared) then
+    
+    osxHLPrefSavePrefs prefFilenameForPlatform()
+    put the result into tError
+    
+  else
+    
+    saveContentsToFile tFile, arrayEncode(sPrefsA)
+    put the result into tError
+    
+  end if
+  
+  return theError
+end appSavePrefs
 
 
 function appGetPreferenceFile pType  
@@ -219,9 +256,9 @@ function appGetPreferenceFile pType
   
   if tFile is not empty then
     if pType is "user" then
-      return systemPreferencesFolder() & slash & tFile
+      return _systemPreferencesFolder() & slash & tFile
     else
-      return systemApplicationDataFolder("shared") & slash & tFile
+      return _systemApplicationDataFolder("shared") & slash & tFile
     end if
   else
     return empty
@@ -229,20 +266,20 @@ function appGetPreferenceFile pType
 end appGetPreferenceFile
 
 
-private function systemPreferencesFolder
+private function _systemPreferencesFolder
   if the platform is "macos" then
     return specialFolderPath("preferences")
   else if the platform is "win32" then
-    return systemApplicationDataFolder("user")
+    return _systemApplicationDataFolder("user")
   else if the platform is "linux" then
     return specialFolderPath("home")
   else
     return empty
   end if
-end systemPreferencesFolder
+end _systemPreferencesFolder
 
 
-private function systemApplicationDataFolder pUserOrShared
+private function _systemApplicationDataFolder pUserOrShared
   local tDefaultFolder
   local tPath
   
@@ -261,7 +298,7 @@ private function systemApplicationDataFolder pUserOrShared
         put specialFolderPath(26) into tPath ## USER APPLICATION DATA FOLDER
       end if
       
-      if tPath is empty or tPath is "\\" then ## I've seen "\\" returned for redirected folder in a domain
+      if tPath is empty or tPath is "\\" then # Seen "\\" returned for redirected folder in a domain
         put queryRegistry("HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\" & \
               "CurrentVersion\Explorer\Shell Folders\AppData") into tPath
         replace "\" with "/" in tPath ## Convert to LiveCode slashes
@@ -289,115 +326,40 @@ private function systemApplicationDataFolder pUserOrShared
   end if
   
   return tPath
-end systemApplicationDataFolder
+end _systemApplicationDataFolder
 
 
-private command _EnsurePrefStackIsLoaded pStackName
-  if there is not a stack pStackName then
-    local tFile, tStackIsLoaded
-    
-    if pStackName is kSharedPrefStackname then
+private command _ensurePrefsAreLoaded pUserOrShared
+  if sPrefsA is null then
+    if pUserOrShared is "shared" then
       put appGetPreferenceFile("shared") into tFile
     else
       put appGetPreferenceFile("user") into tFile
     end if
-    put there is a stack tFile into tStackIsLoaded
-    if not tStackIsLoaded or the short name of stack tFile is not pStackName then
-      return false
-    end if
-  end if
-  
-  return true
-end _EnsurePrefStackIsLoaded
-
-
-/**
-* \brief Checks if a preference has been set on the computer the application is running on.
-* \param pKey Name of preference to check.
-*
-* \package Preferences
-*
-* \return true/false
-*/
-function appPrefIsSet pKey, pUserOrShared
-  local tStack
-  
-  if pUserOrShared is "shared" then
-    put kSharedPrefStackname into tStack
-  else
-    put kUserPrefStackname into tStack
-  end if   
-  
-  ## OS X external behavior
-  if the platform is "macos" and useExternal() then
-    
-    return osxHLPrefExists(pKey, prefFilenameForPlatform())
-    
-  else
-    _EnsurePrefStackIsLoaded tStack
-    if not the result then
-      answer param(0) && "tried to check preference but preferences have not been initialized:" && pKey & "."
-      return false
-    end if
-    
-    set the wholeMatches to true
-    put long name of stack tStack into tStack
-    put "u" before pKey
-    return pKey is among the lines the customKeys[""] of tStack or pKey is among the lines of the customPropertySets of tStack
-  end if
-end appPrefIsSet
-
-
-/**
-* \brief Saves preferences to disk.
-* \param pKey Name of preference to check.
-*
-* When setting preferences the preference is updated in memory. To permanently
-* store changes on disk use this command.
-*
-* \package Preferences
-*
-* \return Error message
-*/
-command appSavePrefs pUserOrShared
-  local tError, tFile
-  
-  put appGetPreferenceFile(pUserOrShared) into tFile
-  
-  ## OS X external behavior
-  if the platform is "macos" AND useExternal() then
-    
-    osxHLPrefSavePrefs prefFilenameForPlatform()
-    put the result into tError
-    
-  else
     
     if there is a file tFile then
-      compact stack tFile
-      
-      save stack tFile as (tFile & "_tmp") with format "2.7"
-      put _errorMsg(format("unable to save temp prefs file \"%s\"", tFile & "_tmp"), the result) into tError
+      put readFileContents(tFile) into tData
+      put the result into tError
       
       if tError is empty then
-        delete file tFile
-        put _errorMsg(format("unable to delete prefs file \"%s\"", tFile), the result) into tError
+        if tData is not empty then
+          put arrayDecode(tData) into sPrefsA
+        else
+          put empty into sPrefsA
+        end if
+        return true
+      else
+        return false
       end if
-      
-      if tError is empty then
-        save stack (tFile & "_tmp") as tFile
-        put _errorMsg(format("unable to restore prefs file \"%s\"", tFile), the result) into tError
-      end if
-      
-      if tError is empty then
-        delete file (tFile & "_tmp")
-        put _errorMsg(format("unable to delete temp prefs file \"%s\"", tFile & "_tmp"), the result) into tError
-      end if
+    else
+      put 1 into sPrefsA["init"]
+      delete local sPrefsA["init"]
+      return true
     end if
-    
+  else
+    return true
   end if
-  
-  return theError
-end appSavePrefs
+end _ensurePrefsAreLoaded
 
 
 private function _errorMsg pMsg, pError
@@ -407,3 +369,58 @@ private function _errorMsg pMsg, pError
     return empty
   end if
 end _errorMsg
+
+
+private function readFileContents pFilename
+  local tError
+  
+  open file pFilename for read
+  put the result into tError
+  
+  if tError is empty then
+    read from file pFilename until eof
+    if the result is not "eof" then
+      put the result into tError
+    end if
+    
+    close file pFilename
+  end if
+  
+  if tError is empty then
+    return it for value
+  else
+    return tError && "(" & pFilename & ")" for error
+  end if
+end readFileContents
+
+
+private command saveContentsToFile pFilename, pData
+  local tError
+  
+  put pFilename & ".tmp" into tTempFilename
+  
+  open file tTempFilename for binary write
+  put the result into tError
+  
+  if tError is empty then
+    write pData to file tTempFilename
+    put the result into tError
+    
+    close file tTempFilename
+  end if
+  
+  if tError is not empty then
+    put "(" & pFilename & ")" after tError
+  end if
+  
+  if tError is empty then
+    rename file tTempFilename to pFilename
+    put _errorMsg("renaming temp file" && tTempFilename, the result) into tError
+  end if
+  
+  if tError is empty then
+    return empty for value
+  else
+    return tError && "(" & pFilename & ")" for error
+  end if
+end saveContentsToFile
