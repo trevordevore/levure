@@ -929,7 +929,7 @@ function yamlFileToArray pFilename
   put the result into tError
   
   if tError is empty then
-    return yamlToArray(tYaml) for value
+    return yamlToArray(textDecode(tYaml, "utf8")) for value
   else
     return tError for error
   end if
