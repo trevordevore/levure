@@ -5,6 +5,16 @@ local sURLsToProcessOnOpen
 local sFilesToProcessOnOpen
 
 
+on libraryStack
+  if the target is not me then pass libraryStack
+end libraryStack
+
+
+on releaseStack
+  if the target is not me then pass releaseStack
+end releaseStack
+
+
 function appGetURLsToProcessOnOpen
   return sURLsToProcessOnOpen
 end appGetURLsToProcessOnOpen
