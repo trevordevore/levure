@@ -468,9 +468,9 @@ private command loadHelpers @xStacks
       local tExternals, tKey
       local tExternalPackagesInMemory, tExternalsToVerify, tExternalPackageName
       
-      repeat with i = 1 to the number of elements of tConfigA["stacks"]
-        put tConfigA["stacks"][i]["name"] & "," & \
-              sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][i]["filename"]) & cr after xStacks
+      repeat with j = 1 to the number of elements of tConfigA["stacks"]
+        put tConfigA["stacks"][j]["name"] & "," & \
+              sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) & cr after xStacks
       end repeat
       if the number of elements of tConfigA["stacks"] > 0 then
         delete the last char of xStacks
@@ -482,35 +482,39 @@ private command loadHelpers @xStacks
       put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
       set the wholematches to true
       
-      repeat with i = 1 to the number of elements of tConfigA["externals"][tKey]
-        if tConfigA["externals"][tKey][i]["name"] is not empty \
-              and tConfigA["externals"][tKey][i]["name"] is not among the lines of tExternalPackagesInMemory then
-          put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][i]["filename"]) & cr after tExternals
-          put tConfigA["externals"][tKey][i]["name"] & cr after tExternalsToVerify
+      repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
+        if tConfigA["externals"][tKey][j]["name"] is not empty \
+              and tConfigA["externals"][tKey][j]["name"] is not among the lines of tExternalPackagesInMemory then
+          put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) & cr after tExternals
+          put tConfigA["externals"][tKey][j]["name"] & cr after tExternalsToVerify
         end if
       end repeat
-      delete the last char of tExternals
+      # We may not have added any externals to the list
+      if the last char of tExternals is cr then
+        delete the last char of tExternals
+        delete the last char of tExternalsToVerify
+      end if
       
-      repeat with i = 1 to the number of elements of tConfigA["behaviors"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["behaviors"][i]
+      repeat with j = 1 to the number of elements of tConfigA["behaviors"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["behaviors"][j]["filename"]
       end repeat
       
-      repeat with i = 1 to the number of elements of tConfigA["libraries"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][i]
+      repeat with j = 1 to the number of elements of tConfigA["libraries"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][j]["filename"]
       end repeat
       
-      repeat with i = 1 to the number of elements of tConfigA["backscripts"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["backscripts"][i]
+      repeat with j = 1 to the number of elements of tConfigA["backscripts"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["backscripts"][j]["filename"]
       end repeat
       
-      repeat with i = 1 to the number of elements of tConfigA["frontscripts"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["frontscripts"][i]
+      repeat with j = 1 to the number of elements of tConfigA["frontscripts"]
+        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["frontscripts"][j]["filename"]
       end repeat
       
       loadExternals tExternals
       loadMessagePathAssets tConfigA
       
-      put levureExternalsLoadedInMemory() into tExternalsInMemory
+      put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
       repeat for each line tExternalPackageName in tExternalsToVerify
         if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
           put "unable to load external" && tExternalPackageName & cr after tError
@@ -531,30 +535,30 @@ private command loadExternals pFilenames
   
   if there is a stack kApplicationExternals then
     delete stack kApplicationExternals
-    
-    /*dispatch "PreloadExternals" to stack kAppStackName with pFilenames
-    if it is "handled" then
-      put the result into pFilenames
-    end if*/
-    
-    reset the templatestack
-    set the destroyWindow of the templatestack to true
-    set the destroyStack of the templatestack to true
-    set the visible of the templatestack to false
-    set the style of the templatestack to "palette"
-    
-    set the externals of the templatestack to pFilenames
-    
-    local msgsAreLocked
-    put the lockMessages into msgsAreLocked
-    lock messages
-    create stack kApplicationExternals
-    reset the templatestack
-    
-    go stack kApplicationExternals
-    start using stack kApplicationExternals
-    set the lockMessages to msgsAreLocked
   end if
+  
+  /*dispatch "PreloadExternals" to stack kAppStackName with pFilenames
+  if it is "handled" then
+    put the result into pFilenames
+  end if*/
+  
+  reset the templatestack
+  set the destroyWindow of the templatestack to true
+  set the destroyStack of the templatestack to true
+  set the visible of the templatestack to false
+  set the style of the templatestack to "palette"
+  
+  set the externals of the templatestack to pFilenames
+  
+  local msgsAreLocked
+  put the lockMessages into msgsAreLocked
+  lock messages
+  create stack kApplicationExternals
+  reset the templatestack
+  
+  go stack kApplicationExternals
+  start using stack kApplicationExternals
+  set the lockMessages to msgsAreLocked
 end loadExternals
 
 
