@@ -15,14 +15,14 @@ on releaseStack
 end releaseStack
 
 
-function appGetURLsToProcessOnOpen
+function appURLsToProcessOnOpen
   return sURLsToProcessOnOpen
-end appGetURLsToProcessOnOpen
+end appURLsToProcessOnOpen
 
 
-function appGetFilesToProcessOnOpen
+function appFilesToProcessOnOpen
   return sFilesToProcessOnOpen
-end appGetFilesToProcessOnOpen
+end appFilesToProcessOnOpen
 
 
 on appleEvent pClass, pID, pSender
