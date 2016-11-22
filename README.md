@@ -118,6 +118,17 @@ helpers:
   2: 
     folder: [relative path a folder with helper folders]
   ...
+preferences:
+  user:
+    macos:
+      filename: [com.mycompany.myproduct]
+    win:
+      filename: [relative path to preference file within user app data folder]
+  shared:
+    macos:
+      filename: [relative path to preference file within shared app data folder]
+    win:
+      filename: [relative path to preference file within shared app data folder]
 file extensions:
   [Description]: [Extensions (comma-delimited)]
 file extension groups:
