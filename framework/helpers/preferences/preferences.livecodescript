@@ -31,14 +31,17 @@ private function useExternal pUserOrShared
 end useExternal
 
 
-private function prefFilenameForPlatform pPlatform
+private function prefFilenameForPlatform pUserOrShared, pPlatform
   local tA
+  
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
   
   if pPlatform is empty then put the platform into pPlatform
   if pPlatform is "win32" then put "win" into pPlatform
   put "preferences" into tA[1]
-  put pPlatform into tA[2]
-  put "filename" into tA[3]
+  put pUserOrShared into tA[2]
+  put pPlatform into tA[3]
+  put "filename" into tA[4]
   return levureAppGet(tA)
 end prefFilenameForPlatform
 
@@ -112,14 +115,14 @@ command appSetPref pKey, pValue, pUserOrShared, pType
   if useExternal(pUserOrShared) then
     if the keys of pValue is empty then
       if pValue contains NULL OR pType is "binary" then
-        osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform()
+        osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
       else
         # encode strings as UTF8 or this will fail in LC 8. Convert to module at some point.
-        osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform()
+        osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform("user")
       end if
     else
       put "_LCA" & arrayEncode(pValue) into pValue
-      osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform()
+      osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
     end if
     put the result into tError
     
@@ -158,7 +161,7 @@ function appGetPref pKey, pUserOrShared
     if useExternal(pUserOrShared) then
       local tValueA
       
-      osxHLPrefGet pKey, "tValueA", prefFilenameForPlatform()
+      osxHLPrefGet pKey, "tValueA", prefFilenameForPlatform("user")
       if the result is empty then
         switch tValueA["type"]
           case "binary"
@@ -202,7 +205,7 @@ function appPrefIsSet pKey, pUserOrShared
   ## OS X external behavior
   if useExternal(pUserOrShared) then
     
-    return osxHLPrefExists(pKey, prefFilenameForPlatform())
+    return osxHLPrefExists(pKey, prefFilenameForPlatform("user"))
     
   else
     _ensurePrefsAreLoaded pUserOrShared
@@ -235,7 +238,7 @@ command appSavePrefs pUserOrShared
   ## OS X external behavior
   if useExternal(pUserOrShared) then
     
-    osxHLPrefSavePrefs prefFilenameForPlatform()
+    osxHLPrefSavePrefs prefFilenameForPlatform("user")
     put the result into tError
     
   else
@@ -249,13 +252,13 @@ command appSavePrefs pUserOrShared
 end appSavePrefs
 
 
-function appGetPreferenceFile pType  
+function appGetPreferenceFile pUserOrShared  
   local tFile
   
-  put prefFilenameForPlatform() into tFile
+  put prefFilenameForPlatform(pUserOrShared) into tFile
   
   if tFile is not empty then
-    if pType is "user" then
+    if pUserOrShared is "user" then
       return _systemPreferencesFolder() & slash & tFile
     else
       return _systemAppDataFolder("shared") & slash & tFile
