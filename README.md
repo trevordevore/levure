@@ -78,6 +78,8 @@ The `app.yml` file is a YAML file that describes your application. The framework
 Important note: Make sure you use the same number of spaces for each indentation level in the YAML file. The current YAML parser is rather limited and may not load your configuration file correctly if you use two spaces to indent one level but three spaces to indicate indentation in a different level.
 
 ```
+version: x[.x[.x]]
+build: [x|x.x]
 password: ?????
 multiple instances: true|false
 relaunch in background: true|false
@@ -269,6 +271,10 @@ The framework logic is located in the `levure.livecodescript` file. The stack mu
 In the `app.yml` file you can configure a `multiple instances` property. Set to true if you want your application to support multiple instances. If `multiple instances` is `false` and you don't want the defaultStack to come forward when the user relaunches the application then set `relaunch in background` to true. 
 
 When the `relaunch` message is processed by the levure standalone a `RelaunchApplication` message will be dispatched to the `app` stack. If your application requires any special logic for bringing windows forward then it should be handled here. If any command line parameters are passed in to `relaunch` then the `ProcessCommandLineParameters` message will be dispatched to the `app` stack as well.
+
+## Version information
+
+There are two properties you will deal with for versioning: `version` and `build`. `version` is in the [major].[minor].[revision] format. This is what you would display to users. `build` is either an integer or a number - x[.x]. The build number is used to uniquely identify your application for the Sparkle update framework as well as identify each package in a 'release train' that you submit to the Mac App Store when preparing to release a version to the public. You can start the build number at 1 and then increment by one each time you package your application and send it to someone. You could also use the format of 1.x for builds made for version 1 of your application, 2.x for version 2, and so on and so forth.
 
 ## Packaging an Application
 
