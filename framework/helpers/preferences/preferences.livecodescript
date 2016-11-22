@@ -258,7 +258,7 @@ function appGetPreferenceFile pType
     if pType is "user" then
       return _systemPreferencesFolder() & slash & tFile
     else
-      return levureApplicationDataFolder("shared") & slash & tFile
+      return _systemAppDataFolder("shared") & slash & tFile
     end if
   else
     return empty
@@ -272,11 +272,37 @@ private function _systemPreferencesFolder
       return specialFolderPath("preferences")
     case "win32"
     case "linux"
-      return levureApplicationDataFolder("user")
+      return _systemAppDataFolder("user")
     default
       return empty
   end switch
 end _systemPreferencesFolder
+
+
+private function _systemAppDataFolder pUserOrShared
+  if pUserOrShared is not "shared" then
+    switch the platform
+      case "win32"
+      case "macos"
+        return specialFolderPath("support")
+      case "linux"
+        return specialFolderPath("home")
+      default
+        return empty
+    end switch
+  else
+    switch the platform
+      case "macos"
+        return specialFolderPath("asup")
+      case "win32"
+        return specialFolderPath("35")
+      case "linux"
+        return "/opt"
+      default
+        return empty
+    end switch
+  end if
+end _systemAppDataFolder
 
 
 private command _ensurePrefsAreLoaded pUserOrShared
