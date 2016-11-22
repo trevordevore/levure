@@ -219,7 +219,7 @@ function levureApplicationDataFolder pUserOrShared
         return empty
     end switch
   end if
-end levureUserDataFolder
+end levureApplicationDataFolder
 
 
 function levureApplicationHasLoaded
