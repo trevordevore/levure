@@ -2,10 +2,11 @@ multiple instances: false
 relaunch in background: false
 application data folder: LevureUnitTestApp/1.0
 preferences:
-  macos:
-    filename: com.levure-app-framework.unit_test_app
-  win:
-    filename: LevureUnitTestApp/1.0/UnitTest Prefs.dat
+  user:
+    macos:
+      filename: com.levure-app-framework.unit_test_app
+    win:
+      filename: LevureUnitTestApp/1.0/UnitTest Prefs.dat
 file extensions:
   Text File: txt
 file extension groups:
