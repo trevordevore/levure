@@ -1,7 +1,4 @@
 ﻿script "Application Preferences Library"
-constant kUserPrefStackname = "pref stack - user"
-constant kSharedPrefStackname = "pref stack - shared"
-
 local sUseExternal
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA
