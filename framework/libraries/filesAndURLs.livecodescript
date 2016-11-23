@@ -114,20 +114,20 @@ command appProcessCommandLineParameters pParams
 end appProcessCommandLineParameters
 
 
-function appSupportedFileExtensionsList pNames
-  local tName, tExtensionsA, tExtensions
+function appFileExtensionsForTypes pTypes
+  local tType, tExtensionsA, tExtensions
   
   put getFileExtensionsArray() into tExtensionsA
   
-  if pNames is not empty then      
-    repeat for each item tName in pNames
-      if tExtensionsA[tName] is not empty then
-        put tExtensionsA[tName] & cr after tExtensions
+  if pTypes is not empty then      
+    repeat for each item tType in pTypes
+      if tExtensionsA[tType] is not empty then
+        put tExtensionsA[tType] & cr after tExtensions
       end if
     end repeat
   else
-    repeat for each key tName in tExtensionsA
-      put tExtensionsA[tName] & cr after tExtensions
+    repeat for each key tType in tExtensionsA
+      put tExtensionsA[tType] & cr after tExtensions
     end repeat
   end if
   delete the last char of tExtensions
@@ -135,7 +135,7 @@ function appSupportedFileExtensionsList pNames
   sort lines of tExtensions ascending
   
   return tExtensions
-end appSupportedFileExtensionsList
+end appFileExtensionsForTypes
 
 
 /**
@@ -308,7 +308,7 @@ private function extractAppAssociatedFilesFromList pFiles
   
   set the wholeMatches to true
   
-  put appSupportedFileExtensionsList(empty) into tExtensions
+  put appFileExtensionsForTypes(empty) into tExtensions
    
   repeat for each line tFile in pFiles
     put _longFilePath(tFile) into tCorrectedFilepath
