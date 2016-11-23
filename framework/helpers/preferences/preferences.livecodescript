@@ -235,20 +235,21 @@ command appSavePrefs pUserOrShared
   
   put appGetPreferenceFile(pUserOrShared) into tFile
   
-  ## OS X external behavior
-  if useExternal(pUserOrShared) then
+  if tFile is not empty then
+    if useExternal(pUserOrShared) then
     
-    osxHLPrefSavePrefs prefFilenameForPlatform("user")
-    put the result into tError
+      osxHLPrefSavePrefs prefFilenameForPlatform("user")
+      put the result into tError
     
-  else
+    else
     
-    saveContentsToFile tFile, arrayEncode(sPrefsA)
-    put the result into tError
+      saveContentsToFile tFile, arrayEncode(sPrefsA)
+      put the result into tError
     
+    end if
   end if
   
-  return theError
+  return tError
 end appSavePrefs
 
 
