@@ -68,6 +68,12 @@ on relaunch
 end relaunch
 
 
+# So no scripts have to hard code name
+function levureAppStackName
+  return kAppStackName
+end levureAppStackName
+
+
 command levureInitializeAndRunApplication
   local tError
   
