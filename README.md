@@ -256,6 +256,7 @@ This stack file must be located directly alongside the `app.yml` file. The stack
 
 - `InitializeApplication`: Initialize your application. Framework has loaded at this point.
 - `OpenApplication`: Open your application window.
+- `PreShutdownApplication`: Sent before the application shuts down. Perform any cleanup.
 - `ProcessURL`: First parameter is line delimited list of urls that your app has been requested to process.
 - `ProcessFiles`: First parameter is line delimited list of files that your application supports and that you should process.
   

@@ -16,7 +16,7 @@ local sRuntimePropertiesA
 after mouseDown pBtnNum
   # Load app if user clicks on button in standalone stack
   if word 1 of the target is "button" then
-    if sRuntimePropertiesA["loading state"] is empty then
+    if sRuntimePropertiesA["state"] is empty then
       start using me
       startup
     end if
@@ -25,7 +25,7 @@ end mouseDown
 
 
 on startup
-  put "loading" into sRuntimePropertiesA["loading state"]
+  put "loading" into sRuntimePropertiesA["state"]
   set visible of me to false
   set the loc of me to the screenloc
   levureInitializeAndRunApplication
@@ -33,7 +33,7 @@ end startup
 
 
 on relaunch
-  if sRuntimePropertiesA["loading state"] is "loaded" then
+  if sRuntimePropertiesA["state"] is "running" then
     if sAppA["multiple instances"] then
       pass relaunch
     else
@@ -186,7 +186,7 @@ command levurefinishLoadingApplication
   local msgsAreLocked
   
   dispatch "OpenApplication" to stack kAppStackName
-  put "loaded" into sRuntimePropertiesA["loading state"]
+  put "running" into sRuntimePropertiesA["state"]
   
   # Don't fire off any messages when closing the standalone stack
   put the lockMessages into msgsAreLocked
@@ -222,9 +222,9 @@ function levureApplicationDataFolder pUserOrShared
 end levureApplicationDataFolder
 
 
-function levureApplicationHasLoaded
-  return sRuntimePropertiesA["loading state"] is "loaded"
-end levureApplicationHasLoaded
+function levureApplicationState
+  return sRuntimePropertiesA["state"]
+end levureApplicationState
 
 
 function levureAppGet pProp
@@ -277,6 +277,65 @@ private command unloadApp
   end repeat
   unloadExternals
 end unloadApp
+
+
+/**
+* \brief Cleans up and shuts down the application. Dispatches glxapp_cleanupApplication.
+*
+* This command is called by the framework. There is no need for a developer to call this message.
+*
+* \return empty
+*/
+command levureShutdownApplication
+   local tError, tCurrentState
+   
+   # 2016-04-18: Don't allow multiple calls to this.
+   if sRuntimePropertiesA["state"] is "shutting down" then exit levureShutdownApplication
+   
+   put sRuntimePropertiesA["state"] into tCurrentState
+   put "shutting down" into sRuntimePropertiesA["state"]
+      
+  ## Just in case it is still open after an error during launch
+  close me
+
+  if tCurrentState is "running" then
+    repeat for each line tStack in the openStacks
+      if tStack is empty then next repeat
+      if windowIsManaged(tStack) then
+         windowSaveWindowPosition tStack
+      end if
+   end repeat
+ 
+   dispatch "PreShutdownApplication" to stack kAppStackName
+ 
+   appSavePrefs "user"
+   put the result into tError
+   if tError is not empty then
+      answer "An error occurred while saving user preferences:" && tError & "."
+   end if
+ 
+   appSavePrefs "shared"
+   put the result into tError
+   if tError is not empty then
+      answer "An error occurred while saving shared preferences:" && tError & "."
+   end if
+ 
+  end if
+      
+  # Cleanup anything that might keep application from shutting down properly
+  repeat until the pendingMessages is empty
+     cancel item 1 of line 1 of the pendingMessages
+  end repeat
+  repeat until the openProcesses is empty
+     close process (line 1 of the openprocesses)
+  end repeat
+
+  stop using me
+   
+   put empty into sRuntimePropertiesA["state"]
+   
+   return empty for value
+end levureShutdownApplication
 
 
 private command loadAppConfig
