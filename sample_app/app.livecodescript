@@ -18,3 +18,8 @@ end ProcessURL
 command ProcessFiles pFiles
   answer param(0) && pFiles
 end ProcessFiles
+
+
+on PreShutdownApplication
+
+end PreShutdownApplication

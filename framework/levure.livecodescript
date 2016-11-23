@@ -228,12 +228,23 @@ end levureApplicationState
 
 
 function levureAppGet pProp
+  # todo: validate that array index lookup is valid
   if pProp is an array or pProp is among the keys of pProp then
     return sAppA[pProp]
   else
     throw "invalid levure app property:" && pProp
   end if
 end levureAppGet
+
+
+# Sets property for life of session. Doesn't update app.yml file
+command levureAppSet pProp, pValue
+  if pProp is an array or pProp is among the keys of pProp then
+    put pValue into sAppA[pProp]
+  else
+    throw "invalid levure app property:" && pProp
+  end if
+end levureAppSet
 
 
 function levureBuildProfile
