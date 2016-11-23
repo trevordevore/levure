@@ -1,0 +1,6 @@
+libraries:
+  1:
+    filename: windowManager.livecodescript
+frontscripts:
+  1:
+    filename: message_watcher.livecodescript
