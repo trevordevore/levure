@@ -549,6 +549,11 @@ end loadMessagePathAssets
 private command loadHelpers @xStacks
   local tError, i
   local tConfigA
+  local tExternalPackagesInMemory
+  local tExternals, tExternalsToVerify, tExternalPackageName
+  local tHelpersA, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
+  
+  put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
   
   repeat with i = 1 to the number of elements of sAppA["helpers"]
     if there is a file (sAppA["helpers"][i]["filename"] & "/helper.yml") then
@@ -574,9 +579,8 @@ private command loadHelpers @xStacks
       set the itemDelimiter to ","
     end if
     
-    if tError is empty then
-      local tExternals, tKey
-      local tExternalPackagesInMemory, tExternalsToVerify, tExternalPackageName
+    if tError is empty then    
+      local tKey
       
       repeat with j = 1 to the number of elements of tConfigA["stacks"]
         put tConfigA["stacks"][j]["name"] & "," & \
@@ -589,7 +593,6 @@ private command loadHelpers @xStacks
       if the platform is "win32" then put "win" into tKey
       else put the platform into tKey
       
-      put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
       set the wholematches to true
       
       repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
@@ -599,42 +602,52 @@ private command loadHelpers @xStacks
           put tConfigA["externals"][tKey][j]["name"] & cr after tExternalsToVerify
         end if
       end repeat
-      # We may not have added any externals to the list
-      if the last char of tExternals is cr then
-        delete the last char of tExternals
-        delete the last char of tExternalsToVerify
-      end if
       
       repeat with j = 1 to the number of elements of tConfigA["behaviors"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["behaviors"][j]["filename"]
+        add 1 to tBehaviorIndex
+        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["behaviors"][j]["filename"] into tHelpersA["behaviors"][tBehaviorIndex]["filename"]
       end repeat
       
       repeat with j = 1 to the number of elements of tConfigA["libraries"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["libraries"][j]["filename"]
+        add 1 to tLibraryIndex
+        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["libraries"][j]["filename"] into tHelpersA["libraries"][tLibraryIndex]["filename"]
       end repeat
       
       repeat with j = 1 to the number of elements of tConfigA["backscripts"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["backscripts"][j]["filename"]
+        add 1 to tBackscriptIndex
+        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["backscripts"][j]["filename"] into tHelpersA["backscripts"][tBackscriptIndex]["filename"]
       end repeat
       
       repeat with j = 1 to the number of elements of tConfigA["frontscripts"]
-        put sAppA["helpers"][i]["filename"] & "/" before tConfigA["frontscripts"][j]["filename"]
+        add 1 to tFrontscriptIndex
+        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["frontscripts"][j]["filename"] into tHelpersA["frontscripts"][tFrontscriptIndex]["filename"]
       end repeat
-      
-      loadExternals tExternals
-      loadMessagePathAssets tConfigA
-      
-      put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
-      repeat for each line tExternalPackageName in tExternalsToVerify
-        if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
-          put "unable to load external" && tExternalPackageName & cr after tError
-        end if
-      end repeat
-      delete the last char of tError
     end if
     
     if tError is not empty then exit repeat
   end repeat
+  
+  if tError is empty then
+    # We may not have added any externals to the list
+    if the last char of tExternals is cr then
+      delete the last char of tExternals
+      delete the last char of tExternalsToVerify
+    end if
+    
+    loadExternals tExternals
+    
+    put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
+    repeat for each line tExternalPackageName in tExternalsToVerify
+      if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
+        put "unable to load external" && tExternalPackageName & cr after tError
+      end if
+    end repeat
+    delete the last char of tError
+  end if
+  
+  if tError is empty then
+    loadMessagePathAssets tHelpersA
+  end if
   
   return tError for error
 end loadHelpers
@@ -1009,30 +1022,30 @@ end fileListing
 
 
 function levureExternalsLoadedInMemory
-    local tPackage,tPackages,tPackagesA,tStack
-    local tStacks,tSubstack,tSubstacks
-    
-    put stacksInUse into tStacks
-    if the environment is "development" then
-        put "home" into line (the number of lines of tStacks + 1) of tStacks
-    end if
-    
-    repeat for each line tStack in tStacks
-        put the externalPackages of stack tStack into tPackages
-        repeat for each line tPackage in tPackages
-            put empty into tPackagesA[tPackage]
-        end repeat
-         
-        put substacks of stack tStack into tSubstacks
-        repeat for each line tSubstack in tSubstacks
-            put the externalPackages of stack tSubstack into tPackages
-            repeat for each line tPackage in tPackages
-                put empty into tPackagesA[tPackage]
-            end repeat
-        end repeat
+  local tPackage,tPackages,tPackagesA,tStack
+  local tStacks,tSubstack,tSubstacks
+  
+  put stacksInUse into tStacks
+  if the environment is "development" then
+    put "home" into line (the number of lines of tStacks + 1) of tStacks
+  end if
+  
+  repeat for each line tStack in tStacks
+    put the externalPackages of stack tStack into tPackages
+    repeat for each line tPackage in tPackages
+      put empty into tPackagesA[tPackage]
     end repeat
     
-    return keys of tPackagesA
+    put substacks of stack tStack into tSubstacks
+    repeat for each line tSubstack in tSubstacks
+      put the externalPackages of stack tSubstack into tPackages
+      repeat for each line tPackage in tPackages
+        put empty into tPackagesA[tPackage]
+      end repeat
+    end repeat
+  end repeat
+  
+  return keys of tPackagesA
 end levureExternalsLoadedInMemory
 
 
