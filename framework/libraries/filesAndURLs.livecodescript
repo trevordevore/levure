@@ -309,7 +309,7 @@ private function extractAppAssociatedFilesFromList pFiles
   set the wholeMatches to true
   
   put appFileExtensionsForTypes(empty) into tExtensions
-   
+  
   repeat for each line tFile in pFiles
     put _longFilePath(tFile) into tCorrectedFilepath
     
@@ -360,20 +360,20 @@ end _longFilePath
 
 
 private function _encodeTextForMenu pString   
-   replace slash with slash & slash in pString
-   replace "(" with "((" in pString
-   replace "&" with "&&" in pString
-   replace "\" with "\\" in pString
-   return pString
+  replace slash with slash & slash in pString
+  replace "(" with "((" in pString
+  replace "&" with "&&" in pString
+  replace "\" with "\\" in pString
+  return pString
 end _encodeTextForMenu
 
 
 private function _decodeMenuText pString
-   replace slash & slash with slash in pString
-   replace "((" with "(" in pString
-   replace "&&" with "&" in pString
-   replace "\\" with "\" in pString
-   return pString
+  replace slash & slash with slash in pString
+  replace "((" with "(" in pString
+  replace "&&" with "&" in pString
+  replace "\\" with "\" in pString
+  return pString
 end _decodeMenuText
 
 
@@ -397,50 +397,50 @@ end appSetMaxRecentFiles
 * \return Error message
 */
 command appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
-   local tError,tFilesA
-   local tLineOffset, i
-   
-   set the wholeMatches to true
-   
-   put word 1 to -1 of (line 1 of pFile) into pFile
-   
-   if pTag is empty then put pFile into pTag
-   
-   put appGetPref("recently opened:" && pCategory) into tFilesA
-   if tFilesA is not an array then ## old behavior was just a list of files
-      put tFilesA into tFilesA["files"]
-      put tFilesA["files"] into tFilesA["tags"]
-   end if
-   put lineOffset(pFile, tFilesA["files"]) into tLineOffset	# look for exact matches
-   if tLineOffset > 0 then
-      delete line tLineOffset of tFilesA["files"]
-      delete line tLineOffset of tFilesA["tags"]
-   end if
-   
-   # Do this before adding cr to pTag
-   put pSecurityBookmark into tFilesA["security bookmarks"][pTag]
-   
-   if tFilesA["files"] is not empty then
-      put cr after pFile
-      put cr after pTag
-   end if
-   put pFile before tFilesA["files"]
-   put pTag before tFilesA["tags"]
-   
-   if the number of lines of tFilesA["files"] > sMaxRecentFiles then
-      repeat with i = (sMaxRecentFiles+1) to the number of lines of tFilesA["tags"]
-         delete local tFilesA["security bookmarks"][line i of tFilesA["tags"]]
-      end repeat
-      delete line (sMaxRecentFiles+1) to -1 of tFilesA["files"]
-      delete line (sMaxRecentFiles+1) to -1 of tFilesA["tags"]    
-   end if
-   
-   appSetPref "recently opened:" && pCategory, tFilesA
-   appSavePrefs
-   put the result into tError
-   
-   return tError
-end glxapp_addToRecentlyOpened
+  local tError,tFilesA
+  local tLineOffset, i
+  
+  set the wholeMatches to true
+  
+  put word 1 to -1 of (line 1 of pFile) into pFile
+  
+  if pTag is empty then put pFile into pTag
+  
+  put appGetPref("recently opened:" && pCategory) into tFilesA
+  if tFilesA is not an array then ## old behavior was just a list of files
+    put tFilesA into tFilesA["files"]
+    put tFilesA["files"] into tFilesA["tags"]
+  end if
+  put lineOffset(pFile, tFilesA["files"]) into tLineOffset	# look for exact matches
+  if tLineOffset > 0 then
+    delete line tLineOffset of tFilesA["files"]
+    delete line tLineOffset of tFilesA["tags"]
+  end if
+  
+  # Do this before adding cr to pTag
+  put pSecurityBookmark into tFilesA["security bookmarks"][pTag]
+  
+  if tFilesA["files"] is not empty then
+    put cr after pFile
+    put cr after pTag
+  end if
+  put pFile before tFilesA["files"]
+  put pTag before tFilesA["tags"]
+  
+  if the number of lines of tFilesA["files"] > sMaxRecentFiles then
+    repeat with i = (sMaxRecentFiles+1) to the number of lines of tFilesA["tags"]
+      delete local tFilesA["security bookmarks"][line i of tFilesA["tags"]]
+    end repeat
+    delete line (sMaxRecentFiles+1) to -1 of tFilesA["files"]
+    delete line (sMaxRecentFiles+1) to -1 of tFilesA["tags"]    
+  end if
+  
+  appSetPref "recently opened:" && pCategory, tFilesA
+  appSavePrefs
+  put the result into tError
+  
+  return tError
+end appAddToRecentlyOpened
 
 
 /**
@@ -453,29 +453,29 @@ end glxapp_addToRecentlyOpened
 * \return Error message
 */
 command appRemoveFromRecentlyOpened pCategory, pFile
-   local tError,tFilesA,tLineOffset
-   
-   set the wholeMatches to true
-   
-   put appGetPref("recently opened:" && pCategory) into tFilesA
-   if tFilesA is not an array then
-      put tFilesA into tFilesA["files"]
-      put tFilesA["files"] into tFilesA["tags"]
-   end if
-   put lineOffset(pFile, tFilesA["files"]) into tLineOffset # look for exact matches
-   if tLineOffset > 0 then
-      if line tLineOffset of tFilesA["tags"] is not empty then
-         delete local tFilesA["security bookmarks"][line tLineOffset of tFilesA["tags"]]
-      end if
-      delete line tLineOffset of tFilesA["files"]
-      delete line tLineOffset of tFilesA["tags"]
-   end if
-   
-   appSetPref "recently opened:" && pCategory, tFilesA
-   appSavePrefs
-   put the result into tError
-   
-   return tError
+  local tError,tFilesA,tLineOffset
+  
+  set the wholeMatches to true
+  
+  put appGetPref("recently opened:" && pCategory) into tFilesA
+  if tFilesA is not an array then
+    put tFilesA into tFilesA["files"]
+    put tFilesA["files"] into tFilesA["tags"]
+  end if
+  put lineOffset(pFile, tFilesA["files"]) into tLineOffset # look for exact matches
+  if tLineOffset > 0 then
+    if line tLineOffset of tFilesA["tags"] is not empty then
+      delete local tFilesA["security bookmarks"][line tLineOffset of tFilesA["tags"]]
+    end if
+    delete line tLineOffset of tFilesA["files"]
+    delete line tLineOffset of tFilesA["tags"]
+  end if
+  
+  appSetPref "recently opened:" && pCategory, tFilesA
+  appSavePrefs
+  put the result into tError
+  
+  return tError
 end appRemoveFromRecentlyOpened
 
 
@@ -487,37 +487,37 @@ end appRemoveFromRecentlyOpened
 * \return CR delimited list
 */
 function appRecentlyOpened pCategory, pShortVersion
-   local tFile,tFileKeysA,tFileList,tFiles
-   local tIndex,tItemCount,tKey
-   
-   put appGetPref("recently opened:" && pCategory) into tFilesA
-   
-   if tFilesA is not an array then
-      put tFilesA into tFilesA["files"]
-      put tFilesA["files"] into tFilesA["tags"]
-   end if
-   
-   if pShortVersion then
-      set the itemdelimiter to slash
-      repeat for each line tFile in tFilesA["tags"]
-         put -1 into tIndex
-         put item tIndex of tFile into tKey
-         put the number of items of tFile into tItemCount
-         repeat until tFileKeysA[tKey] is empty or abs(tIndex) = tItemCount
-            subtract 1 from tIndex
-            put item tIndex to -1 of tFile into tKey
-         end REPEAT
-         put 1 into tFileKeysA[tKey]
-         
-         if char 1 of tKey is "/" then put ".." before tKey
-         if the platform is "win32" then replace "/" with "\" in tKey
-         put tKey & cr after tFileList
-      end repeat
-      delete the last char of tFileList
-      return tFileList
-   else
-      return tFilesA["tags"]        
-   end if
+  local tFile,tFileKeysA,tFileList,tFiles
+  local tIndex,tItemCount,tKey
+  
+  put appGetPref("recently opened:" && pCategory) into tFilesA
+  
+  if tFilesA is not an array then
+    put tFilesA into tFilesA["files"]
+    put tFilesA["files"] into tFilesA["tags"]
+  end if
+  
+  if pShortVersion then
+    set the itemdelimiter to slash
+    repeat for each line tFile in tFilesA["tags"]
+      put -1 into tIndex
+      put item tIndex of tFile into tKey
+      put the number of items of tFile into tItemCount
+      repeat until tFileKeysA[tKey] is empty or abs(tIndex) = tItemCount
+        subtract 1 from tIndex
+        put item tIndex to -1 of tFile into tKey
+      end REPEAT
+      put 1 into tFileKeysA[tKey]
+      
+      if char 1 of tKey is "/" then put ".." before tKey
+      if the platform is "win32" then replace "/" with "\" in tKey
+      put tKey & cr after tFileList
+    end repeat
+    delete the last char of tFileList
+    return tFileList
+  else
+    return tFilesA["tags"]        
+  end if
 end appRecentlyOpened
 
 
@@ -531,34 +531,34 @@ end appRecentlyOpened
 * \return CR delimited list
 */
 function appRecentlyOpenedMenuText pCategory
-   local tFile,tFileKeysA,tFileList,tFiles
-   local tIndex,tItemCount,tKey
-   local tLineNo
-   
-   put appGetPref("recently opened:" && pCategory) into tFilesA
-   if tFilesA is not an array then
-      put tFilesA into tFilesA["files"]
-      put tFilesA["files"] into tFilesA["tags"]
-   end if
-   
-   set the itemDelimiter to slash
-   repeat for each line tFile in tFilesA["files"]
-      add 1 to tLineNo
-      put -1 into tIndex
-      put item tIndex of tFile into tKey
-      put the number of items of tFile into tItemCount
-      repeat until tFileKeysA[tKey] is empty or abs(tIndex) = tItemCount
-         subtract 1 from tIndex
-         put item tIndex to -1 of tFile into tKey
-      end repeat
-      put 1 into tFileKeysA[tKey]
-      
-      if char 1 of tKey is "/" then put ".." before tKey
-      if the platform is "win32" then replace "/" with "\" in tKey
-      put tab & _encodeTextForMenu(tKey) & "/|" & urlencode(line tLineNo of tFilesA["tags"]) & cr after tFileList
-   end REPEAT
-   delete the last char of tFileList
-   return tFileList
+  local tFile,tFileKeysA,tFileList,tFiles
+  local tIndex,tItemCount,tKey
+  local tLineNo
+  
+  put appGetPref("recently opened:" && pCategory) into tFilesA
+  if tFilesA is not an array then
+    put tFilesA into tFilesA["files"]
+    put tFilesA["files"] into tFilesA["tags"]
+  end if
+  
+  set the itemDelimiter to slash
+  repeat for each line tFile in tFilesA["files"]
+    add 1 to tLineNo
+    put -1 into tIndex
+    put item tIndex of tFile into tKey
+    put the number of items of tFile into tItemCount
+    repeat until tFileKeysA[tKey] is empty or abs(tIndex) = tItemCount
+      subtract 1 from tIndex
+      put item tIndex to -1 of tFile into tKey
+    end repeat
+    put 1 into tFileKeysA[tKey]
+    
+    if char 1 of tKey is "/" then put ".." before tKey
+    if the platform is "win32" then replace "/" with "\" in tKey
+    put tab & _encodeTextForMenu(tKey) & "/|" & urlencode(line tLineNo of tFilesA["tags"]) & cr after tFileList
+  end REPEAT
+  delete the last char of tFileList
+  return tFileList
 end appRecentlyOpenedMenuText
 
 
@@ -571,10 +571,10 @@ end appRecentlyOpenedMenuText
 * \return bookmark data
 */
 function appSecurityBookmarkForRecentlyOpenedFile pCategory, pTag
-   local tFile,tFiles,tKeys,tLineNo
-   
-   set the wholeMatches to true
-   
-   put appGetPref("recently opened:" && pCategory) into tFilesA
-   return tFilesA["security bookmarks"][pTag]
+  local tFile,tFiles,tKeys,tLineNo
+  
+  set the wholeMatches to true
+  
+  put appGetPref("recently opened:" && pCategory) into tFilesA
+  return tFilesA["security bookmarks"][pTag]
 end appSecurityBookmarkForRecentlyOpenedFile
