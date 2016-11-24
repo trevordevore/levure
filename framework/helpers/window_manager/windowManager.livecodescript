@@ -234,7 +234,7 @@ end windowHasCardRectChanged
 *
 * \return empty
 */
-private command _positionWindowWithinConstraints pWindowName, pRestoreFromPrefs
+command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
   local msgsAreLocked,tHeight,tLoc,tRect
   local tScreenRect,tStack,tWidth
   
@@ -342,7 +342,7 @@ private command _positionWindowWithinConstraints pWindowName, pRestoreFromPrefs
   unlock screen
   
   return empty
-end _positionWindowWithinConstraints
+end windowPositionWithinConstraints
 
 
 /**
@@ -350,7 +350,7 @@ end _positionWindowWithinConstraints
 *
 * \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
 *
-*  This handler is called from glxapputil_positionWindowWithinConstraints to ensure that a window appears in a visible \
+*  This handler is called from windowPositionWithinConstraints to ensure that a window appears in a visible \
       * area of the screen. You can call this function in other circumstances if need be.
 *
 * \return empty
@@ -395,13 +395,13 @@ command windowMoveWindowOnScreen pWindowName
     
     if item 2 of tRect < item 2 of tConstraintRect then
       set the effective top of stack pWindowName to item 2 of tConstraintRect
-    else if item 2 of tRect > item 4 of tConstraintRect - theBuffer then
+    else if item 2 of tRect > item 4 of tConstraintRect - tBuffer then
       set the effective bottom of stack pWindowName to item 4 of tConstraintRect
     end if
     if item 1 of tRect > item 3 of tConstraintRect - tBuffer then
       ## LEFT CAN'T BE PAST RIGHT
       set the effective right of stack pWindowName to item 3 of tConstraintRect
-    else if item 3 of tRect < item 1 of tConstraintRect + theBuffer then
+    else if item 3 of tRect < item 1 of tConstraintRect + tBuffer then
       ## RIGHT CAN'T BE PAST LEFT
       set the effective left of stack pWindowName to item 1 of tConstraintRect
     end if

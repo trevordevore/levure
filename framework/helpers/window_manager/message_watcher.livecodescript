@@ -12,7 +12,7 @@ on desktopChanged
   repeat for each line tStackName in the openstacks
     if tStackName is not empty then
       if windowIsManaged(tStackName) then
-        _positionWindowWithinConstraints tStackName
+        windowPositionWithinConstraints tStackName
       end if
     end if
   end repeat
@@ -84,7 +84,7 @@ on preOpenStack
   if not windowIsInit() then
     lock messages ## Don't send resizeStack message
     put true into restoreRectFromPrefs
-    _positionWindowWithinConstraints empty, restoreRectFromPrefs
+    windowPositionWithinConstraints empty, restoreRectFromPrefs
     unlock messages      
   end if
   
