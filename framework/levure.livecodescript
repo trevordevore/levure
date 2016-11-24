@@ -97,7 +97,7 @@ end levureInitializeAndRunApplication
 
 
 command levureInitializeFramework pRootFolder
-  local tError, tStacksInApp
+  local tError
 
   if the long id of me is the long id of this me OR word 1 of the long id of me is not "stack" then
     put "the framework is not assigned to a stack as a behavior" into tError
@@ -124,12 +124,8 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
-    loadHelpers tStacksInApp
+    loadHelpers
     put the result into tError
-  end if
-
-  if tError is empty then
-    set the stackFiles of stack kAppStackName to tStacksInApp
   end if
 
   return tError for error
@@ -138,17 +134,14 @@ end levureInitializeFramework
 
 command levureRunApplication
   local tError, tStacksInApp
-  
+    
   if tError is empty then
-    put the stackFiles of stack kAppStackName into tStacksInApp
-    loadAppAssets tStacksInApp
+    loadAppAssets
   end if
   
   # Add lookup for all stacks in app. They will be loaded into memory as needed
   # when referenced by name.
-  if tError is empty then
-    set the stackFiles of stack kAppStackName to tStacksInApp
-    
+  if tError is empty then    
     dispatch "InitializeApplication" to stack kAppStackName
     if it is "handled" and the result is false then
       ## user can quit app if they want
@@ -235,7 +228,7 @@ end levureApplicationState
 
 function levureAppGet pProp
   # todo: validate that array index lookup is valid
-  if pProp is an array or pProp is among the keys of pProp then
+  if pProp is an array or pProp is among the keys of sAppA then
     return sAppA[pProp]
   else
     throw "invalid levure app property:" && pProp
@@ -245,7 +238,7 @@ end levureAppGet
 
 # Sets property for life of session. Doesn't update app.yml file
 command levureAppSet pProp, pValue
-  if pProp is an array or pProp is among the keys of pProp then
+  if pProp is an array or pProp is among the keys of sAppA then
     put pValue into sAppA[pProp]
   else
     throw "invalid levure app property:" && pProp
@@ -502,19 +495,21 @@ private command loadAppStack
 end loadAppStack
 
 
-private command loadAppAssets @xStacks
+private command loadAppAssets
   local tError
   
   if tError is empty then
-    local i
+    local i, tStackFiles
+    
+    put the stackFiles of stack kAppStackName into tStackFiles
+    if tStackFiles is not empty then put cr after tStackFiles
     
     repeat with i = 1 to the number of elements of sAppA["components"]      
       put sAppA["components"][i]["name"] & "," & \
-            sAppA["components"][i]["filename"] & cr after xStacks
+            sAppA["components"][i]["filename"] & cr after tStackFiles
     end repeat
-    if the number of elements of sAppA["components"] > 0 then
-      delete the last char of xStacks
-    end if
+    delete the last char of tStackFiles
+    set the stackFiles of stack kAppStackName to tStackFiles
   end if
   
   if tError is empty then
@@ -532,7 +527,7 @@ private command loadMessagePathAssets pArrayA
     put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
     if tFileIsLoaded then
       # Enable a script only behavior stack to set its own behavior
-      dispatch "LoadBehavior" to stack tFileIsLoaded
+      dispatch "LoadBehavior" to stack pArrayA["behaviors"][i]["filename"]
     end if
   end repeat
   
@@ -552,14 +547,16 @@ private command loadMessagePathAssets pArrayA
 end loadMessagePathAssets
 
 
-private command loadHelpers @xStacks
+private command loadHelpers
   local tError, i
-  local tConfigA
+  local tConfigA, tStackFiles
   local tExternalPackagesInMemory
   local tExternals, tExternalsToVerify, tExternalPackageName
   local tHelpersA, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
   
   put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
+  put the stackFiles of stack kAppStackName into tStackFiles
+  if tStackFiles is not empty then put cr after tStackFiles
   
   repeat with i = 1 to the number of elements of sAppA["helpers"]
     if there is a file (sAppA["helpers"][i]["filename"] & "/helper.yml") then
@@ -569,6 +566,8 @@ private command loadHelpers @xStacks
       # Load up any stacks
       local tFile, tIsAStack, j
       
+      put 0 into j
+      put empty into tConfigA
       set the itemDelimiter to "/"
       
       repeat for each line tFile in fileListing(sAppA["helpers"][i]["filename"])
@@ -589,12 +588,11 @@ private command loadHelpers @xStacks
       local tKey
       
       repeat with j = 1 to the number of elements of tConfigA["stacks"]
-        put tConfigA["stacks"][j]["name"] & "," & \
-              sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) & cr after xStacks
+        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
+        put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
+        
+        put tConfigA["stacks"][j]["name"] & "," & tConfigA["stacks"][j]["filename"] & cr after tStackFiles
       end repeat
-      if the number of elements of tConfigA["stacks"] > 0 then
-        delete the last char of xStacks
-      end if
       
       if the platform is "win32" then put "win" into tKey
       else put the platform into tKey
@@ -634,6 +632,9 @@ private command loadHelpers @xStacks
   end repeat
   
   if tError is empty then
+    delete the last char of tStackFiles
+    set the stackfiles of stack kAppStackName to tStackFiles
+    
     # We may not have added any externals to the list
     if the last char of tExternals is cr then
       delete the last char of tExternals
