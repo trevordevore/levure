@@ -21,7 +21,7 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders. 
 - The `components` folder is where you will store the stacks used for your user interface. Each UI stack consistes of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
 - The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. Behaviors will be loaded into memory so that the stack is available globally. After the stack is loaded into memory the `LoadBehavior` message will dispatched to it. This enables a script only stack to set its own behavior.
-- The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals.
+- The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals or extensions.
 - In the `app.yml` file you can load components, libraries, backscripts, frontscripts, and helpers from any location on your computer, even the LiveCode User Extensions folder. When your application is packaged up all of the necessary resources will be brought together to build the final application.
 
 ### An example
@@ -204,8 +204,20 @@ Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` fil
 - frontscripts
 - behaviors
 - externals
+- extensions
 
 If no `helper.yml` file is found then the framework will try to load up each file in the folder as a stack.
+
+If your helper includes an extension then you can also specify a resource folder for the extension. This is the folder where any resources that your widget loads will come from. For example, if you use `image from resource file mResource` and it is a relative reference then the LiveCode engine will look in the resource folder.
+
+If no resource file is specified and a `./resources` folder exists alongside your `app.yml` file then that folder will be used.
+
+```
+extensions:
+  1:
+    filename: myextension.lcm
+    resource folder: ./ext_resources
+```
 
 TODO: example config.yml file
 
@@ -267,7 +279,7 @@ The framework logic is located in the `levure.livecodescript` file. The stack mu
 1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file, searching first alongside the `standalone.livecode` stack file and then directly within any folders that are alongside the `standalone.livecode` stack. If `app.yml` is not found then app cannot be loaded.
 2. Process any command line arguments using the `app_files_and_urls` helper.
 3. Load `app.livecodescript` from folder containing the `app.yml` file.
-4. Load helpers. By default any helpers in a folder named `helpers` that sits alongside the `levure.livecodescript` file or the `app.yml` file will be loaded. You can configure additional folders where helpers are located using the `helper source folders` config property. ` All externals, libraries, backscripts, and frontscripts will be loaded into memory. The ui stacks will be added to the list of stackFiles to be assigned to `app` stack. `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
+4. Load helpers. By default any helpers in a folder named `helpers` that sits alongside the `levure.livecodescript` file or the `app.yml` file will be loaded. You can configure additional folders where helpers are located using the `helper source folders` config property. ` All externals, extensions, libraries, backscripts, and frontscripts will be loaded into memory. The ui stacks will be added to the list of stackFiles to be assigned to `app` stack. `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
 8. Add list of stacks defined in `components` key in config file to stackFiles list.
 5. Load app libraries and start using.
 6. Load app backscripts and insert.
