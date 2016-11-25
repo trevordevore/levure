@@ -33,7 +33,7 @@ end openCard
 --> API
 
 
-private function windowGetProperty pProperty, pStackName
+function windowGetProperty pProperty, pStackName
   if pStackName is empty then put the short name of the owner of the target into pStackName
   return the uWindowManager[pProperty] of stack pStackName
 end windowGetProperty
