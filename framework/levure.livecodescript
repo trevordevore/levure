@@ -342,9 +342,9 @@ command levureShutdownApplication
 
   stop using me
    
-   put empty into sRuntimePropertiesA["state"]
+  put empty into sRuntimePropertiesA["state"]
    
-   return empty for value
+  return empty for value
 end levureShutdownApplication
 
 
