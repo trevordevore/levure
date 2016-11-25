@@ -363,8 +363,16 @@ Manages windows in your application. Set a flag on a stack and it's position wil
 ## Helpers to build:
 
 - MAS (security-scoped filenames and licensing)
-- auto update (needs a sparkle module for Windows).
+- auto update
+  - Needs module wrapped around WinSparkle: https://winsparkle.org
+  - Needs module wrapped around latest Sparkle: https://sparkle-project.org
 - error dialog
+
+## TODO
+
+- Move preferences external for OS X to a module.
+- Create module for WinSparkle and Sparkle.
+- Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
 
 ## Known Issues
 
