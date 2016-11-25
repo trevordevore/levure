@@ -802,10 +802,6 @@ end expandMessagePathAssetsFileReferenceArray
 private command addFolderToFilesArray pFolder, @xFilesA
   local tFolder, tFile, i
   
-  repeat for each line tFolder in folderListing(pFolder)
-    addFolderToFilesArray tFolder, @xFilesA
-  end repeat
-  
   put the number of elements of xFilesA into i
   
   repeat for each line tFile in fileListing(pFolder)
@@ -814,6 +810,12 @@ private command addFolderToFilesArray pFolder, @xFilesA
       put tFile into xFilesA[i]["filename"]
     end if
   end repeat
+  
+  repeat for each line tFolder in folderListing(pFolder)
+    addFolderToFilesArray tFolder, xFilesA
+  end repeat
+  
+  return empty for value
 end addFolderToFilesArray
 
 
