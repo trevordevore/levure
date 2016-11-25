@@ -50,7 +50,7 @@ end appLogMsg
 
 
 on ulLogIt pMsg
-  if sLogNetworkTraffic then
+  if sLogNetworkTraffic AND sLogFile is not empty then
     _logLibURLMessage pMsg
   else
     pass ulLogIt
