@@ -295,23 +295,44 @@ There are two properties you will deal with for versioning: `version` and `build
 
 ## Helpers Included with Framework
 
-### app_files_and_urls
+### ./libraries/filesAndURLs.livecodescript
 
-Helps with files associated with your application as well as when the OS asks your application to process a url. Also includes functions for generating file dialog type filter strings.
+Helps with files associated with your application, managing a recent files list, as well as when the OS asks your application to process a url. Also includes functions for generating file dialog type filter strings.
 
 `ProcessFiles` message sent to `app` stack. Check `appGetFilesToProcessOnOpen` when app opens for files passed on command line.
 
 `ProcessURL` message sent to `app` stack. Check `appGetURLsToProcessOnOpen()` when app opens for urls passed on the command line.
 
+### ./libraries/broadcaster
+
+API for broadcasting and listening for messages. 
+
+### ./libraries/translate.livecodescript
+
+API for providing translated versions of strings in your app. When you call translateSetLocale the library looks for a `./locales/[LANG_CODE].yml` file alongside your `app.yml` file.
+
+### ./frontscripts/logging.livecodescript
+
+API for setting up a log file. Has option to log internet traffic. Turning it on will intercept the ulLogit message that libURL uses and log those messages to your log file.
+
+### ./helpers/preferences
+
+API for managing your application preferences. On OS X and external is used so that you can set preferences using the OS X APIs. On Windows and Linux preferences are stored in a file containing data serialized using arrayEncode.
+
+### ./helpers/undo_manager
+
+Manage undo in your application.
+
+### ./helpers/window_manager
+
+Manages windows in your application. Set a flag on a stack and it's position will be stored across sessions. Also keeps stacks on screen when the desktopChanged message is received.
+
 ## Helpers to build:
 
-- preference
-- window manager
-- logging
 - MAS (security-scoped filenames and licensing)
-- auto update
+- auto update (needs a sparkle module for Windows).
 - error dialog
 
 ## Known Issues
 
-- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it.
+- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors stored in the `./behaviors` folder as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
