@@ -509,11 +509,12 @@ private command loadAppAssets
             sAppA["components"][i]["filename"] & cr after tStackFiles
     end repeat
     delete the last char of tStackFiles
-    set the stackFiles of stack kAppStackName to tStackFiles
   end if
   
   if tError is empty then
     loadMessagePathAssets sAppA
+    
+    set the stackFiles of stack kAppStackName to tStackFiles
   end if
   
   return tError
@@ -631,10 +632,7 @@ private command loadHelpers
     if tError is not empty then exit repeat
   end repeat
   
-  if tError is empty then
-    delete the last char of tStackFiles
-    set the stackfiles of stack kAppStackName to tStackFiles
-    
+  if tError is empty then    
     # We may not have added any externals to the list
     if the last char of tExternals is cr then
       delete the last char of tExternals
@@ -654,6 +652,9 @@ private command loadHelpers
   
   if tError is empty then
     loadMessagePathAssets tHelpersA
+    
+    delete the last char of tStackFiles
+    set the stackfiles of stack kAppStackName to tStackFiles
   end if
   
   return tError for error
