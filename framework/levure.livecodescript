@@ -386,7 +386,7 @@ private command loadAppConfig
       normalizeAppArray
     end if
     
-    # If not explicitly configured, load any libraries, frontscripts, or backscripts
+    # If not explicitly configured, load any extensions, libraries, frontscripts, or backscripts
     if tError is empty then
       local i, j
       local tFilesA
@@ -396,7 +396,7 @@ private command loadAppConfig
       ##########
       local tSource
       
-      repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
+      repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
         put empty into tFilesA
         put 0 into j
       
@@ -512,6 +512,11 @@ private command loadAppAssets
   end if
   
   if tError is empty then
+    loadExtensions sAppA
+    put the result into tError
+  end if
+  
+  if tError is empty then
     loadMessagePathAssets sAppA
     
     set the stackFiles of stack kAppStackName to tStackFiles
@@ -522,7 +527,7 @@ end loadAppAssets
 
 
 private command loadMessagePathAssets pArrayA
-  local tFileIsLoaded
+  local tFileIsLoaded, i
   
   repeat with i = 1 to the number of elements of pArrayA["behaviors"]
     put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
@@ -550,12 +555,38 @@ private command loadMessagePathAssets pArrayA
 end loadMessagePathAssets
 
 
+
+private command loadExtensions pArrayA
+  local tError, tDefaultResourcesFolder
+  local i
+  
+  put sAppFolder & "/resources" into tDefaultResourcesFolder
+  if there is not a folder tDefaultResourcesFolder then
+    put empty into tDefaultResourcesFolder
+  end if
+  
+  repeat with i = 1 to the number of elements of pArrayA["extensions"]
+    if pArrayA["extensions"][i]["resource path"] is not empty then
+      load extension from file pArrayA["extensions"][i]["filename"] with resource path pArrayA["extensions"][i]["resource path"]
+    else if tDefaultResourcesFolder is not empty then
+      load extension from file pArrayA["extensions"][i]["filename"] with resource path tDefaultResourcesFolder
+    else
+      load extension from file pArrayA["extensions"][i]["filename"]
+    end if
+    put the result & cr after tError
+  end repeat
+  
+  return tError for error
+end loadExtensions
+
+
 private command loadHelpers
   local tError, i
   local tConfigA, tStackFiles
   local tExternalPackagesInMemory
   local tExternals, tExternalsToVerify, tExternalPackageName
-  local tHelpersA, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
+  local tHelpersA
+  local tExtensionIndex, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
   
   put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
   put the stackFiles of stack kAppStackName into tStackFiles
@@ -610,6 +641,14 @@ private command loadHelpers
         end if
       end repeat
       
+      repeat with j = 1 to the number of elements of tConfigA["extensions"]
+        add 1 to tExtensionIndex
+        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["extensions"][j]["filename"] into tHelpersA["extensions"][tExtensionIndex]["filename"]
+        if tConfigA["extensions"][j]["resource folder"] is not empty then
+          put sAppA["helpers"][i]["filename"] & "/" & tConfigA["extensions"][j]["resource folder"] into tHelpersA["extensions"][tExtensionIndex]["resource folder"]
+        end if
+      end repeat
+      
       repeat with j = 1 to the number of elements of tConfigA["behaviors"]
         add 1 to tBehaviorIndex
         put sAppA["helpers"][i]["filename"] & "/" & tConfigA["behaviors"][j]["filename"] into tHelpersA["behaviors"][tBehaviorIndex]["filename"]
@@ -650,6 +689,11 @@ private command loadHelpers
       end if
     end repeat
     delete the last char of tError
+  end if
+  
+  if tError is empty then
+    loadExtensions tHelpersA
+    put the result into tError
   end if
   
   if tError is empty then
