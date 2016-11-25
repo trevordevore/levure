@@ -83,11 +83,20 @@ build: [x|x.x]
 password: ?????
 multiple instances: true|false
 relaunch in background: true|false
+application data folder: [relative path to app data folder with user or shared data folders on the computer]
+creator code: [app creator code registered with Apple]
+shutdown when all windows are closed: true|false
 components:
   1:
     filename: [relative path to stack file within components folder]
   2:
     folder: [path to folder containing components]
+extensions:
+  1: 
+    filename: [relative path to .lcm extension file]
+  2: 
+    folder: [relative path to folder containing .lcm extensions]
+  ...
 behaviors:
   1: 
     filename: [relative path to stack file within behaviors folder]
@@ -137,15 +146,27 @@ file extension groups:
       name: [Category Name]
       extensions: [Extensions (comma-delimited)]
     ...
-copy files:
-  all:
-    ...
-  macos:
-    ...
-  win:
-    ...
-  linux:
-    ...
+build profiles:
+  default:
+    post build script: [relative path to LiveCode file that will be run post build.
+    macos:
+      certificate name: [name of certificate to sign OS X applications with]
+    copy files:
+      all:
+        1:
+          filename: [relative path to file or folder that should be copied to build folder]
+          destination: [relative destination folder without build folder]
+        ...
+      macos:
+        ...
+      win:
+        ...
+      linux:
+        ...
+    base auto update url: [URL where updates to your application can be found]
+  development:
+  beta:
+  release:
 ```
 
 ### libraries, frontscripts, backscripts, and behaviors
