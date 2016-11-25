@@ -373,6 +373,7 @@ Manages windows in your application. Set a flag on a stack and it's position wil
 - Move preferences external for OS X to a module.
 - Create module for WinSparkle and Sparkle.
 - Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
+- Create module for security scoped bookmark APIs.
 
 ## Known Issues
 
