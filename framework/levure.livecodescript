@@ -343,19 +343,19 @@ private command loadAppConfig
     
   else
     # Development
-        
+    
     # Search order:
     # 1. root folder which by default is the folder where the standalone resides
     # 2. Directly inside any folders alongside the root folder.
     
     # Search folders
     local tFolders, tFolder
-        
+    
     if there is a file (sRootFolder & "/app.yml") then
       put sRootFolder into sAppFolder
     else
       put folderListing(sRootFolder) into tFolders
-    
+      
       repeat for each line tFolder in tFolders
         if there is a file (tFolder & "/app.yml") then
           put tFolder into sAppFolder
@@ -389,13 +389,13 @@ private command loadAppConfig
       repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
         put empty into tFilesA
         put 0 into j
-      
+        
         if there is a folder (levureFrameworkFolder() & "/" & tSource) then
           add 1 to j
           put levureFrameworkFolder() & "/" & tSource into tFilesA[j]["folder"]
         end if
-      
-        if the number of elements of sAppA[tSource] > 1 then        
+        
+        if the number of elements of sAppA[tSource] > 0 then        
           repeat with i = 1 to the number of elements of sAppA[tSource]
             add 1 to j
             put sAppA[tSource][i] into tFilesA[j]
@@ -404,7 +404,7 @@ private command loadAppConfig
           add 1 to j
           put sAppFolder & "/" & tSource into tFilesA[j]["folder"]
         end if
-      
+        
         if the number of elements of tFilesA > 0 then
           put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
         end if
@@ -415,13 +415,13 @@ private command loadAppConfig
       ##########      
       put empty into tFilesA
       put 0 into j
-
+      
       if there is a folder (levureFrameworkFolder() & "/components") then
         add 1 to j
         put levureFrameworkFolder() & "/components" into tFilesA[j]["folder"]
       end if
       
-      if the number of elements of sAppA["components"] > 1 then        
+      if the number of elements of sAppA["components"] > 0 then        
         repeat with i = 1 to the number of elements of sAppA["components"]
           add 1 to j
           put sAppA["components"][i] into tFilesA[j]
@@ -446,7 +446,7 @@ private command loadAppConfig
         put levureFrameworkFolder() & "/helpers" into tFilesA[j]["folder"]
       end if
       
-      if the number of elements of sAppA["helpers"] > 1 then        
+      if the number of elements of sAppA["helpers"] > 0 then        
         repeat with i = 1 to the number of elements of sAppA["helpers"]
           add 1 to j
           put sAppA["helpers"][i] into tFilesA[j]
