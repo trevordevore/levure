@@ -215,6 +215,24 @@ components:
 
 The component the you target with `filename` will be loaded first and then the folder of components will be loaded. The framework will see that the `complex_component` has already been loaded and will skip it when loading the folder of components.
 
+### Extensions
+
+You can configure extensions used by the application in the configuration file. When configuring an extension you can point to both the filename and the source file for the extension. If you provide the source file then the framework can compile all of your extensions for you and place them in the specified location.
+
+In the following example the `filename` points to the actual extension module. The `source` points to the source file used to create the module. If you call `levureBuildExtensions` then the `animated_progress_dots.lcm` file will be recreated using the source file.
+
+```
+extensions:
+  1:
+    filename: extensions/animated_progress_dots.lcm
+    source: ../extensions_source/animated_progress_dots.lcb
+  ...
+```
+
+If your extensions rely on any other modules then put the `.lci` files for the other modules in the same directory as the source file or in an `lci` subfolder.
+
+If you have your extensions installed in your IDE user extensions folder and include those extensions when building your standalone then you don't have to worry about building the extensions with `levureBuildExtensions`. For someone who may be trying to run your application on a different computer without your same IDE setup this tool can build the modules and get them up and running right away, however.
+
 ### Helpers
 
 Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following:
@@ -379,3 +397,4 @@ Manages windows in your application. Set a flag on a stack and it's position wil
 ## Known Issues
 
 - If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors stored in the `./behaviors` folder as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
+- Window manager increases height of stacks when they are reopened on OS X.
