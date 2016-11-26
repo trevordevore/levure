@@ -1135,7 +1135,8 @@ end resolveFilenameReference
 
 private function isFilenameRelative pFilename
   set the itemDelimiter to "/"
-  return not ((the platform is "win32" and item 1 of pFilename contains ":") or pFilename begins with "/")
+  -- {{ is for variables
+  return not ((the platform is "win32" and item 1 of pFilename contains ":") or pFilename begins with "/" or pFilename begins with "{{")
 end isFilenameRelative
 
 
