@@ -238,6 +238,7 @@ extensions:
   1:
     filename: myextension.lcm
     resource folder: ./ext_resources
+    source file: ../../extensions/myextension/myextension.lcb
 ```
 
 TODO: example config.yml file
