@@ -581,7 +581,9 @@ private command loadExtensions pArrayA
     else
       load extension from file pArrayA["extensions"][i]["filename"]
     end if
-    put the result & cr after tError
+    if the result is not empty and the result is not "module already loaded" then
+      put the result & cr after tError
+    end if
   end repeat
   
   return tError for error
@@ -591,6 +593,7 @@ end loadExtensions
 command levureBuildExtensions
   local tError
   
+  put empty into sAppA
   if sAppA is not an array then
     loadAppConfig
     put the result into tError
@@ -611,25 +614,25 @@ private command buildExtensions pArrayA
   
   put the temporary folder & "/_buildLevureExtension_" & the milliseconds into tTempFolder
   
-  repeat with i = 1 to the number of elements of pArrayA["extensions"]
-    if there is a file pArrayA["extensions"][i]["source file"] then
+  repeat with i = 1 to the number of elements of pArrayA
+    if there is a file pArrayA[i]["source"] then
       create folder tTempFolder
       put the result into tError
       
       -- build in temp folder
       if tError is empty then
-        buildExtension pArrayA["extensions"][i]["source file"], tTempFolder
+        buildExtension pArrayA[i]["source"], tTempFolder
         put the result into tError
       end if
       
       -- replace existing file with new file
       if tError is empty then
-        delete file pArrayA["extensions"][i]["filename"]
-        rename file (tTempFolder & "/module.lcm") to pArrayA["extensions"][i]["filename"]
+        delete file pArrayA[i]["filename"]
+        rename file (tTempFolder & "/module.lcm") to pArrayA[i]["filename"]
       end if
       
       revDeleteFolder tTempFolder
-      if tError is not empty then # don't overwrite existing error
+      if tError is empty then # don't overwrite existing error
         put the result into tError
       end if
 
@@ -646,19 +649,24 @@ private command buildExtension pFilename, pOutputFolder
   
   # Path to compiler
   if the platform is "win32" then
-    put shellFormat(revEnvironmentBinariesPath() & "/lc-compile.exe") into tCmd
+    put shellFormat(revIDESpecialFolderPath("Toolchain") & "/lc-compile.exe") into tCmd
   else
-    put shellFormat(revEnvironmentBinariesPath() & "/lc-compile") into tCmd
+    put shellFormat(revIDESpecialFolderPath("Toolchain") & "/lc-compile") into tCmd
   end if
   
   # The folder to put the .lci file
   put shellFormat(pOutputFolder, "modulepath") after tCmd
   
   # The built-in module path
-  put shellFormat(revEnvironmentBinariesPath() & "/modules/lci", "modulepath") after tCmd
+  put shellFormat(revIDESpecialFolderPath("Toolchain") & "/modules/lci", "modulepath") after tCmd
   
   # Installed module path
   put shellFormat(revIDESpecialFolderPath("user extensions") & "/interface", "modulepath") after tCmd
+  
+  # Look in folder of pFilename as well as 'lci' subdirectory of pFilename folder.
+  set the itemDelimiter to "/"
+  put shellFormat(item 1 to -2 of pFilename, "modulepath") after tCmd
+  put shellFormat(item 1 to -2 of pFilename & "/lci", "modulepath") after tCmd
   
   # The manifest target
   put shellFormat(pOutputFolder & "/manifest.xml", "manifest") after tCmd
@@ -779,8 +787,8 @@ private command expandHelperAssets
           put sAppA["helpers"][i]["filename"] & "/" & tConfigA["extensions"][j]["resource folder"] into sAppA["extensions"][tExtensionIndex]["resource folder"]
         end if
       
-        if tConfigA["extensions"][j]["source file"] is not empty then
-          put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source file"], sAppA["helpers"][i]["filename"]) into sAppA["extensions"][j]["source file"]
+        if tConfigA["extensions"][j]["source"] is not empty then
+          put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], sAppA["helpers"][i]["filename"]) into sAppA["extensions"][j]["source"]
         end if
       end repeat
     
@@ -946,10 +954,16 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
       
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
-        into pFilesA[i]["filename"]
+            into pFilesA[i]["filename"]
+      
       if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+        
+        if "source" is among the keys of pFilesA[j] then
+          put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
+                into tFilesA[j]["source"]
+        end if
       end if
     end if
   end repeat
@@ -1078,6 +1092,9 @@ private command replaceVariablesInPaths @pFilesA
     
     repeat with i = 1 to the number of elements of pFilesA
       replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i]["filename"]
+      if "source" is among the keys of pFilesA[i] then
+        replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i]["source"]
+      end if
     end repeat
   end if
   
