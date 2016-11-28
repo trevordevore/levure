@@ -338,7 +338,7 @@ When the `relaunch` message is processed by the levure standalone a `RelaunchApp
 
 ## Version information
 
-There are two properties you will deal with for versioning: `version` and `build`. `version` is in the [major].[minor].[revision] format. This is what you would display to users. `build` is either an integer or a number - x[.x]. The build number is used to uniquely identify your application for the Sparkle update framework as well as identify each package in a 'release train' that you submit to the Mac App Store when preparing to release a version to the public. You can start the build number at 1 and then increment by one each time you package your application and send it to someone. You could also use the format of 1.x for builds made for version 1 of your application, 2.x for version 2, and so on and so forth.
+There are two properties you will deal with for versioning: `version` and `build`. `version` is in the [major].[minor].[revision] format. This is what you would display to users. `build` is an integer that you should increment each time you build your application. The build number is used to uniquely identify your application for the Sparkle update framework as well as identify each package in a 'release train' that you submit to the Mac App Store when preparing to release a version to the public. You can start the build number at 1 and then increment by one each time you package your application and send it to someone.
 
 ## Packaging an Application
 
