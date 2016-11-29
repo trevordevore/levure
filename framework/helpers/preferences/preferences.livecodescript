@@ -1,21 +1,49 @@
 ﻿script "Application Preferences Library"
-local sUseExternal
+local sUseExternal, sUseBroadcaster
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA
 
 
 on libraryStack
-  if the target is not me then pass libraryStack
+  if the target is not me then
+    if sUseBroadcaster is false then
+      put the short name of the target is "appBroadcaster" into sUseBroadcaster
+    end if
+  else
+    put null into sPrefsA["user"]
+    put null into sPrefsA["shared"]
   
-  put null into sPrefsA
+    _loadDefaultPreferences
+    if the result is not empty then
+      throw "error loading default preferences:" && the result
+    end if
+  end if
   
-  _loadDefaultPreferences
+  pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  if the target is not me then pass releaseStack
+  if the target is not me then
+    if sUseBroadcaster then
+      if the short name of the target is "appBroadcaster" then
+        put false into sUseBroadcaster
+      end if
+    end if
+  end if
+  
+  pass releaseStack
 end releaseStack
+
+
+private function useBroadcaster
+  if sUseBroadcaster is empty then
+    set the wholematches to true
+    put "appBroadcaster" is among the lines of the stacksinuse into sUseBroadcaster
+  end if
+  
+  return sUseBroadcaster
+end useBroadcaster
 
 
 private function useExternal pUserOrShared
@@ -31,7 +59,7 @@ end useExternal
 private function prefFilenameForPlatform pUserOrShared, pPlatform
   local tA
   
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   if pPlatform is empty then put the platform into pPlatform
   if pPlatform is "win32" then put "win" into pPlatform
@@ -60,7 +88,7 @@ private command _loadDefaultPreferences
     end if
   end if
   
-  return tError
+  return tError for error
 end _loadDefaultPreferences
 
 
@@ -74,7 +102,7 @@ end appGetDefaultPrefs
 
 
 command appResetPrefs pUserOrShared
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   ## OS X external behavior
   if useExternal(pUserOrShared) then
@@ -83,13 +111,20 @@ command appResetPrefs pUserOrShared
     http://stackoverflow.com/questions/8259786/cocoa-resetting-nsuserdefaults
     */
   else
-    put empty into sPrefsA
-    appSavePrefs
+    put empty into sPrefsA[pUserOrShared]
+    appSavePrefs pUserOrShared
     
-    put 1 into sPrefsA["init"]
-    delete local sPrefsA["init"]
+    put empty into sPrefsA[pUserOrShared]["init"]
+    delete local sPrefsA[pUserOrShared]["init"]
   end if
 end appResetPrefs
+
+
+command appReloadPrefs pUserOrShared
+  validateKey pUserOrShared
+  put null into sPrefsA[pUserOrShared]
+  _ensurePrefsAreLoaded pUserOrShared
+end appReloadPrefs
 
 
 /**
@@ -106,7 +141,7 @@ end appResetPrefs
 command appSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
   
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   ## OS X external behavior
   if useExternal(pUserOrShared) then
@@ -129,9 +164,13 @@ command appSetPref pKey, pValue, pUserOrShared, pType
   end if
   
   # Broadcasting is one of framework helpers
-  appBroadcast "prefs", pKey, empty
-  
-  return tError
+  if tError is empty then
+    if useBroadcaster() then
+      appBroadcast "prefs", pKey, empty
+    end if
+  end if
+
+  return tError for error
 end appSetPref
 
 
@@ -146,7 +185,7 @@ end appSetPref
 function appGetPref pKey, pUserOrShared
   local tStack, tValue
   
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   if not appPrefIsSet(pKey, pUserOrShared) then    
     if pUserOrShared is "shared" then
@@ -181,10 +220,9 @@ function appGetPref pKey, pUserOrShared
       _ensurePrefsAreLoaded pUserOrShared
       put sPrefsA[pUserOrShared][pKey] into tValue
     end if
-    
   end if
   
-  return tValue
+  return tValue for value
 end appGetPref
 
 
@@ -197,7 +235,7 @@ end appGetPref
 function appPrefIsSet pKey, pUserOrShared
   local tStack
   
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   ## OS X external behavior
   if useExternal(pUserOrShared) then
@@ -206,12 +244,7 @@ function appPrefIsSet pKey, pUserOrShared
     
   else
     _ensurePrefsAreLoaded pUserOrShared
-    if not the result then
-      answer param(0) && "tried to check preference but preferences could not be loaded:" && pKey & "."
-      return false
-    end if
-    
-    return pKey is among the keys of sPrefsA
+    return pKey is among the keys of sPrefsA[pUserOrShared]
   end if
 end appPrefIsSet
 
@@ -228,7 +261,7 @@ end appPrefIsSet
 command appSavePrefs pUserOrShared
   local tError, tFile
   
-  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+  validateKey pUserOrShared
   
   put appGetPreferenceFile(pUserOrShared) into tFile
   
@@ -240,7 +273,7 @@ command appSavePrefs pUserOrShared
     
     else
     
-      saveContentsToFile tFile, arrayEncode(sPrefsA)
+      saveContentsToFile tFile, arrayEncode(sPrefsA[pUserOrShared])
       put the result into tError
     
     end if
@@ -250,8 +283,10 @@ command appSavePrefs pUserOrShared
 end appSavePrefs
 
 
-function appGetPreferenceFile pUserOrShared  
+function appGetPreferenceFile pUserOrShared
   local tFile
+  
+  validateKey pUserOrShared
   
   put prefFilenameForPlatform(pUserOrShared) into tFile
   
@@ -307,7 +342,9 @@ end _systemAppDataFolder
 
 
 private command _ensurePrefsAreLoaded pUserOrShared
-  if sPrefsA is null then
+  validateKey pUserOrShared
+  
+  if sPrefsA[pUserOrShared] is null then
     if pUserOrShared is "shared" then
       put appGetPreferenceFile("shared") into tFile
     else
@@ -320,17 +357,21 @@ private command _ensurePrefsAreLoaded pUserOrShared
       
       if tError is empty then
         if tData is not empty then
-          put arrayDecode(tData) into sPrefsA
+          try
+            put arrayDecode(tData) into sPrefsA[pUserOrShared]
+          catch e
+            throw "error loading preferences:" && e
+          end try
         else
-          put empty into sPrefsA
+          put empty into sPrefsA[pUserOrShared]
         end if
         return true
       else
-        return false
+        throw "error loading preferences:" && tError
       end if
     else
-      put 1 into sPrefsA["init"]
-      delete local sPrefsA["init"]
+      put 1 into sPrefsA[pUserOrShared]["init"]
+      delete local sPrefsA[pUserOrShared]["init"]
       return true
     end if
   else
@@ -351,7 +392,7 @@ end _errorMsg
 private function readFileContents pFilename
   local tError
   
-  open file pFilename for read
+  open file pFilename for binary read
   put the result into tError
   
   if tError is empty then
@@ -391,8 +432,14 @@ private command saveContentsToFile pFilename, pData
   end if
   
   if tError is empty then
+    delete file pFilename
+    
     rename file tTempFilename to pFilename
     put _errorMsg("renaming temp file" && tTempFilename, the result) into tError
+  end if
+  
+  if tTempFilename is not empty then
+    delete file tTempFilename
   end if
   
   if tError is empty then
@@ -401,3 +448,9 @@ private command saveContentsToFile pFilename, pData
     return tError && "(" & pFilename & ")" for error
   end if
 end saveContentsToFile
+
+
+private command validateKey @xUserOrShared
+  if xUserOrShared is not "shared" then put "user" into xUserOrShared
+  return empty for value
+end validateKey
