@@ -107,6 +107,10 @@ command levureInitializeFramework pRootFolder
   end if
   
   if tError is empty then
+    dispatch "PreloadApplication" to stack kAppStackName
+  end if
+  
+  if tError is empty then
     loadAppAssets
     put the result into tError
   end if
