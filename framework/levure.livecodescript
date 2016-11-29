@@ -1123,7 +1123,7 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
         add 1 to j
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
         
-        if "source" is among the keys of pFilesA[j] then
+        if "source" is among the keys of pFilesA[i] then
           put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
                 into tFilesA[j]["source"]
         end if
