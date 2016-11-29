@@ -2,8 +2,8 @@
 
 Levure is an application development framework for LiveCode. The primary goals of Levure are the following:
 
-1. Lightweight. The actual framework code is not complicated. Common functionality is added via libraries and helpers.
-2. Designed for use with version control systems. Wherever possible configuration and scripts are text based files. While developers can take advantage of the efficiency of binary stack files for the UI, all scripts should be handled via behaviors. Behaviors are stored as script only stacks in a `behaviors` folder alongside the binary stack. Each behavior stack is assigned to the `stackfiles` property of the binary stack so that the engine automatically finds them when the stack is opened. If the LiveCode engine supports a version control friendly version of stacks with UI in the future then the framework will seamlessly support it.
+1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via libraries and helpers.
+2. Designed for use with version control systems. Wherever possible configuration and scripts are text based files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be handled via behaviors. Behaviors are stored as script only stacks in a `behaviors` folder alongside the binary stack. Each behavior stack is assigned to the `stackfiles` property of the binary stack so that the engine automatically finds them when the stack is opened. If the LiveCode engine supports a version control friendly version of stacks with UI in the future then the framework will seamlessly support it.
 
 ## Try Out Sample Application
 
