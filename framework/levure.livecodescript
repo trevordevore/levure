@@ -1187,13 +1187,16 @@ end isFilenameUniqueInFilesArray
 private function ensureStackNameIsPresent pFileA
   # Grab stack name in memory if not provided.
   if pFileA["name"] is empty then
-    local tStackIsLoaded
+    local tStackIsLoaded, msgsAreLocked
     
+    put the lockMessages into msgsAreLocked
+    lock messages
     put there is a stack pFileA["filename"] into tStackIsLoaded
     if tStackIsLoaded then
       put the short name of stack pFileA["filename"] into pFileA["name"]
       delete stack pFileA["filename"]
     end if
+    set the lockMessages to msgsAreLocked
   end if
   
   return pFileA
