@@ -66,6 +66,33 @@ on relaunch
 end relaunch
 
 
+command levureBuildDevelopmentStandalones
+  local tError, tStackFilename
+  
+  if the environment is not "development" then return "can only be run in development environment"
+  
+  if sAppA is not an array then
+    start using me
+
+    loadAppConfig
+    put the result into tError
+  end if
+  
+  if tError is empty then
+    set the itemdelimiter to "/"
+    
+    put levureFrameworkFolder() into tStackFilename
+    put "packager/packager.livecodescript" into the last item of tStackFilename
+  end if
+  
+  if tError is empty then
+    put the effective filename of me into tStandaloneStack
+    put "test" into tBuildProfile
+    send "levureBuildStandalones tStandaloneStack, tBuildProfile" to stack tStackFilename in 10 milliseconds
+  end if
+end levureBuildDevelopmentStandalones
+
+
 # So no scripts have to hard code name
 function levureAppStackName
   return kAppStackName
@@ -974,9 +1001,14 @@ end levureAppFolder
 function levureStandaloneFolder
   local tFolder
   
-  put the effective filename of this stack into tFolder
+  put the effective filename of me into tFolder
   set the itemDelimiter to "/"
   delete the last item of tFolder
+  if the environment is not "development" and the platform is "macos" then
+    if tFolder contains ".app/Contents/MacOS" then
+      delete item -3 to -1 of tFolder
+    end if
+  end if
   return tFolder for value
 end levureStandaloneFolder
 
@@ -999,6 +1031,11 @@ function levureStandaloneFilename
   end switch
   return levureStandaloneFolder() & "/" & tFilename
 end levureStandaloneFilename
+
+
+function levureBuildFolder
+  return resolveFilenameReference(sAppA["build folder"], levureAppFolder())
+end levureBuildFolder
 
 
 function levureFrameworkFolder
