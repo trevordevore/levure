@@ -48,7 +48,16 @@ command appLogMsg pMsg
   return tError for error
 end appLogMsg
 
+# LCB
+on logChanged pMsg
+  if sLogFile is not empty then
+    appLogMsg pMsg
+  else
+    pass logChanged
+  end if
+end logChanged
 
+# libURL
 on ulLogIt pMsg
   if sLogNetworkTraffic AND sLogFile is not empty then
     _logLibURLMessage pMsg
