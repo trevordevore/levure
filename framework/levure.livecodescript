@@ -11,21 +11,21 @@ local sAppFolder              # Folder where the `app` stack resides
 local sAppA
 local sRuntimePropertiesA
 
-after mouseDown pBtnNum
+on mouseDown pBtnNum
   # Load app if user clicks on button in standalone stack
-  if word 1 of the target is "button" then
-    if sRuntimePropertiesA["state"] is empty then
-      start using me
+  if sRuntimePropertiesA["state"] is empty then
+    if word 1 of the target is "button" and the owner of the owner of the target is me then
       startup
     end if
   end if
 end mouseDown
 
 
-on startup
+after startup
   put "loading" into sRuntimePropertiesA["state"]
   set visible of me to false
   set the loc of me to the screenloc
+  start using me
   levureInitializeAndRunApplication
 end startup
 
