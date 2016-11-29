@@ -671,7 +671,10 @@ end loadExtensions
 command levureBuildExtensions
   local tError
   
+  put empty into sAppA
   if sAppA is not an array then
+    start using me
+    
     loadAppConfig
     put the result into tError
   end if
