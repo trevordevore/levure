@@ -2,8 +2,7 @@
 local sWindowsA
 
 on libraryStack
-  if the target is not me then pass libraryStack
-  
+  pass libraryStack
 end libraryStack
 
 
@@ -12,6 +11,7 @@ on releaseStack
   
   ## Purge storage when released
   put empty into sWindowsA
+  pass releaseStack
 end releaseStack
 
 

@@ -7,12 +7,13 @@ local sMaxRecentFiles = "15"
 
 
 on libraryStack
-  if the target is not me then pass libraryStack
+  # pass so other libraries can check to see if this is being put in use.
+  pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  if the target is not me then pass releaseStack
+  pass releaseStack
 end releaseStack
 
 

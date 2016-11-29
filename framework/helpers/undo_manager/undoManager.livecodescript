@@ -7,12 +7,15 @@ on libraryStack
   if the long id of the target is not the long id of me then pass libraryStack
   
   undoReset "default"
+  pass libraryStack
 end libraryStack
 
 
 on releaseStack
   if the long id of the target is not the long id of me then pass releaseStack
+  
   remove script of stack "Undo Manager Field Edits Undo Frontscript" from front
+  pass releaseStack
 end releaseStack
 
 
