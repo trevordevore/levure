@@ -165,6 +165,7 @@ command levureRunApplication
       ## Only quit if not in development. This allows developer to troubleshoot.
       if the environment is not "development" then
         quit
+        exit to top
       end if
     else
       ## Slight delay here so that appleEvents can be sent before
@@ -291,10 +292,10 @@ end normalizeAppArray
 private command unloadApp
   # TODO: This isn't complete. Helpers can have scripts as well.
   repeat with i = 1 to the number of elements of sAppA["frontscripts"]
-    remove stack sAppA["frontscripts"][i]["filename"] from front
+    remove the script of stack sAppA["frontscripts"][i]["filename"] from front
   end repeat
   repeat with i = 1 to the number of elements of sAppA["backscripts"]
-    remove stack sAppA["backscripts"][i]["filename"] from back
+    remove the script of stack sAppA["backscripts"][i]["filename"] from back
   end repeat
   repeat with i = 1 to the number of elements of sAppA["libraries"]
     stop using stack sAppA["libraries"][i]["filename"]
