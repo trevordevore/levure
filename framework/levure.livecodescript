@@ -412,8 +412,16 @@ private command loadAppConfig
       put the result into tError
     end if
     
+    # Execution errors should be available as early as possible.
+    # Preferences needs to be available for the PreloadApplication message so load now.
     if tError is empty then
-      loadExecutionErrorDialog
+      loadFrameworkHelper "execution_error_dialog,preferences"
+      put the result into tError
+    end if
+    
+    # Load the preference external. Remove once we move it to a module.
+    if tError is empty then
+      loadExternals sAppA["externals to load"]
       put the result into tError
     end if
     
@@ -542,19 +550,14 @@ end loadAppStack
 
 private command loadAppAssets
   local tError
+  local tRenameAnswerDialog = "false"
+  local tRenameAskDialog = "false"
   
   if tError is empty then
     local tExternalPackagesInMemory, tExternalPackageName
     
     loadExternals sAppA["externals to load"]
-    
-    put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
-    repeat for each line tExternalPackageName in sAppA["externals packages to verify"]
-      if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
-        put "unable to load external" && tExternalPackageName & cr after tError
-      end if
-    end repeat
-    delete the last char of tError
+    put the result into tError
   end if
   
   if tError is empty then
@@ -563,9 +566,17 @@ private command loadAppAssets
     put the stackFiles of stack kAppStackName into tStackFiles
     if tStackFiles is not empty then put cr after tStackFiles
     
-    repeat with i = 1 to the number of elements of sAppA["components"]      
+    repeat with i = 1 to the number of elements of sAppA["components"]
       put sAppA["components"][i]["name"] & "," & \
             sAppA["components"][i]["filename"] & cr after tStackFiles
+      
+      # If app uses custom Ask/Answer dialogs then rename LiveCode ones
+      if sAppA["components"][i]["name"] is "Answer Dialog" then
+        put there is a stack "Answer Dialog" into tRenameAnswerDialog
+      end if
+      if sAppA["components"][i]["name"] is "Ask Dialog" then
+        put there is a stack "Ask Dialog" into tRenameAskDialog
+      end if
     end repeat
     delete the last char of tStackFiles
   end if
@@ -577,6 +588,21 @@ private command loadAppAssets
   
   if tError is empty then
     loadMessagePathAssets sAppA
+    
+    if tRenameAnswerDialog then
+      if the environment is "development" then
+        set the name of stack "Answer Dialog" to "Answer Dialog (LiveCode)"
+      else
+        delete stack "Answer Dialog"
+      end if
+    end if
+    if tRenameAskDialog then
+      if the environment is "development" then
+        set the name of stack "Ask Dialog" to "Ask Dialog (LiveCode)"
+      else
+        delete stack "Answer Dialog"
+      end if
+    end if
     set the stackFiles of stack kAppStackName to tStackFiles
   end if
   
@@ -635,6 +661,8 @@ private command loadExtensions pArrayA
       put the result & cr after tError
     end if
   end repeat
+  
+  delete the last char of tError
   
   return tError for error
 end loadExtensions
@@ -761,33 +789,24 @@ end shellFormat
 
 private command expandHelperAssets
   local tError, tConfigA, i
-  local tExternalPackagesInMemory, tExternalsToVerify, tExternalsToLoad, tStackFiles
+  local tExternalPackagesInMemory, tStackFiles
   
   put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
-  put the stackFiles of stack kAppStackName into tStackFiles  
-  put sAppA["externals to load"] into tExternalsToLoad
-  put sAppA["externals packages to verify"] into tExternalsToVerify
+  put the stackFiles of stack kAppStackName into tStackFiles
   
   if tStackFiles is not empty then put cr after tStackFiles
-  if tExternalsToLoad is not empty then put cr after tExternalsToLoad
-  if tExternalsToVerify is not empty then put cr after tExternalsToVerify
   
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    loadHelperFolderAssets sAppA["helpers"][i]["filename"], tExternalPackagesInMemory, \
-        sAppA, tStackFiles, tExternalsToLoad, tExternalsToVerify
+    loadHelperFolderAssets sAppA["helpers"][i]["filename"], tExternalPackagesInMemory, sAppA, tStackFiles
     put the result into tError
     
     if tError is not empty then exit repeat
   end repeat
   
   if tError is empty then
-    if the last char of tExternalsToLoad is cr then delete the last char of tExternalsToLoad
-    if the last char of tExternalsToVerify is cr then delete the last char of tExternalsToVerify
     if the last char of tStackFiles is cr then delete the last char of tStackFiles
     
     set the stackfiles of stack kAppStackName to tStackFiles
-    put tExternalsToLoad into sAppA["externals to load"]
-    put tExternalsToVerify into sAppA["externals packages to verify"]
   end if  
 
   return tError for error
@@ -795,42 +814,56 @@ end expandHelperAssets
 
 
 # Special case as we want to load very early
-private command loadExecutionErrorDialog
-  local tError
+private command loadFrameworkHelper pHelperFolders
+  local tError, tHelperFolder
   
-  if there is a folder (levureFrameworkFolder() & "/helpers/execution_error_dialog") then
-    local tAssetsA, tStackFiles, tExternalsToLoad, tExternalstoVerify
+  local tAssetsA, tStackFiles
+  
+  repeat for each item tHelperFolder in pHelperFolders
+    if there is a folder (levureFrameworkFolder() & "/helpers/" & tHelperFolder) then
     
-    loadHelperFolderAssets levureFrameworkFolder() & "/helpers/execution_error_dialog", empty, \
-          tAssetsA, tStackFiles, tExternalsToLoad, tExternalstoVerify
-    put the result into tError
+      loadHelperFolderAssets levureFrameworkFolder() & "/helpers/" & tHelperFolder, empty, tAssetsA, tStackFiles
+      put the result into tError
 
-    if tError is empty then
-      if the last char of tStackFiles is cr then delete the last char of tStackFiles
-      set the stackfiles of stack kAppStackName to tStackFiles
+      if tError is empty then
+        if the last char of tStackFiles is cr then delete the last char of tStackFiles
       
-      put levureFrameworkFolder() & "/helpers/execution_error_dialog" into sAppA["helpers"][ the number of elements of sAppA["helpers"] + 1 ]["filename"]
+        # Add to sAppA so that the helper is not loaded again.
+        put levureFrameworkFolder() & "/helpers/" & tHelperFolder into sAppA["helpers"][ the number of elements of sAppA["helpers"] + 1 ]["filename"]
+        
+        loadExtensions tAssetsA
+        put the result into tError
+      end if
       
-      repeat with i = 1 to the number of elements of tAssetsA["libraries"]
-        start using stack tAssetsA["libraries"][i]["filename"]
-        put tAssetsA["libraries"][i]["filename"] into sAppA["libraries"][ the number of elements of sAppA["libraries"] + 1 ]["filename"]
-      end repeat
-      repeat with i = 1 to the number of elements of tAssetsA["backscripts"]
-        insert script of stack tAssetsA["backscripts"][i]["filename"] into back
-        put tAssetsA["backscripts"][i]["filename"] into sAppA["backscripts"][ the number of elements of sAppA["backscripts"] + 1 ]["filename"]
-      end repeat
-      repeat with i = 1 to the number of elements of tAssetsA["frontscripts"]
-        insert script of stack tAssetsA["frontscripts"][i]["filename"] into front
-        put tAssetsA["frontscripts"][i]["filename"] into sAppA["frontscripts"][ the number of elements of sAppA["frontscripts"] + 1 ]["filename"]
-      end repeat
+      if tError is empty then
+        loadMessagePathAssets tAssetsA
+      
+        # Add to sAppA so we have a complete list of helper assets that were loaded.
+        repeat with i = 1 to the number of elements of tAssetsA["behaviors"]
+          put tAssetsA["behaviors"][i]["filename"] into sAppA["behaviors"][ the number of elements of sAppA["behaviors"] + 1 ]["filename"]
+        end repeat
+        repeat with i = 1 to the number of elements of tAssetsA["libraries"]
+          put tAssetsA["libraries"][i]["filename"] into sAppA["libraries"][ the number of elements of sAppA["libraries"] + 1 ]["filename"]
+        end repeat
+        repeat with i = 1 to the number of elements of tAssetsA["backscripts"]
+          put tAssetsA["backscripts"][i]["filename"] into sAppA["backscripts"][ the number of elements of sAppA["backscripts"] + 1 ]["filename"]
+        end repeat
+        repeat with i = 1 to the number of elements of tAssetsA["frontscripts"]
+          put tAssetsA["frontscripts"][i]["filename"] into sAppA["frontscripts"][ the number of elements of sAppA["frontscripts"] + 1 ]["filename"]
+        end repeat
+        
+        set the stackfiles of stack kAppStackName to tStackFiles
+      end if
     end if
-  end if
+  
+    if tError is not empty then exit repeat
+  end repeat
   
   return tError for value
-end loadExecutionErrorDialog
+end loadFrameworkHelper
 
 
-private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAssetsA, @xStackFiles, @xExternalsToLoad, @xExternalsToVerify
+private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAssetsA, @xStackFiles
   local tError
   local tConfigA
   local tExtensionIndex, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
@@ -869,6 +902,7 @@ private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAss
   if tError is empty then    
     local tKey
   
+    # stack files
     repeat with j = 1 to the number of elements of tConfigA["stacks"]
       put pFolder & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
       put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
@@ -881,14 +915,18 @@ private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAss
   
     set the wholematches to true
   
+    # externals
     repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
       if tConfigA["externals"][tKey][j]["name"] is not empty \
             and tConfigA["externals"][tKey][j]["name"] is not among the lines of pExternalPackagesInMemory then
-        put pFolder & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) & cr after xExternalsToLoad
-        put tConfigA["externals"][tKey][j]["name"] & cr after xExternalsToVerify
+        put pFolder & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) into \
+            line (the number of lines of sAppA["externals to load"] + 1) of sAppA["externals to load"]
+        put tConfigA["externals"][tKey][j]["name"] into \
+            line (the number of lines of sAppA["externals packages to verify"] + 1) of sAppA["externals packages to verify"]
       end if
     end repeat
   
+    # extensions
     repeat with j = 1 to the number of elements of tConfigA["extensions"]
       add 1 to tExtensionIndex
       put pFolder & "/" & tConfigA["extensions"][j]["filename"] into xAssetsA["extensions"][tExtensionIndex]["filename"]
@@ -902,6 +940,7 @@ private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAss
       end if
     end repeat
   
+    # behaviors, libraries, frontscripts, backscripts
     repeat with j = 1 to the number of elements of tConfigA["behaviors"]
       add 1 to tBehaviorIndex
       put pFolder & "/" & tConfigA["behaviors"][j]["filename"] into xAssetsA["behaviors"][tBehaviorIndex]["filename"]
@@ -928,6 +967,8 @@ end loadHelperFolderAssets
 
 
 private command loadExternals pFilenames
+  local tError
+  
   if pFilenames is empty then return empty for value
   
   if there is a stack kApplicationExternals then
@@ -956,6 +997,18 @@ private command loadExternals pFilenames
   go stack kApplicationExternals
   start using stack kApplicationExternals
   set the lockMessages to msgsAreLocked
+  
+  if tError is empty then
+    put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
+    repeat for each line tExternalPackageName in sAppA["externals packages to verify"]
+      if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
+        put "unable to load external" && tExternalPackageName & cr after tError
+      end if
+    end repeat
+    delete the last char of tError
+  end if
+  
+  return tError for error
 end loadExternals
 
 
