@@ -306,6 +306,7 @@ This stack is used to build the standalone application. The `levureFramework.liv
 
 This stack file must be located directly alongside the `app.yml` file. The stack must be named `app` in memory. It has the following handlers for handling framework messages:
 
+- `PreloadApplication`: Perform any operations that need to happen before your application files are loaded into memory.
 - `InitializeApplication`: Initialize your application. Framework has loaded at this point.
 - `OpenApplication`: Open your application window.
 - `PreShutdownApplication`: Sent before the application shuts down. Perform any cleanup.
