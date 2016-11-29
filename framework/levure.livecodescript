@@ -128,7 +128,7 @@ command levureRunApplication
   
   # Add lookup for all stacks in app. They will be loaded into memory as needed
   # when referenced by name.
-  if tError is empty then    
+  if tError is empty then  
     dispatch "InitializeApplication" to stack kAppStackName
     if it is "handled" and the result is false then
       ## user can quit app if they want
@@ -355,17 +355,21 @@ private command loadAppConfig
     # Search folders
     local tFolders, tFolder
     
-    if there is a file (sRootFolder & "/app.yml") then
-      put sRootFolder into sAppFolder
+    if the environment is not "development" then
+      put levureTestingStandaloneAppFolder() into sAppFolder
     else
-      put folderListing(sRootFolder) into tFolders
+      if there is a file (sRootFolder & "/app.yml") then
+        put sRootFolder into sAppFolder
+      else
+        put folderListing(sRootFolder) into tFolders
       
-      repeat for each line tFolder in tFolders
-        if there is a file (tFolder & "/app.yml") then
-          put tFolder into sAppFolder
-          exit repeat
-        end if
-      end repeat
+        repeat for each line tFolder in tFolders
+          if there is a file (tFolder & "/app.yml") then
+            put tFolder into sAppFolder
+            exit repeat
+          end if
+        end repeat
+      end if
     end if
     
     put yamlFileToArray(sAppFolder & "/app.yml") into sAppA
