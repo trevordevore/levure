@@ -1,13 +1,13 @@
-﻿script "Levure Framework Application Packager"
+script "Levure Framework Application Packager"
 local sStandaloneFilename
 
 on libraryStack
-  if the target is not me then pass libraryStack
+  pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  if the target is not me then pass releaseStack
+  pass releaseStack
 end releaseStack
 
 
@@ -54,7 +54,7 @@ command levureBuildStandalones sStandaloneStackFilename, pBuildProfile
     if buildForDistribution then
       put "/" & levureAppGet("version") & "(" & levureAppGet("build") & ")" after tOutputFolder
     else
-      put "/_test_executables" after tOutputFolder
+      put "/test_executables" after tOutputFolder
     end if
     if there is a folder tOutputFolder then
       revDeleteFolder tOutputFolder
