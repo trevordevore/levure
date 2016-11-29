@@ -384,13 +384,18 @@ private command loadAppConfig
       put the result into tError
     end if
     
+    if tError is empty then
+      loadExecutionErrorDialog
+      put the result into tError
+    end if
+    
     # If not explicitly configured, load any extensions, libraries, frontscripts, or backscripts
     if tError is empty then
       local i, j
       local tFilesA
       
       ##########
-      # Libaries, Backscripts, Frontscripts
+      # Extensions, Libaries, Backscripts, Frontscripts, and Behaviors
       ##########
       local tSource
       
@@ -450,8 +455,18 @@ private command loadAppConfig
       put 0 into j
       
       if there is a folder (levureFrameworkFolder() & "/helpers") then
-        add 1 to j
-        put levureFrameworkFolder() & "/helpers" into tFilesA[j]["folder"]
+        local tHelperFolders, tHelperFolder
+        
+        set the itemdelimiter to "/"
+        put folderListing(levureFrameworkFolder() & "/helpers") into tHelperFolders
+        repeat for each line tHelperFolder in tHelperFolders
+          if the last item of tHelperFolder is "execution_error_dialog" then # preloaded
+            next repeat
+          else
+            add 1 to j
+            put tHelperFolder into tFilesA[j]["filename"]
+          end if
+        end repeat
       end if
       
       if the number of elements of sAppA["helpers"] > 0 then        
@@ -534,7 +549,6 @@ private command loadAppAssets
   
   if tError is empty then
     loadMessagePathAssets sAppA
-    
     set the stackFiles of stack kAppStackName to tStackFiles
   end if
   
@@ -566,7 +580,7 @@ private command loadMessagePathAssets pArrayA
   repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
     insert script of stack pArrayA["frontscripts"][i]["filename"] into front
   end repeat
-  
+
   return empty for value
 end loadMessagePathAssets
 
@@ -601,7 +615,6 @@ end loadExtensions
 command levureBuildExtensions
   local tError
   
-  put empty into sAppA
   if sAppA is not an array then
     loadAppConfig
     put the result into tError
@@ -721,7 +734,6 @@ end shellFormat
 private command expandHelperAssets
   local tError, tConfigA, i
   local tExternalPackagesInMemory, tExternalsToVerify, tExternalsToLoad, tStackFiles
-  local tExtensionIndex, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
   
   put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
   put the stackFiles of stack kAppStackName into tStackFiles  
@@ -732,95 +744,11 @@ private command expandHelperAssets
   if tExternalsToLoad is not empty then put cr after tExternalsToLoad
   if tExternalsToVerify is not empty then put cr after tExternalsToVerify
   
-  put the number of elements of sAppA["extensions"] into tExtensionIndex
-  put the number of elements of sAppA["behaviors"] into tBehaviorIndex
-  put the number of elements of sAppA["libraries"] into tLibraryIndex
-  put the number of elements of sAppA["backscripts"] into tBackscriptIndex
-  put the number of elements of sAppA["frontscripts"] into tFrontscriptIndex
-  
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    if there is a file (sAppA["helpers"][i]["filename"] & "/helper.yml") then
-      put yamlFileToArray(sAppA["helpers"][i]["filename"] & "/helper.yml") into tConfigA
-      put the result into tError
-    else
-      # Load up any stacks
-      local tFile, tIsAStack, j
+    loadHelperFolderAssets sAppA["helpers"][i]["filename"], tExternalPackagesInMemory, \
+        sAppA, tStackFiles, tExternalsToLoad, tExternalsToVerify
+    put the result into tError
     
-      put 0 into j
-      put empty into tConfigA
-      set the itemDelimiter to "/"
-    
-      repeat for each line tFile in fileListing(sAppA["helpers"][i]["filename"])
-        put there is a stack tFile into tIsAStack
-        if tIsAStack then
-          add 1 to j
-        
-          put the short name of stack tFile into tConfigA["stacks"][j]["name"]
-          put the last item of tFile into tConfigA["stacks"][j]["filename"]
-          delete stack tFile
-        end if
-      end repeat
-    
-      set the itemDelimiter to ","
-    end if
-  
-    if tError is empty then    
-      local tKey
-    
-      repeat with j = 1 to the number of elements of tConfigA["stacks"]
-        put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
-        put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
-      
-        put tConfigA["stacks"][j]["name"] & "," & tConfigA["stacks"][j]["filename"] & cr after tStackFiles
-      end repeat
-    
-      if the platform is "win32" then put "win" into tKey
-      else put the platform into tKey
-    
-      set the wholematches to true
-    
-      repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
-        if tConfigA["externals"][tKey][j]["name"] is not empty \
-              and tConfigA["externals"][tKey][j]["name"] is not among the lines of tExternalPackagesInMemory then
-          put sAppA["helpers"][i]["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) & cr after tExternalsToLoad
-          put tConfigA["externals"][tKey][j]["name"] & cr after tExternalsToVerify
-        end if
-      end repeat
-    
-      repeat with j = 1 to the number of elements of tConfigA["extensions"]
-        add 1 to tExtensionIndex
-        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["extensions"][j]["filename"] into sAppA["extensions"][tExtensionIndex]["filename"]
-      
-        if tConfigA["extensions"][j]["resource folder"] is not empty then
-          put sAppA["helpers"][i]["filename"] & "/" & tConfigA["extensions"][j]["resource folder"] into sAppA["extensions"][tExtensionIndex]["resource folder"]
-        end if
-      
-        if tConfigA["extensions"][j]["source"] is not empty then
-          put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], sAppA["helpers"][i]["filename"]) into sAppA["extensions"][j]["source"]
-        end if
-      end repeat
-    
-      repeat with j = 1 to the number of elements of tConfigA["behaviors"]
-        add 1 to tBehaviorIndex
-        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["behaviors"][j]["filename"] into sAppA["behaviors"][tBehaviorIndex]["filename"]
-      end repeat
-    
-      repeat with j = 1 to the number of elements of tConfigA["libraries"]
-        add 1 to tLibraryIndex
-        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["libraries"][j]["filename"] into sAppA["libraries"][tLibraryIndex]["filename"]
-      end repeat
-    
-      repeat with j = 1 to the number of elements of tConfigA["backscripts"]
-        add 1 to tBackscriptIndex
-        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["backscripts"][j]["filename"] into sAppA["backscripts"][tBackscriptIndex]["filename"]
-      end repeat
-    
-      repeat with j = 1 to the number of elements of tConfigA["frontscripts"]
-        add 1 to tFrontscriptIndex
-        put sAppA["helpers"][i]["filename"] & "/" & tConfigA["frontscripts"][j]["filename"] into sAppA["frontscripts"][tFrontscriptIndex]["filename"]
-      end repeat
-    end if
-  
     if tError is not empty then exit repeat
   end repeat
   
@@ -836,6 +764,139 @@ private command expandHelperAssets
 
   return tError for error
 end expandHelperAssets
+
+
+# Special case as we want to load very early
+private command loadExecutionErrorDialog
+  local tError
+  
+  if there is a folder (levureFrameworkFolder() & "/helpers/execution_error_dialog") then
+    local tAssetsA, tStackFiles, tExternalsToLoad, tExternalstoVerify
+    
+    loadHelperFolderAssets levureFrameworkFolder() & "/helpers/execution_error_dialog", empty, \
+          tAssetsA, tStackFiles, tExternalsToLoad, tExternalstoVerify
+    put the result into tError
+
+    if tError is empty then
+      if the last char of tStackFiles is cr then delete the last char of tStackFiles
+      set the stackfiles of stack kAppStackName to tStackFiles
+      
+      put levureFrameworkFolder() & "/helpers/execution_error_dialog" into sAppA["helpers"][ the number of elements of sAppA["helpers"] + 1 ]["filename"]
+      
+      repeat with i = 1 to the number of elements of tAssetsA["libraries"]
+        start using stack tAssetsA["libraries"][i]["filename"]
+        put tAssetsA["libraries"][i]["filename"] into sAppA["libraries"][ the number of elements of sAppA["libraries"] + 1 ]["filename"]
+      end repeat
+      repeat with i = 1 to the number of elements of tAssetsA["backscripts"]
+        insert script of stack tAssetsA["backscripts"][i]["filename"] into back
+        put tAssetsA["backscripts"][i]["filename"] into sAppA["backscripts"][ the number of elements of sAppA["backscripts"] + 1 ]["filename"]
+      end repeat
+      repeat with i = 1 to the number of elements of tAssetsA["frontscripts"]
+        insert script of stack tAssetsA["frontscripts"][i]["filename"] into front
+        put tAssetsA["frontscripts"][i]["filename"] into sAppA["frontscripts"][ the number of elements of sAppA["frontscripts"] + 1 ]["filename"]
+      end repeat
+    end if
+  end if
+  
+  return tError for value
+end loadExecutionErrorDialog
+
+
+private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAssetsA, @xStackFiles, @xExternalsToLoad, @xExternalsToVerify
+  local tError
+  local tConfigA
+  local tExtensionIndex, tBehaviorIndex, tLibraryIndex, tBackscriptIndex, tFrontscriptIndex
+  
+  put the number of elements of xAssetsA["extensions"] into tExtensionIndex
+  put the number of elements of xAssetsA["behaviors"] into tBehaviorIndex
+  put the number of elements of xAssetsA["libraries"] into tLibraryIndex
+  put the number of elements of xAssetsA["backscripts"] into tBackscriptIndex
+  put the number of elements of xAssetsA["frontscripts"] into tFrontscriptIndex
+  
+  if there is a file (pFolder & "/helper.yml") then
+    put yamlFileToArray(pFolder & "/helper.yml") into tConfigA
+    put the result into tError
+  else
+    # Load up any stacks
+    local tFile, tIsAStack, j
+  
+    put 0 into j
+    put empty into tConfigA
+    set the itemDelimiter to "/"
+  
+    repeat for each line tFile in fileListing(pFolder)
+      put there is a stack tFile into tIsAStack
+      if tIsAStack then
+        add 1 to j
+      
+        put the short name of stack tFile into tConfigA["stacks"][j]["name"]
+        put the last item of tFile into tConfigA["stacks"][j]["filename"]
+        delete stack tFile
+      end if
+    end repeat
+  
+    set the itemdelimiter to ","
+  end if
+
+  if tError is empty then    
+    local tKey
+  
+    repeat with j = 1 to the number of elements of tConfigA["stacks"]
+      put pFolder & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
+      put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
+    
+      put tConfigA["stacks"][j]["name"] & "," & tConfigA["stacks"][j]["filename"] & cr after xStackFiles
+    end repeat
+  
+    if the platform is "win32" then put "win" into tKey
+    else put the platform into tKey
+  
+    set the wholematches to true
+  
+    repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
+      if tConfigA["externals"][tKey][j]["name"] is not empty \
+            and tConfigA["externals"][tKey][j]["name"] is not among the lines of pExternalPackagesInMemory then
+        put pFolder & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) & cr after xExternalsToLoad
+        put tConfigA["externals"][tKey][j]["name"] & cr after xExternalsToVerify
+      end if
+    end repeat
+  
+    repeat with j = 1 to the number of elements of tConfigA["extensions"]
+      add 1 to tExtensionIndex
+      put pFolder & "/" & tConfigA["extensions"][j]["filename"] into xAssetsA["extensions"][tExtensionIndex]["filename"]
+    
+      if tConfigA["extensions"][j]["resource folder"] is not empty then
+        put pFolder & "/" & tConfigA["extensions"][j]["resource folder"] into xAssetsA["extensions"][tExtensionIndex]["resource folder"]
+      end if
+    
+      if tConfigA["extensions"][j]["source"] is not empty then
+        put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], pFolder) into xAssetsA["extensions"][j]["source"]
+      end if
+    end repeat
+  
+    repeat with j = 1 to the number of elements of tConfigA["behaviors"]
+      add 1 to tBehaviorIndex
+      put pFolder & "/" & tConfigA["behaviors"][j]["filename"] into xAssetsA["behaviors"][tBehaviorIndex]["filename"]
+    end repeat
+  
+    repeat with j = 1 to the number of elements of tConfigA["libraries"]
+      add 1 to tLibraryIndex
+      put pFolder & "/" & tConfigA["libraries"][j]["filename"] into xAssetsA["libraries"][tLibraryIndex]["filename"]
+    end repeat
+  
+    repeat with j = 1 to the number of elements of tConfigA["backscripts"]
+      add 1 to tBackscriptIndex
+      put pFolder & "/" & tConfigA["backscripts"][j]["filename"] into xAssetsA["backscripts"][tBackscriptIndex]["filename"]
+    end repeat
+  
+    repeat with j = 1 to the number of elements of tConfigA["frontscripts"]
+      add 1 to tFrontscriptIndex
+      put pFolder & "/" & tConfigA["frontscripts"][j]["filename"] into xAssetsA["frontscripts"][tFrontscriptIndex]["filename"]
+    end repeat
+  end if
+  
+  return tError for error
+end loadHelperFolderAssets
 
 
 private command loadExternals pFilenames
