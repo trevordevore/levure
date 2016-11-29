@@ -73,7 +73,7 @@ command levureBuildTestStandalones
   
   if sAppA is not an array then
     start using me
-
+    
     loadAppConfig
     put the result into tError
   end if
@@ -86,6 +86,8 @@ command levureBuildTestStandalones
   end if
   
   if tError is empty then
+    local tStandaloneStack, tBuildProfile
+    
     put the effective filename of me into tStandaloneStack
     put "test" into tBuildProfile
     send "levureBuildStandalones tStandaloneStack, tBuildProfile" to stack tStackFilename in 10 milliseconds
