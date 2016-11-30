@@ -85,7 +85,7 @@ end _logUndoIfNecessary
 */
 command undoLogEditFieldUndo pMsg
   ## text is selected
-  undoStoreUndoForOwner "edit field", "edit field", pMsg, "control:" & _longIDWithoutHierarchy(the long id of the selectedfield), "control selected chunk:" & the selectedchunk
+  undoAddActionToUndoStack "edit field", "edit field", pMsg, "control:" & _longIDWithoutHierarchy(the long id of the selectedfield), "control selected chunk:" & the selectedchunk
   put false into sWatchForFirstInput 
 end undoLogEditFieldUndo
 
