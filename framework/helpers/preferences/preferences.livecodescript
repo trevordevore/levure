@@ -12,7 +12,7 @@ on libraryStack
   else
     put null into sPrefsA["user"]
     put null into sPrefsA["shared"]
-  
+    
     _loadDefaultPreferences
     if the result is not empty then
       throw "error loading default preferences:" && the result
@@ -169,7 +169,7 @@ command appSetPref pKey, pValue, pUserOrShared, pType
       appBroadcast "prefs", pKey, empty
     end if
   end if
-
+  
   return tError for error
 end appSetPref
 
@@ -267,15 +267,15 @@ command appSavePrefs pUserOrShared
   
   if tFile is not empty then
     if useExternal(pUserOrShared) then
-    
+      
       osxHLPrefSavePrefs prefFilenameForPlatform("user")
       put the result into tError
-    
+      
     else
-    
+      
       saveContentsToFile tFile, arrayEncode(sPrefsA[pUserOrShared])
       put the result into tError
-    
+      
     end if
   end if
   

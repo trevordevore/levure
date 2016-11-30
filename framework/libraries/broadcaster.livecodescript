@@ -1,4 +1,4 @@
-script "appBroadcaster"
+﻿script "appBroadcaster"
 local sBroadcastListenersA
 
 
@@ -92,7 +92,7 @@ end appStopListeningForBroadcast
 *
 * \param pId
 * \param pBroadcastTypes A comma delimited list of the types of broadcasts to broadcast. Every object \
-       * listening for broadcasts of the specified types will be sent a message.
+      * listening for broadcasts of the specified types will be sent a message.
 * \param pParamsPackageA An array that will be sent along with the broadcast. You can include any data relevant to the broadcast in this array.
 *
 * \return empty
