@@ -66,7 +66,7 @@ on relaunch
 end relaunch
 
 
-command levureBuildTestStandalones
+command levureBuildStandalonesForTesting
   local tError, tStackFilename
   
   if the environment is not "development" then return "can only be run in development environment"
@@ -92,7 +92,7 @@ command levureBuildTestStandalones
     put "test" into tBuildProfile
     send "levureBuildStandalones tStandaloneStack, tBuildProfile" to stack tStackFilename in 10 milliseconds
   end if
-end levureBuildTestStandalones
+end levureBuildStandalonesForTesting
 
 
 # So no scripts have to hard code name
