@@ -132,7 +132,7 @@ preferences:
     macos:
       filename: [com.mycompany.myproduct]
     win:
-      filename: [relative path to preference file within user app data folder]
+      filename: [relative path to preference file within user app data folder] e.g. ./MyApp/1.0/MyApp.pref
   shared:
     macos:
       filename: [relative path to preference file within shared app data folder]
