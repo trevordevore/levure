@@ -146,6 +146,7 @@ file extension groups:
       name: [Category Name]
       extensions: [Extensions (comma-delimited)]
     ...
+build folder: ../../myapp-distribution
 build profiles:
   default:
     post build script: [relative path to LiveCode file that will be run post build.
@@ -340,6 +341,12 @@ When the `relaunch` message is processed by the levure standalone a `RelaunchApp
 ## Version information
 
 There are two properties you will deal with for versioning: `version` and `build`. `version` is in the [major].[minor].[revision] format. This is what you would display to users. `build` is an integer that you should increment each time you build your application. The build number is used to uniquely identify your application for the Sparkle update framework as well as identify each package in a 'release train' that you submit to the Mac App Store when preparing to release a version to the public. You can start the build number at 1 and then increment by one each time you package your application and send it to someone.
+
+## Building executables for testing
+
+The framework supports building stub executables that can be used to launch your app in a standalone environment for testing. By using the stub executables for testing, you can be working on your application in the IDE and instantly test your work running in a standalone. 
+
+To build the stub executables open your standalone stack and call the function `levureBuildStandalonesForTesting` from the message box. The LiveCode standalone builder will be used to build standalones based on your settings. MacOS X, Windows, and Linux standalone files will be moved to a `test_executables` folder inside of the `build folder` that you have configured in `app.yml`.
 
 ## Packaging an Application
 
