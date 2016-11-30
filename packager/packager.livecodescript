@@ -218,12 +218,8 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildFolder, pOutput
       
       if tError is empty then
         if there is a folder (tWindowsFolder & "/Externals") then
-          repeat for each line tFile in fileListing(tWindowsFolder & "/Externals")
-            rename folder tFile to (pOutputFolder & "/Externals/" & the last item of tFile)
-            put the result into tError
-            
-            if tError is not empty then exit repeat
-          end repeat
+          moveFilesAndFolders tWindowsFolder & "/Externals", pOutputFolder & "/Externals"
+          put the result into tError
         end if
       end if
     end if
@@ -244,12 +240,8 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildFolder, pOutput
       
       if tError is empty then
         if there is a folder (tLinuxFolder & "/Externals") then
-          repeat for each line tFile in fileListing(tLinuxFolder & "/Externals")
-            rename folder tFile to (pOutputFolder & "/Externals/" & the last item of tFile)
-            put the result into tError
-            
-            if tError is not empty then exit repeat
-          end repeat
+          moveFilesAndFolders tLinuxFolder & "/Externals", pOutputFolder & "/Externals"
+          put the result into tError
         end if
       end if
     end if
@@ -266,6 +258,33 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildFolder, pOutput
   
   return tError for error
 end _copyExecutablesAndSupportingFilesToFolder
+
+
+private command moveFilesAndFolders pSourceFolder, pDestinationFolder
+  local tError, tFile
+
+  set the itemdelimiter to "/"
+  
+  if tError is empty then  
+    repeat for each line tFile in fileListing(pSourceFolder)
+      rename file tFile to (pDestinationFolder & "/" & the last item of tFile)
+      put the result into tError
+    
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+  
+  if tError is empty then
+    repeat for each line tFile in folderListing(pSourceFolder)
+      rename folder tFile to (pDestinationFolder & "/" & the last item of tFile)
+      put the result into tError
+    
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+  
+  return tError
+end moveFilesAndFolders
 
 
 private command _updateStandaloneVersionInfo pStackFilename
