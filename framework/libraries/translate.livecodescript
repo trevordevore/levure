@@ -30,7 +30,7 @@ end _t
 
 command translateSetLocale pLocale
   local tError, tFilename
-
+  
   put levureAppFolder() & "/locales/" & pLocale & ".yml" into tFilename
   if there is a file tFilename then
     put yamlFileToArray(tFilename) into sStringsA

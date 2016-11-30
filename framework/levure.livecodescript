@@ -36,13 +36,13 @@ on relaunch
       pass relaunch
     else
       dispatch "RelaunchApplication" to stack kAppStackName
-
+      
       local i, tParams
-
+      
       repeat with i = 1 to the paramcount
         put param(i) & cr after tParams
       end repeat
-
+      
       #
       # If `background` is returned then the engine won't bring any stacks forward.
       #
@@ -57,7 +57,7 @@ on relaunch
         # This handler is defined in a helper
         send "appProcessCommandLineParameters tParams" to stack kAppStackName in 0 milliseconds
       end if
-
+      
       if sAppA["relaunch in background"] then
         return "background"
       end if
@@ -314,53 +314,53 @@ end unloadApp
 * \return empty
 */
 command levureShutdownApplication
-   local tError, tCurrentState
-   
-   # 2016-04-18: Don't allow multiple calls to this.
-   if sRuntimePropertiesA["state"] is "shutting down" then exit levureShutdownApplication
-   
-   put sRuntimePropertiesA["state"] into tCurrentState
-   put "shutting down" into sRuntimePropertiesA["state"]
-      
+  local tError, tCurrentState
+  
+  # 2016-04-18: Don't allow multiple calls to this.
+  if sRuntimePropertiesA["state"] is "shutting down" then exit levureShutdownApplication
+  
+  put sRuntimePropertiesA["state"] into tCurrentState
+  put "shutting down" into sRuntimePropertiesA["state"]
+  
   ## Just in case it is still open after an error during launch
   close me
-
+  
   if tCurrentState is "running" then
     repeat for each line tStack in the openStacks
       if tStack is empty then next repeat
       if windowIsManaged(tStack) then
-         windowSaveWindowPosition tStack
+        windowSaveWindowPosition tStack
       end if
-   end repeat
- 
-   dispatch "PreShutdownApplication" to stack kAppStackName
- 
-   appSavePrefs "user"
-   put the result into tError
-   if tError is not empty then
+    end repeat
+    
+    dispatch "PreShutdownApplication" to stack kAppStackName
+    
+    appSavePrefs "user"
+    put the result into tError
+    if tError is not empty then
       answer "An error occurred while saving user preferences:" && tError & "."
-   end if
- 
-   appSavePrefs "shared"
-   put the result into tError
-   if tError is not empty then
+    end if
+    
+    appSavePrefs "shared"
+    put the result into tError
+    if tError is not empty then
       answer "An error occurred while saving shared preferences:" && tError & "."
-   end if
- 
+    end if
+    
   end if
-      
+  
   # Cleanup anything that might keep application from shutting down properly
   repeat until the pendingMessages is empty
-     cancel item 1 of line 1 of the pendingMessages
+    cancel item 1 of line 1 of the pendingMessages
   end repeat
   repeat until the openProcesses is empty
-     close process (line 1 of the openprocesses)
+    close process (line 1 of the openprocesses)
   end repeat
-
+  
   stop using me
-   
+  
   put empty into sRuntimePropertiesA["state"]
-   
+  
   return empty for value
 end levureShutdownApplication
 
@@ -392,7 +392,7 @@ private command loadAppConfig
         put sRootFolder into sAppFolder
       else
         put folderListing(sRootFolder) into tFolders
-      
+        
         repeat for each line tFolder in tFolders
           if there is a file (tFolder & "/app.yml") then
             put tFolder into sAppFolder
@@ -539,13 +539,13 @@ private command loadAppStack
   # app stack will already be in memory if this is a packaged app
   if there is not a stack kAppStackName then
     if there is not a stack (sAppFolder & "/app.livecodescript") \
-      AND there is not a stack (sAppFolder & "/app.livecode") then
+          AND there is not a stack (sAppFolder & "/app.livecode") then
       return "app stack not found" for error
     end if
   end if
   
   start using stack kAppStackName
-
+  
   return empty for value
 end loadAppStack
 
@@ -636,7 +636,7 @@ private command loadMessagePathAssets pArrayA
   repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
     insert script of stack pArrayA["frontscripts"][i]["filename"] into front
   end repeat
-
+  
   return empty for value
 end loadMessagePathAssets
 
@@ -717,7 +717,7 @@ private command buildExtensions pArrayA
       if tError is empty then # don't overwrite existing error
         put the result into tError
       end if
-
+      
       if tError is not empty then exit repeat
     end if
   end repeat
@@ -783,11 +783,11 @@ end buildExtension
 
 private function shellFormat pArg, pSwitch
   local tOutput
-
+  
   if pSwitch is not empty then
     put "--" & pSwitch & " " into tOutput
   end if
-
+  
   return tOutput & quote & pArg & quote & " "
 end shellFormat
 
@@ -813,7 +813,7 @@ private command expandHelperAssets
     
     set the stackfiles of stack kAppStackName to tStackFiles
   end if  
-
+  
   return tError for error
 end expandHelperAssets
 
@@ -826,13 +826,13 @@ private command loadFrameworkHelper pHelperFolders
   
   repeat for each item tHelperFolder in pHelperFolders
     if there is a folder (levureFrameworkFolder() & "/helpers/" & tHelperFolder) then
-    
+      
       loadHelperFolderAssets levureFrameworkFolder() & "/helpers/" & tHelperFolder, empty, tAssetsA, tStackFiles
       put the result into tError
-
+      
       if tError is empty then
         if the last char of tStackFiles is cr then delete the last char of tStackFiles
-      
+        
         # Add to sAppA so that the helper is not loaded again.
         put levureFrameworkFolder() & "/helpers/" & tHelperFolder into sAppA["helpers"][ the number of elements of sAppA["helpers"] + 1 ]["filename"]
         
@@ -842,7 +842,7 @@ private command loadFrameworkHelper pHelperFolders
       
       if tError is empty then
         loadMessagePathAssets tAssetsA
-      
+        
         # Add to sAppA so we have a complete list of helper assets that were loaded.
         repeat with i = 1 to the number of elements of tAssetsA["behaviors"]
           put tAssetsA["behaviors"][i]["filename"] into sAppA["behaviors"][ the number of elements of sAppA["behaviors"] + 1 ]["filename"]
@@ -860,7 +860,7 @@ private command loadFrameworkHelper pHelperFolders
         set the stackfiles of stack kAppStackName to tStackFiles
       end if
     end if
-  
+    
     if tError is not empty then exit repeat
   end repeat
   
@@ -885,82 +885,82 @@ private command loadHelperFolderAssets pFolder, pExternalPackagesInMemory, @xAss
   else
     # Load up any stacks
     local tFile, tIsAStack, j
-  
+    
     put 0 into j
     put empty into tConfigA
     set the itemDelimiter to "/"
-  
+    
     repeat for each line tFile in fileListing(pFolder)
       put there is a stack tFile into tIsAStack
       if tIsAStack then
         add 1 to j
-      
+        
         put the short name of stack tFile into tConfigA["stacks"][j]["name"]
         put the last item of tFile into tConfigA["stacks"][j]["filename"]
         delete stack tFile
       end if
     end repeat
-  
+    
     set the itemdelimiter to ","
   end if
-
+  
   if tError is empty then    
     local tKey
-  
+    
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["stacks"]
       put pFolder & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
       put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
-    
+      
       put tConfigA["stacks"][j]["name"] & "," & tConfigA["stacks"][j]["filename"] & cr after xStackFiles
     end repeat
-  
+    
     if the platform is "win32" then put "win" into tKey
     else put the platform into tKey
-  
+    
     set the wholematches to true
-  
+    
     # externals
     repeat with j = 1 to the number of elements of tConfigA["externals"][tKey]
       if tConfigA["externals"][tKey][j]["name"] is not empty \
             and tConfigA["externals"][tKey][j]["name"] is not among the lines of pExternalPackagesInMemory then
         put pFolder & "/" & normalizeRelativeFilename(tConfigA["externals"][tKey][j]["filename"]) into \
-            line (the number of lines of sAppA["externals to load"] + 1) of sAppA["externals to load"]
+              line (the number of lines of sAppA["externals to load"] + 1) of sAppA["externals to load"]
         put tConfigA["externals"][tKey][j]["name"] into \
-            line (the number of lines of sAppA["externals packages to verify"] + 1) of sAppA["externals packages to verify"]
+              line (the number of lines of sAppA["externals packages to verify"] + 1) of sAppA["externals packages to verify"]
       end if
     end repeat
-  
+    
     # extensions
     repeat with j = 1 to the number of elements of tConfigA["extensions"]
       add 1 to tExtensionIndex
       put pFolder & "/" & tConfigA["extensions"][j]["filename"] into xAssetsA["extensions"][tExtensionIndex]["filename"]
-    
+      
       if tConfigA["extensions"][j]["resource folder"] is not empty then
         put pFolder & "/" & tConfigA["extensions"][j]["resource folder"] into xAssetsA["extensions"][tExtensionIndex]["resource folder"]
       end if
-    
+      
       if tConfigA["extensions"][j]["source"] is not empty then
         put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], pFolder) into xAssetsA["extensions"][j]["source"]
       end if
     end repeat
-  
+    
     # behaviors, libraries, frontscripts, backscripts
     repeat with j = 1 to the number of elements of tConfigA["behaviors"]
       add 1 to tBehaviorIndex
       put pFolder & "/" & tConfigA["behaviors"][j]["filename"] into xAssetsA["behaviors"][tBehaviorIndex]["filename"]
     end repeat
-  
+    
     repeat with j = 1 to the number of elements of tConfigA["libraries"]
       add 1 to tLibraryIndex
       put pFolder & "/" & tConfigA["libraries"][j]["filename"] into xAssetsA["libraries"][tLibraryIndex]["filename"]
     end repeat
-  
+    
     repeat with j = 1 to the number of elements of tConfigA["backscripts"]
       add 1 to tBackscriptIndex
       put pFolder & "/" & tConfigA["backscripts"][j]["filename"] into xAssetsA["backscripts"][tBackscriptIndex]["filename"]
     end repeat
-  
+    
     repeat with j = 1 to the number of elements of tConfigA["frontscripts"]
       add 1 to tFrontscriptIndex
       put pFolder & "/" & tConfigA["frontscripts"][j]["filename"] into xAssetsA["frontscripts"][tFrontscriptIndex]["filename"]
@@ -1085,7 +1085,7 @@ function levureStandaloneFilename
       break
     case "linux"
     default
-    
+      
       break
   end switch
   return levureStandaloneFolder() & "/" & tFilename
@@ -1177,7 +1177,7 @@ private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
       end repeat
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
-        into pFilesA[i]["filename"]
+            into pFilesA[i]["filename"]
       if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
@@ -1193,7 +1193,7 @@ end expandHelperAssetsFileReferenceArray
 
 private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
-    
+  
   repeat with i = 1 to the number of elements of pFilesA      
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
@@ -1216,11 +1216,11 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
               exit repeat
             end if
           end repeat
-        
+          
           if tError is empty then
             put line 1 of tFiles into tFileA["filename"]
             put ensureStackNameIsPresent(tFileA) into tFileA
-          
+            
             if tFileA["name"] is not empty then
               add 1 to j
               put tFileA into tFilesA[j]
@@ -1231,8 +1231,8 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
-        into pFilesA[i]["filename"]
-        
+            into pFilesA[i]["filename"]
+      
       put ensureStackNameIsPresent(pFilesA[i]) into pFilesA[i]
       
       if pFilesA[i]["name"] is not empty AND isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then

@@ -119,12 +119,12 @@ end windowHasBeenOpened
 
 
 /**
- * Sets the initialized state of a window.
- *
- * @param  pWindow    name of window.  default is the short name of current stack.
- * @param  pIsInit    Boolean.
- * @return Boolean
- */
+* Sets the initialized state of a window.
+*
+* @param  pWindow    name of window.  default is the short name of current stack.
+* @param  pIsInit    Boolean.
+* @return Boolean
+*/
 on windowSetInit pWindow, pIsInit
   if pWindow is empty then put short name of this stack into pWindow
   put pIsInit is true into sWindowsA[pWindow]["initstack"]
@@ -152,13 +152,13 @@ end windowCardHasBeenOpened
 
 
 /**
- * Sets the initialized state of a window.
- *
- * @param  pWindow    short name of the stack window.  default is current stack.
- * @param  pCard    short name of card in window.  default is current card.
- * @param  pIsInit    Boolean.
- * @return Boolean
- */
+* Sets the initialized state of a window.
+*
+* @param  pWindow    short name of the stack window.  default is current stack.
+* @param  pCard    short name of card in window.  default is current card.
+* @param  pIsInit    Boolean.
+* @return Boolean
+*/
 on windowSetCardInit pWindow, pCard, pIsInit
   if pWindow is empty then put short name of this stack into pWindow
   if pCard is empty then put the short name of the current card into pCard
@@ -171,14 +171,14 @@ end windowSetCardInit
 
 
 /**
- * Opens a stack window and loads the card that was open the last time the stack window was closed.
- * if the stack window has not been opened before then it goes to card 1.  Stack window must be in
- * memory.
- *
- * @param  pWindow    Stack window name.
- * @param  pMode    mode to open window in.  default is "toplevel".
- * @return empty
- */
+* Opens a stack window and loads the card that was open the last time the stack window was closed.
+* if the stack window has not been opened before then it goes to card 1.  Stack window must be in
+* memory.
+*
+* @param  pWindow    Stack window name.
+* @param  pMode    mode to open window in.  default is "toplevel".
+* @return empty
+*/
 on windowGoStack pWindow, pMode
   local tStackReference, tCard
   
@@ -208,12 +208,12 @@ end windowGoStack
 
 
 /**
- * Returns true if the current cards rect has changed since it was last closed.  Useful when
- * opening a card to see if elements need to be resized.  if the card has never been opened
- * before then this function returns true.
- *
- * @return Boolean
- */
+* Returns true if the current cards rect has changed since it was last closed.  Useful when
+* opening a card to see if elements need to be resized.  if the card has never been opened
+* before then this function returns true.
+*
+* @return Boolean
+*/
 on windowHasCardRectChanged
   local tCard, tWindow
   
@@ -237,10 +237,10 @@ end windowHasCardRectChanged
 command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
   local msgsAreLocked,tHeight,tLoc,tRect
   local tScreenRect,tStack,tWidth
-  
+    
   put the lockMessages into msgsAreLocked
   unlock messages
-  
+    
   if pWindowName is empty then
     put the short name of this stack into pWindowName
   end if

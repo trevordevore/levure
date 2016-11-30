@@ -197,7 +197,7 @@ private function printKeys @pArray, pDimension
   
   return tText
 end printKeys
- 
+
 private function printCharXTimes pChar, pTimes
   local tStr
   

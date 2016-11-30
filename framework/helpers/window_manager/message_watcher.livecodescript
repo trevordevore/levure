@@ -19,8 +19,8 @@ on desktopChanged
   
   pass desktopChanged
 end desktopChanged
-    
-    
+
+
 on closeStack
   local tMode, tStack, tStackThatIsClosing
   local quitTheApp = true
