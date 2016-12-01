@@ -113,6 +113,12 @@ function windowIsInit pWindow
 end windowIsInit
 
 
+command windowClearWindowCache pWindow
+  if pWindow is empty then put short name of this stack into pWindow
+  delete local sWindowsA[pWindow]
+end windowClearWindowCache
+
+
 function windowHasBeenOpened pStackName
   return windowIsInit(pStackName)
 end windowHasBeenOpened

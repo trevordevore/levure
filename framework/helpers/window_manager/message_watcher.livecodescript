@@ -24,32 +24,37 @@ end desktopChanged
 on closeStack
   local tMode, tStack, tStackThatIsClosing
   local quitTheApp = true
-  
+
   if levureApplicationState() is "shutting down" then pass closeStack
-  
-  if windowIsManaged(the short name of the owner of the target) and levureApplicationState() is "running" \
-        and windowGetProperty("save window state") is not "false" then
-    windowSaveWindowPosition the short name of the owner of the target
+
+  if windowIsManaged(the short name of the owner of the target) then
+    if levureApplicationState() is "running" and windowGetProperty("save window state") is not "false" then
+      windowSaveWindowPosition the short name of the owner of the target
+    end if
+
+    if the destroyStack of the owner of the target then
+      windowClearWindowCache the short name of the owner of the target
+    end if
   end if
-  
+
   put the mode of this stack into tMode
-  
+
   ## ANY MODE GREATER THAN MODELESS SHOULD NOT TRIGGER AN APPLICATION QUIT
   if tMode > 3 or (the platform is "macos" and levureAppGet("shutdown when all windows are closed") is not true) then
     pass closeStack
   end if
-  
+
   # If explicitly set to false then don't quit
   if levureAppGet("shutdown when all windows are closed") is "false" then
     pass closeStack
   end if
-  
+
   ## AS LONG AS MODE 1 OR 2 IS OPEN WE DON'T QUIT
   ## AS LONG AS MODE 3 IS OPEN AND VISIBLE WE DON'T QUIT
   put the short name of the owner of the target into tStackThatIsClosing
   repeat for each line tStack in the openstacks
     if tStack is tStackThatIsClosing then next repeat
-    
+
     put the mode of stack tStack into tMode
     ## TOPLEVEL AND MODELESS STACKS KEEP THE APP OPEN REGARDLESS OF VISIBILITY
     if tMode > 0 and tMode < 4 or tMode is 12 then
