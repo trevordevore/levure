@@ -8,7 +8,7 @@ end libraryStack
 
 on releaseStack
   if the target is not me then pass releaseStack
-  
+
   ## Purge storage when released
   put empty into sWindowsA
   pass releaseStack
@@ -25,7 +25,7 @@ on openCard
     ## MARK CARD AND STACK AS HAVING BEEN INITIALIZED
     windowSetCardInit the short name of the owner of the target, the short name of the target, true
   end if
-  
+
   pass openCard
 end openCard
 
@@ -42,13 +42,13 @@ end windowGetProperty
 function windowTopMostWindowWithModeOfCeiling pMode
   repeat for each line tStack in the openstacks
     if tStack is empty then next repeat
-    
+
     put the mode of stack tStack into tMode
     if tMode > 0 and tMode <= pMode and the visible of stack tStack then
       return tStack
     end if
   end repeat
-  
+
   return empty
 end windowTopMostWindowWithModeOfCeiling
 
@@ -56,19 +56,19 @@ end windowTopMostWindowWithModeOfCeiling
 function windowTopMostWindowOfMode pMode
   repeat for each line tStack in the openstacks
     if tStack is empty then next repeat
-    
+
     if the mode of stack tStack = pMode and the visible of stack tStack then
       return tStack
     end if
   end repeat
-  
+
   return empty
 end windowTopMostWindowOfMode
 
 
 on windowResizeMenu pStackName
   local tRect
-  
+
   if there is a group (the menubar of stack pStackName) of stack pStackName then
     put the rect of group (the menubar of stack pStackName) into tRect
     put the width of the target + 10 into item 3 of tRect
@@ -187,28 +187,28 @@ end windowSetCardInit
 */
 on windowGoStack pWindow, pMode
   local tStackReference, tCard
-  
+
   if pMode is empty then put "toplevel" into pMode
-  
+
   put quote & pWindow & quote into tStackReference
-  
+
   if not windowIsInit(pWindow) then
     put appGetPref("window."& pWindow &".card") into tCard
     if tCard is empty then
       put line 1 of the cardnames of stack pWindow into tCard
     end if
-    
+
     ## FILTER OUT card id 1000 STUFF
     if word 1 of tCard is "card" then delete word 1 of tCard
     if word 1 of tCard is not "id" then
       put quote & tCard & quote into tCard
     end if
-    
+
     put "go to card" && tCard && "of stack" && tStackReference && "as" && pMode into theDo
   else
     put "go stack" && tStackReference && "as" && pMode into theDo
   end if
-  
+
   do theDo
 end windowGoStack
 
@@ -222,7 +222,7 @@ end windowGoStack
 */
 on windowHasCardRectChanged
   local tCard, tWindow
-  
+
   put short name of this stack into tWindow
   put the short name of the current card into tCard
   return sWindowsA[tWindow][tCard]["lastrect"] is not the rect of this card
@@ -230,7 +230,7 @@ end windowHasCardRectChanged
 
 
 /**
-* \brief Sizes and positions a stack window on screen within the working screen rect. 
+* \brief Sizes and positions a stack window on screen within the working screen rect.
 *
 * \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
 * \param pRestoreFromPrefs If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
@@ -243,15 +243,15 @@ end windowHasCardRectChanged
 command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
   local msgsAreLocked,tHeight,tLoc,tRect
   local tScreenRect,tStack,tWidth
-    
+
   put the lockMessages into msgsAreLocked
   unlock messages
-    
+
   if pWindowName is empty then
     put the short name of this stack into pWindowName
   end if
   put the long id of stack pWindowName into tStack
-  
+
   ## FIRST RUN GETS DEFAULT SETTINGS CENTERED ON SCREEN
   if pRestoreFromPrefs then
     put appGetPref("window."& pWindowName &".rect") into tRect
@@ -262,7 +262,7 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
     put the rect of tStack into tRect
     put the loc of tStack into tLoc
   end if
-  
+
   if not the resizable of tStack then ## WE DON'T TOUCH RECT OF STACKS THAT CAN'T BE RESIZED
     put the rect of tStack into tRect
     if tLoc is not a point then put the screenLoc into tLoc
@@ -272,16 +272,16 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
     if tRect is not a rect then
       put "0,0,0,0" into tRect
       put the working screenRect into tScreenRect
-      
+
       local tDefaultWidth, tDefaultHeight, tPercent
-      
+
       put windowGetProperty("default window width", pWindowName) into tDefaultWidth
       put windowGetProperty("default window height", pWindowName) into tDefaultHeight
-      
+
       if tDefaultWidth is not empty then
         put item 3 of tScreenRect - item 1 of tScreenRect into tWidth
         put item 4 of tScreenRect - item 2 of tScreenRect into tHeight
-        
+
         if the last char of tDefaultWidth is "%" then
           put char 1 to -2 of tDefaultWidth into tPercent
           put round(tWidth * ("." & tPercent)) into tWidth
@@ -290,7 +290,7 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
         else if tDefaultWidth is -1 then
           -- we already have proper value
         end if
-        
+
         if the last char of tDefaultHeight is "%" then
           put char 1 to -2 of tDefaultHeight into tPercent
           put round(tHeight * ("." & tPercent)) into tHeight
@@ -305,7 +305,7 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
       end if
       put min(tWidth, item 3 of tScreenRect - item 1 of tScreenRect) into tWidth
       put min(tHeight, item 4 of tScreenRect - item 2 of tScreenRect) into tHeight
-      
+
       put the screenLoc into tLoc
     else
       ## PROGRAM HAS BEEN RUN BEFORE
@@ -313,14 +313,14 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
       put item 4 of tRect - item 2 of tRect into tHeight
     end if
   end if
-  
+
   ## VALIDATE WIDTH/HEIGHT AGAINST STACK MIN/MAX VALUES
   put min( max(tWidth, the minWidth of tStack), the maxWidth of tStack) into tWidth
   put min( max(tHeight, the minHeight of tStack), the maxHeight of tStack) into tHeight
-  
+
   put item 1 of tRect + tWidth into item 3 of tRect
-  put item 2 of tRect + tHeight into item 4 of tRect    
-  
+  put item 2 of tRect + tHeight into item 4 of tRect
+
   ## DETERMINE LOC AFTER ADJUSTMENTS
   if tLoc is not a point then
     if windowGetProperty("center window on screen") \
@@ -330,23 +330,23 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
       put item 1 of tRect + floor(tWidth / 2) & "," & item 2 of tRect + floor(tHeight / 2) into tLoc
     end if
   end if
-  
+
   ## vscroll is being used then engine will shift stack up half of vscroll from assigned loc
   ## Add half of vscroll to loc so it appears where we want it.
   if the vScroll of tStack > 0 and \
         windowIsManaged(pWindowName) and not windowIsInit(pWindowName) then
     add floor(the vScroll of tStack / 2) to item 2 of tLoc
   end if
-  
+
   set the lockMessages to msgsAreLocked
-  
-  ## PLACE STACK ON SCREEN                    
+
+  ## PLACE STACK ON SCREEN
   lock screen
   set rect of stack pWindowName to tRect
   set loc of stack pWindowName to tLoc
   windowMoveWindowOnScreen pWindowName
   unlock screen
-  
+
   return empty
 end windowPositionWithinConstraints
 
@@ -364,41 +364,41 @@ end windowPositionWithinConstraints
 command windowMoveWindowOnScreen pWindowName
   local tConstraintRect, tHeight, tWidth
   local tMaxHeight, tMaxWidth, tRect, tScreenNo
-  
+
   if pWindowName is empty then
     put the short name of this stack into pWindowName
   end if
-  
+
   put the screen of stack pWindowName into tScreenNo
   put line tScreenNo of the working screenrects into tConstraintRect
   if tConstraintRect is not a rect then put line 1 of the working screenrects into tConstraintRect
-  
+
   ## WHAT WIDTHS/HEIGHTS ARE WE WORKING WITH?
   put item 3 of tConstraintRect - item 1 tConstraintRect into tMaxWidth
   put item 4 of tConstraintRect - item 2 tConstraintRect into tMaxHeight
   put the effective rect of stack pWindowName into tRect
   put item 3 of tRect - item 1 of tRect into tWidth
   put item 4 of tRect - item 2 of tRect into tHeight
-  
+
   ## ENSURE STACK HEIGHT/WIDTH FITS WITHIN CONSTRAINTS
   if tWidth > tMaxWidth or tHeight > tMaxHeight then
     if tWidth > tMaxWidth then
       put item 1 of tConstraintRect into item 1 of tRect
       put item 3 of tConstraintRect into item 3 of tRect
     end if
-    
+
     if tHeight > tMaxHeight then
       put item 2 of tConstraintRect into item 2 of tRect
       put item 4 of tConstraintRect into item 4 of tRect
     end if
-    
+
     set effective rect of stack pWindowName to tRect
   else
     ## IF HEIGHT/WIDTH CHECK OUT THEN ENSURE ENTIRE WINDOW IS ON SCREEN
-    
+
     # Anything less than this and stack is repositioned on screen
     put 25 into tBuffer
-    
+
     if item 2 of tRect < item 2 of tConstraintRect then
       set the effective top of stack pWindowName to item 2 of tConstraintRect
     else if item 2 of tRect > item 4 of tConstraintRect - tBuffer then
@@ -412,7 +412,7 @@ command windowMoveWindowOnScreen pWindowName
       set the effective left of stack pWindowName to item 1 of tConstraintRect
     end if
   end if
-  
+
   return empty
 end windowMoveWindowOnScreen
 
@@ -426,7 +426,7 @@ end windowMoveWindowOnScreen
 */
 private function _locOfRect pRect
   local tLoc
-  
+
   put item 1 of pRect + floor( (item 3 of pRect - item 1 of pRect) / 2 ) into item 1 of tLoc
   put item 2 of pRect + floor( (item 4 of pRect - item 2 of pRect) / 2 ) into item 2 of tLoc
   return tLoc
