@@ -49,7 +49,9 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   loadAppConfig
   put levureAppGetConfig() into sAppA
 
-  repeat for each item tPlatform in "macos,win32,linux"
+  # Make sure that macos is processed last
+  # tWorkingOutputFolder will be used for mirroring redirect folder after file copy operation
+  repeat for each item tPlatform in "win32,linux,macos"
     # Is this platform being packaged?
     if there is not a folder _outputFolderForPlatform(tPlatform, tOutputFolder) then next repeat
 
@@ -113,14 +115,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       put the result into tError
     end if
 
-    # Mirror Resourcers/_MacOS folders in MacOS folder
-    if tError is empty then
-      if tPlatform is "macos" then
-        _mirrorFoldersInFolder tWorkingOutputFolder, tMacOSEngineFolder
-        put the result into tError
-      end if
-    end if
-
     # Prune and move in app stack
     if tError is empty then
       local tSourceStackFilename, tAppStackFilename, isReloaded
@@ -158,6 +152,13 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put the result into tError
   end if
 
+  # Mirror Resourcers/_MacOS folders in MacOS folder
+  if tError is empty then
+    # Variables are correct since macos was processed last
+    _mirrorFoldersInFolder tWorkingOutputFolder, tMacOSEngineFolder
+    put the result into tError
+  end if
+
   # dispatch and then sign macos bundle
   if tError is empty then
     _dispatchFinalizeBuild pBuildProfile, sAppA, tOutputFolder
@@ -179,7 +180,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put the result into tError
   end if
 
-  # TODO: Get appcast.xml file into macos auto update folder
+  # TODO: Add auto update url to tAppA
 
   if tError is not empty then
     answer error tError
@@ -201,9 +202,9 @@ private command _pruneAppArray @xAppA, pPlatform
   if pPlatform is "win32" then
     put "macos,linux" into tKeysToDelete
   else if pPlatform is "macos" then
-    put "win,linux" into tKeysToDelete
+    put "windows,linux" into tKeysToDelete
   else
-    put "win,macos" into tKeysToDelete
+    put "windows,macos" into tKeysToDelete
   end if
 
   repeat for each item tKey in tKeysToDelete
@@ -418,7 +419,7 @@ end _postBuildScriptStackFile
 
 private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   local tError
-  local i, tKey, tFilename, tFiledata
+  local i, tProfile, tFilename, tFiledata
   local tBaseAutoUpdateURL
 
   put tolower(pBuildProfile) into pBuildProfile
@@ -435,39 +436,81 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   end if
 
   # Copy files and replace variables
-  repeat for each item tKey in "default/" & pBuildProfile
-    repeat with i = 1 to the number of elements of pAppA["build profiles"][tKey]["copy files"]["all"]
-      put _resolveRelativeFilenameReference(pAppA["build profiles"][tKey]["copy files"]["all"][i]["filename"], pRootFolder) into tFilename
+  local tRootFoldersA
 
-      if there is a file tFilename then
-        put URL("binfile:" & tFilename) into tFiledata
+  put pDestinationFolder into tFoldersA["base"]
+  put pDestinationFolder & "/MacOS" into tFoldersA["macos"]
+  put pDestinationFolder & "/Windows" into tFoldersA["windows"]
+  put pDestinationFolder & "/Linux" into tFoldersA["linux"]
+  put pDestinationFolder & "/Update" into tFoldersA["update"]
 
-        replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
-        replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
-        replace textEncode("[[LONG_VERSION]]", "utf8") with levureAppGet("version") & "b" & levureAppGet("build") in tFiledata
-        replace textEncode("[[VERSION_INFO_VERSION]]", "utf8") with levureAppGet("version") in tFiledata
+  # Create Update Folder
+  if tError is empty then
+    local tUpdaterFolder
 
-        replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/MacOS/" & the last item of levureStandaloneFilename() in tFiledata
+    put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
+    _fileCreateAllFoldersInPath tUpdaterFolder, pDestinationFolder
+    put the result into tError
+  end if
 
-        replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBaseAutoUpdateURL in tFiledata
-        replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tAutoUpdateURL in tFiledata
+  if tError is empty then
+    local tDestination
 
-        replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
+    repeat for each item tProfile in "default/" & pBuildProfile
+      repeat for each item tTarget in "base/macos/windows/linux/update"
+        repeat with i = 1 to the number of elements of pAppA["build profiles"][tProfile]["copy files"][tTarget]
+          put _resolveRelativeFilenameReference(pAppA["build profiles"][tProfile]["copy files"][tTarget][i]["filename"], \
+                pRootFolder) into tFilename
 
-        put tFiledata into URL("binfile:" & pDestinationFolder & "/" & the last item of tFilename)
-        put the result into tError
-      else if there is a folder tFilename then
-        _fileCopyFolder tFilename, pDestinationFolder & "/" & the last item of tFilename
-        put the result into tError
-      else
-        put "unable to locate file [" & tFilename & "]" into tError
-      end if
+          # Figure out destination
+          put pAppA["build profiles"][tProfile]["copy files"][tTarget][i]["destination"] into tDestination
+          if tDestination is empty then
+            put tFoldersA[tTarget] into tDestination
+          else
+            if tTarget is "macos" then
+              replace "{{APP_FOLDER}}" with _resolveRelativeFilenameReference(levureRelativeAppFolderPath(), \
+                    tFoldersA[tTarget] & "/" & the last item of levureStandaloneFilename() & "/Contents/Resources/_MacOS") in tDestination
+              replace "{{APP_FOLDER_MACOS}}" with _resolveRelativeFilenameReference(levureRelativeAppFolderPath(), \
+                    tFoldersA[tTarget] & "/" & the last item of levureStandaloneFilename() & "/Contents/MacOS") in tDestination
+            else
+              replace "{{APP_FOLDER}}" with _resolveRelativeFilenameReference(levureRelativeAppFolderPath(), tFoldersA[tTarget]) in tDestination
+            end if
+          end if
+
+          # Copy file or folder
+          if there is a file tFilename then
+            put URL("binfile:" & tFilename) into tFiledata
+
+            replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
+            replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
+            replace textEncode("[[LONG_VERSION]]", "utf8") with levureAppGet("version") & "b" & levureAppGet("build") in tFiledata
+            replace textEncode("[[VERSION_INFO_VERSION]]", "utf8") with levureAppGet("version") in tFiledata
+
+            replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/MacOS/" & the last item of levureStandaloneFilename() in tFiledata
+
+            replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBaseAutoUpdateURL in tFiledata
+            replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tAutoUpdateURL in tFiledata
+
+            replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
+
+            put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
+            put the result into tError
+          else if there is a folder tFilename then
+            _fileCopyFolder tFilename, tDestination & "/" & the last item of tFilename
+            put the result into tError
+          else
+            put "unable to locate file [" & tFilename & "]" into tError
+          end if
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        if tError is not empty then exit repeat
+      end repeat
 
       if tError is not empty then exit repeat
     end repeat
-
-    if tError is not empty then exit repeat
-  end repeat
+  end if
 
   return tError for error
 end _copyFiles
@@ -480,7 +523,7 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
   set the itemdelimiter to "/"
 
   if the number of elements of xAppA["helpers"] > 0 then
-    if pPlatform is "win32" then put "win" into tPlatformKey
+    if pPlatform is "win32" then put "windows" into tPlatformKey
     else put tolower(pPlatform) into tPlatformKey
 
     local tDestFolder, tExecutableDestFolder, tFolder
@@ -1052,7 +1095,7 @@ private command _prepareAutoUpdateFiles pBuildProfile, pAppA, pOutputFolder
 
     put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
     if there is a folder tAppBundle then
-      _fileCreateAllFoldersInPath tUpdaterFolder & "/MacOS", pOutputFolder
+      _fileCreateAllFoldersInPath tUpdaterFolder, pOutputFolder
       put the result into tError
 
       put format("cd \"%s\";ditto -ck --rsrc --keepParent \"%s\" \"%s\"", item 1 to -2 of tAppBundle, \
@@ -1217,6 +1260,8 @@ private command _mirrorFoldersInFolder pSourceFolder, pCreateInFolder
   put _folderListing(pSourceFolder, true) into tFolders
 
   repeat for each line tFolder in tFolders
+    if _isMacOSExecutable(tFolder) then next repeat
+
     put the last item of tFolder into tName
 
     if there is not a folder (pCreateInFolder & "/" & tName) then
@@ -1667,7 +1712,11 @@ private function _resolveRelativeFilenameReference pFilename, pRootFolder
     end if
   end repeat
 
-  return pRootFolder & "/" & pFilename for value
+  if pFilename is empty then
+    return pRootFolder for value
+  else
+    return pRootFolder & "/" & pFilename for value
+  end if
 end _resolveRelativeFilenameReference
 
 
