@@ -1,5 +1,5 @@
-script "Levure Framework Application Packager"
-local sStandaloneFilename
+﻿script "Levure Framework Application Packager"
+local sAppA
 
 on libraryStack
   pass libraryStack
@@ -11,130 +11,376 @@ on releaseStack
 end releaseStack
 
 
-command levurePackageApplication pStandaloneStackFilename
-  local tError, tLoaded
-  
-  put pStandaloneStackFilename into sStandaloneFilename
-  
-  if tError is empty then  
-    put there is a stack sStandaloneFilename into tLoaded
-    if not tLoaded then
-      put "invalid standalone stack" into tError
-    end if
-  end if
-  
+command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
+  local tError
+  local tSubFolder, tOutputFolder
+
+  put levureAppGetConfig() into sAppA
+
+  _performPackagingPrechecks pStandaloneStackFilename, pBuildProfile
+  put the result into tError
+
+
   if tError is empty then
-    start using stack sStandaloneFilename
-    loadAppConfig
+    put levureAppFolder() into tAppFolder
+    put levureStandaloneFolder() into tStandaloneFolder
   end if
-end levurePackageApplication
+
+  if tError is empty then
+    local tOutputAppFolder, tExtensionsBuiltIntoStandalone
+
+    put tAppFolder into tOutputAppFolder
+    replace tStandaloneFolder with empty in tOutputAppFolder
+    if tOutputAppFolder begins with "/" then delete char 1 of tOutputAppFolder
+
+    put levureAppGet("version") & "(" & levureAppGet("build") & ")" into tSubFolder
+    put levureBuildFolder() & "/" & pBuildProfile & "/" & tSubFolder into tOutputFolder
+
+    put the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename into tExtensionsBuiltIntoStandalone
+
+    packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, tSubFolder
+    put the result into tError
+  end if
+
+  local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
+  local tMacOSEngineFolder
+
+  # Refresh after having unloaded for standalone builder
+  loadAppConfig
+  put levureAppGetConfig() into sAppA
+
+  repeat for each item tPlatform in "macos,win32,linux"
+    # Is this platform being packaged?
+    if there is not a folder _outputFolderForPlatform(tPlatform, tOutputFolder) then next repeat
+
+    # Create version of app array that will be modfiied and stored with package
+    put sAppA into tAppA
+
+    # determine output folder
+    if tPlatform is "macos" then
+      if tOutputAppFolder is not empty then
+        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, true) into tWorkingOutputFolder
+        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, false) into tMacOSEngineFolder
+      else
+        put _outputFolderForPlatform(tPlatform, tOutputFolder, true) into tWorkingOutputFolder
+        put _outputFolderForPlatform(tPlatform, tOutputFolder, false) into tMacOSEngineFolder
+      end if
+      put tWorkingOutputFolder into tExecutableOutputFolder
+      replace "Resources/_MacOS" with "MacOS" in tExecutableOutputFolder
+    else
+      if tOutputAppFolder is not empty then
+        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder) into tWorkingOutputFolder
+      else
+        put _outputFolderForPlatform(tPlatform, tOutputFolder) into tWorkingOutputFolder
+      end if
+      put tWorkingOutputFolder into tExecutableOutputFolder
+    end if
+
+    if tError is empty then
+      _fileCreateAllFoldersInPath tWorkingOutputFolder, tOutputFolder
+      put the result into tError
+    end if
+
+    # Behaviors, Libraries, Frontscripts, Backscripts
+    # Create single stack for each and move all as substacks of single stack.
+    # For libraries, frontscripts, and backscripts store a custom property with order to load them in.
+    if tError is empty then
+      _packageAssetStacks tAppA, tWorkingOutputFolder
+      put the result into tError
+    end if
+
+    # Extensions
+    # Move straight across
+    if tError is empty then
+      _packageExtensions tAppA, tExecutableOutputFolder, tExtensionsBuiltIntoStandalone
+      put the result into tError
+    end if
+
+    # Components
+    # Move straight across.
+    # Convert script only stacks to regular stacks
+    if tError is empty then
+      _packageComponents tAppA, tWorkingOutputFolder
+      put the result into tError
+    end if
+
+    # Helpers
+    # Move straight over
+    # Convert any script only stacks to stacks
+    # Remove helper.yml file.
+    if tError is empty then
+      _packageHelpers tAppA, tPlatform, tWorkingOutputFolder, tExecutableOutputFolder
+      put the result into tError
+    end if
+
+    # Mirror Resourcers/_MacOS folders in MacOS folder
+    if tError is empty then
+      if tPlatform is "macos" then
+        _mirrorFoldersInFolder tWorkingOutputFolder, tMacOSEngineFolder
+        put the result into tError
+      end if
+    end if
+
+    # Prune and move in app stack
+    if tError is empty then
+      local tSourceStackFilename, tAppStackFilename, isReloaded
+
+      _pruneAppArray tAppA, tPlatform
+
+      set the itemdelimiter to "/"
+      put levureAppStackFilename() into tSourceStackFilename
+      put tWorkingOutputFolder & "/" & the last item of tSourceStackFilename into tAppStackFilename
+      _fileCopyFile tSourceStackFilename, tAppStackFilename
+      put the result into tError
+
+      if tError is empty then
+        delete stack tSourceStackFilename
+
+        set the scriptonly of stack tAppStackFilename to false
+        set the uAppA of stack tAppStackFilename to tAppA
+        set the password of stack tAppStackFilename to xAppA["password"]
+        save stack tAppStackFilename with newest format
+        put the result into tError
+
+        delete stack tAppStackFilename
+        put there is a stack tSourceStackFilename into isReloaded
+      end if
+
+      set the itemdelimiter to ","
+    end if
+
+    if tError is not empty then exit repeat
+  end repeat
+
+  # configure file "copy files"
+  if tError is empty then
+    _copyFiles pBuildProfile, sAppA, tAppFolder, tOutputFolder
+    put the result into tError
+  end if
+
+  # dispatch and then sign macos bundle
+  if tError is empty then
+    _dispatchFinalizeBuild pBuildProfile, sAppA, tOutputFolder
+
+    _signMacOSApplication pBuildProfile, sAppA, tOutputFolder
+    put the result into tError
+  end if
+
+  # prepare auto update files for Sparkle
+  if tError is empty then
+    _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
+    put the result into tError
+  end if
+
+  if tError is emtpy then
+    _dispatchPostBuild pBuildProfile, sAppA, tOutputFolder
+
+    _packageForMAS sAppA, tOutputFolder
+    put the result into tError
+  end if
+
+  # TODO: Get appcast.xml file into macos auto update folder
+
+  if tError is not empty then
+    answer error tError
+  end if
+
+  return tError for error
+end packagerPackageApplication
 
 
-command levureBuildStandalones sStandaloneStackFilename, pBuildProfile
+private command _pruneAppArray @xAppA, pPlatform
+  delete local xAppA["password"]
+  delete local xAppA["build folder"]
+  delete local xAppA["encrypt stacks"]
+  delete local xAppA["build profiles"]
+  delete local xAppA["creator code"]
+  delete local xAppA["externals packages to verify"]
+  delete local xAppA["externals to load"]
+
+  if pPlatform is "win32" then
+    put "macos,linux" into tKeysToDelete
+  else if pPlatform is "macos" then
+    put "win,linux" into tKeysToDelete
+  else
+    put "win,macos" into tKeysToDelete
+  end if
+
+  repeat for each item tKey in tKeysToDelete
+    delete local xAppA["preferences"]["user"][tKey]
+    delete local xAppA["preferences"]["shared"][tKey]
+  end repeat
+
+  return empty for error
+end _pruneAppArray
+
+
+private command _dispatchFinalizeBuild pBuildProfile
+  put _postBuildScriptStackFile() into tFilename
+  if tFilename is not empty then
+    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile
+  end if
+end _dispatchFinalizeBuild
+
+
+private command _dispatchPostBuild pBuildProfile
+  put _postBuildScriptStackFile() into tFilename
+  if tFilename is not empty then
+    dispatch "finishedBuildingPackageForBuildProfile" to stack tFilename with pBuildProfile
+    delete stack tFilename
+  end if
+end _dispatchPostBuild
+
+
+command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfolder
   local tError
   local buildForDistribution, tTempBuildFolder, tSourceFolder
-  
+
+  if the keys of sAppA is empty then
+    put levureAppGetConfig() into sAppA
+  end if
+
+  put tolower(pBuildProfile) into pBuildProfile
+
+  _validateBuildProfile pBuildProfile
+  put the result into tError
+
+  put word 1 to -1 of line 1 of pSubfolder into pSubfolder
+
   set the itemdelimiter to "/"
-  
+
   put pBuildProfile is not "test" into buildForDistribution
   put levureBuildFolder() into tOutputFolder
-  put the effective filename of stack sStandaloneStackFilename into tSourceFolder
-  delete the last item of tSourceFolder  
-  
+
+  local tAppPath, tStandaloneFolder
+
+  put levureAppFolder() into tAppPath
+  put levureStandaloneFolder() into tStandaloneFolder
+
+  put the effective filename of stack pStandaloneStackFilename into tSourceFolder
+  delete the last item of tSourceFolder
+
   if tError is empty then
     if tOutputFolder is empty then
-      put "not build folder has been set" into tError
+      put "no build folder has been set" into tError
+    end if
+    if buildForDistribution and pSubfolder is empty then
+      put "subfolder cannot be empty" into tError
     end if
     if levureAppGet("version") is empty then
       put "version has not been set" into tError
     end if
   end if
-  
+
   if tError is empty then
     if buildForDistribution then
-      put "/" & levureAppGet("version") & "(" & levureAppGet("build") & ")" after tOutputFolder
+      put "/" & pBuildProfile after tOutputFolder
+      if there is not a folder tOutputFolder then
+        create folder tOutputFolder
+        put the result into tError
+      end if
+
+      put "/" & pSubfolder after tOutputFolder
     else
-      put "/test_executables" after tOutputFolder
+      put "/" & pBuildProfile after tOutputFolder
     end if
+
     if there is a folder tOutputFolder then
       revDeleteFolder tOutputFolder
     end if
+
     create folder tOutputFolder
     put the result into tError
   end if
-  
+
   if tError is empty then
-    _updateStandaloneVersionInfo sStandaloneStackFilename
+    _updateStandaloneVersionInfo pStandaloneStackFilename
     put the result into tError
   end if
-  
+
   if tError is empty then
-    revIDESaveStack the long id of stack sStandaloneStackFilename
+    revIDESaveStack the long id of stack pStandaloneStackFilename
     put the result into tError
   end if
-    
+
+  # Create new stack to build standalone with
   if tError is empty then
     local tTempStandaloneStack
-    
+
     put tSourceFolder & "/levureBuildStandaloneTemp_" && the milliseconds & ".livecode" into tTempStandaloneStack
-    
-    delete stack sStandaloneStackFilename
-    revCopyFile sStandaloneStackFilename, tTempStandaloneStack
+
+    delete stack pStandaloneStackFilename
+
+    _fileCopyFile pStandaloneStackFilename, tTempStandaloneStack
     put the result into tError
   end if
-  
+
   if tError is empty then
     local tStackFiles, tLineNo
-    
+
     put the stackfiles of stack tTempStandaloneStack into tStackFiles
-    set the stackfiles of stack tTempStandaloneStack to empty
-    
+    if not buildForDistribution then
+      set the stackfiles of stack tTempStandaloneStack to empty
+      set the behavior of stack tTempStandaloneStack to empty
+    end if
+
     put lineoffset("levureFramework", tStackFiles) into tLineNo
     if tLineNo is 0 then
       put "levureFramework is not assigned to the stackfiles of the standalone stack" into tError
     end if
   end if
-  
+
   if tError is empty then
-    local tAppPath, tFrameworkPath
-    
+    local tFrameworkPath
+
     set the itemdelimiter to ","
     put item 2 to -1 of line tLineNo of tStackFiles into tFrameworkPath
-    put resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
-    put makeRelativePath(tFrameworkPath, tOutputFolder) into tFrameworkPath
+    put _resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
+    put _makeRelativePath(tFrameworkPath, tOutputFolder) into tFrameworkPath
     put levureAppFolder() into tAppPath
-    put makeRelativePath(tAppPath, tOutputFolder) into tAppPath
-    
-    put generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
-    
+
+    if buildForDistribution then
+      replace tStandaloneFolder with empty in tAppPath
+      if tAppPath begins with "/" then
+        delete char 1 of tAppPath
+      end if
+    else
+      put _makeRelativePath(tAppPath, tOutputFolder) into tAppPath
+    end if
+
+    put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
+
     set the script of stack tTempStandaloneStack to tScript
     revIDESaveStack the long id of stack tTempStandaloneStack
     put the result into tError
   end if
-  
+
   ## Now build standalones
   if tError is empty then
     local tStack
-    
+
     put the short name of stack tTempStandaloneStack into tStack
     put specialFolderPath("temporary") into tTempBuildFolder
     put "/revstandalone" & the milliseconds after tTempBuildFolder
     try
+      delete stack "levureFramework"
+      revSetTestEnvironment true
       set the itemdelimiter to "."
-      send "revSaveAsStandalone tStack, tTempBuildFolder" to stack "revSaveAsStandalone"
+      dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
+      put the result into tError
     catch e
       put e into tError
+    finally
+      revSetTestEnvironment false
     end try
-    
-    set the stackfiles of stack sStandaloneStackFilename to tOrigStackFiles
   end if
-  
+
   ## Finally, copy standalones to proper folder
   if tError is empty then
-    _copyExecutablesAndSupportingFilesToFolder tTempBuildFolder, tOutputFolder
+    _copyExecutablesAndSupportingFilesToFolder buildForDistribution, tTempBuildFolder, tOutputFolder
     put the result into tError
   end if
-  
+
   if there is a folder tTempBuildFolder then
     revDeleteFolder tTempBuildFolder
   end if
@@ -142,44 +388,550 @@ command levureBuildStandalones sStandaloneStackFilename, pBuildProfile
     delete stack tTempStandaloneStack
     delete file tTempStandaloneStack
   end if
-  
+
   # reload
   local isReloaded
-  put there is a stack sStandaloneStackFilename into isReloaded
-  
-  if tError is not empty then
-    answer "Error building standalones:" && tError & "."
+  put there is a stack pStandaloneStackFilename into isReloaded
+  go stack pStandaloneStackFilename
+  start using stack pStandaloneStackFilename
+
+  return tError
+end packagerBuildStandalones
+
+
+private function _postBuildScriptStackFile pAppA, pBuildProfile
+  local tFilename
+
+  put pAppA["build profiles"][pBuildProfile]["post build script"] into tFilename
+  if tFilename is empty then
+    put pAppA["build profiles"]["default"]["post build script"] into tFilename
   end if
-end levureBuildStandalones
+
+  if tFilename is not empty then
+    put _resolveRelativeFilenameReference(tFilename, levureAppFolder()) into tFilename
+    return tFilename for value
+  else
+    return empty for value
+  end if
+end _postBuildScriptStackFile
 
 
-private command _copyExecutablesAndSupportingFilesToFolder pBuildFolder, pOutputFolder
+private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
+  local tError
+  local i, tKey, tFilename, tFiledata
+  local tBaseAutoUpdateURL
+
+  put tolower(pBuildProfile) into pBuildProfile
+  set the itemdelimiter to "/"
+
+  # Auto Update URLs
+  put pAppA["build profiles"][pBuildProfile]["base auto update url"] into tBaseAutoUpdateURL
+  if tBaseAutoUpdateURL is empty then
+    put pAppA["build profiles"]["default"]["base auto update url"] into tBaseAutoUpdateURL
+  end if
+  if tBaseAutoUpdateURL is not empty then
+    put "/" & pBuildProfile after tBaseAutoUpdateURL
+    put tBaseAutoUpdateURL & "/" & _versionStringForFilenames() into tAutoUpdateURL
+  end if
+
+  # Copy files and replace variables
+  repeat for each item tKey in "default/" & pBuildProfile
+    repeat with i = 1 to the number of elements of pAppA["build profiles"][tKey]["copy files"]["all"]
+      put _resolveRelativeFilenameReference(pAppA["build profiles"][tKey]["copy files"]["all"][i]["filename"], pRootFolder) into tFilename
+
+      if there is a file tFilename then
+        put URL("binfile:" & tFilename) into tFiledata
+
+        replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
+        replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
+        replace textEncode("[[LONG_VERSION]]", "utf8") with levureAppGet("version") & "b" & levureAppGet("build") in tFiledata
+        replace textEncode("[[VERSION_INFO_VERSION]]", "utf8") with levureAppGet("version") in tFiledata
+
+        replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/MacOS/" & the last item of levureStandaloneFilename() in tFiledata
+
+        replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBaseAutoUpdateURL in tFiledata
+        replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tAutoUpdateURL in tFiledata
+
+        replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
+
+        put tFiledata into URL("binfile:" & pDestinationFolder & "/" & the last item of tFilename)
+        put the result into tError
+      else if there is a folder tFilename then
+        _fileCopyFolder tFilename, pDestinationFolder & "/" & the last item of tFilename
+        put the result into tError
+      else
+        put "unable to locate file [" & tFilename & "]" into tError
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    if tError is not empty then exit repeat
+  end repeat
+
+  return tError for error
+end _copyFiles
+
+
+private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOutputFolder
+  local tError, i
+  local tPlatformKey, tKey
+
+  set the itemdelimiter to "/"
+
+  if the number of elements of xAppA["helpers"] > 0 then
+    if pPlatform is "win32" then put "win" into tPlatformKey
+    else put tolower(pPlatform) into tPlatformKey
+
+    local tDestFolder, tExecutableDestFolder, tFolder
+    local j, k
+    local tRootFolder, tExclusions
+
+    # When creating all folders make sure we work from a common root folder
+    if pExecutableOutputFolder ends with ".app/Contents/MacOS" then
+      put item 1 to -3 of pOutputFolder into tRootFolder
+    else
+      put pOutputFolder into tRootFolder
+    end if
+
+    repeat with i = 1 to the number of elements of xAppA["helpers"]
+      put empty into tExclusions
+      put pOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tDestFolder
+      put pExecutableOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tExecutableDestFolder
+
+      _fileCreateAllFoldersInPath tDestFolder, tRootFolder
+      put the result into tError
+
+      if tError is empty then
+
+        # stacks, libraries, frontscripts, backscripts, and behaviors
+        repeat for each item tKey in "stacks/libraries/frontscripts/backscripts/behaviors"
+          repeat with j = 1 to the number of elements of xAppA["helpers"][i][tKey]
+            _fileCopyFile xAppA["helpers"][i][tKey][j]["filename"], tDestFolder
+            put the result into tError
+
+            if tError is empty then
+              if xAppA["helpers"][i][tKey][j]["encrypt"] is false then
+                put xAppA["helpers"][i][tKey][j]["filename"] & cr after tExclusions
+              end if
+
+              replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i][tKey][j]["filename"]
+            end if
+
+            if tError is not empty then exit repeat
+          end repeat
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        # externals
+        repeat for each key tKey in xAppA["helpers"][i]["externals"]
+          if tKey is not tPlatformKey then
+            delete local xAppA["helpers"][i]["externals"][tKey]
+          else
+            repeat with j = 1 to the number of elements of xAppA["helpers"][i]["externals"][tPlatformKey]
+              _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+              put the result into tError
+
+              if tError is empty then
+                if there is a file xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"] then
+                  _fileCopyFile xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"], tExecutableDestFolder
+                else
+                  _fileCopyFolder xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"], \
+                      tExecutableDestFolder & "/" & the last item of xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
+                end if
+                put the result into tError
+              end if
+
+              if tError is empty then
+                replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
+              end if
+
+              if tError is not empty then exit repeat
+            end repeat
+          end if
+        end repeat
+
+        # extensions
+        if tError is empty then
+          repeat with j = 1 to the number of elements of xAppA["helpers"][i]["extensions"]
+            _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+            put the result into tError
+
+            if tError is empty then
+              _fileCopyFile xAppA["helpers"][i]["extensions"][j]["filename"], tExecutableDestFolder
+              put the result into tError
+            end if
+
+            if tError is empty then
+              if xAppA["helpers"][i]["extensions"][j]["resource folder"] is not empty then
+                _fileCopyFolder xAppA["helpers"][i]["extensions"][j]["resource folder"], tDestFolder
+                put the result into tError
+
+                if tError is empty then
+                  replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["extensions"][j]["resource folder"]
+                end if
+              end if
+            end if
+
+            if tError is empty then
+              replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["extensions"][j]["filename"]
+            end if
+
+            if tError is not empty then exit repeat
+          end repeat
+        end if
+
+        # Move over any folders
+        repeat for each line tFolder in _folderListing(xAppA["helpers"][i]["filename"])
+          if not (tFolder ends with ".bundle") then
+            _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
+            put the result into tError
+          end if
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        if tError is empty then
+          _processStacksInFolder tDestFolder, xAppA["password"], tExclusions
+          put the result into tError
+        end if
+      end if
+
+      put "helpers/" & the last item of xAppA["helpers"][i]["filename"] into xAppA["helpers"][i]["filename"]
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  return tError for error
+end _packageHelpers
+
+
+private command _packageComponents @xAppA, pOutputFolder
+  local tError
+  local tCompsA, i
+
+  set the itemdelimiter to "/"
+
+  if the number of elements of xAppA["components"] > 0 then
+    create folder (pOutputFolder & "/components")
+    put the result into tError
+
+    if tError is empty then
+      local tDestFolder
+
+      repeat with i = 1 to the number of elements of xAppA["components"]
+        put item 1 to -2 of xAppA["components"][i]["filename"] into tComponentFolder
+
+        put pOutputFolder & "/components/" & the last item of tComponentFolder into tDestFolder
+        _fileCopyFolder tComponentFolder, tDestFolder
+        put the result into tError
+
+        if tError is empty then
+          local tExclusions
+
+          if xAppA["components"][i]["encrypt"] is false then
+            put xAppA["components"][i]["filename"] into tExclusions
+          end if
+
+          _processStacksInFolder tDestFolder, xAppA["password"], tExclusions
+          put the result into tError
+        end if
+
+        put "components/" & the last item of tComponentFolder & "/" & the last item of xAppA["components"][i]["filename"] into tCompsA[i]["filename"]
+        put xAppA["components"][i]["name"] into tCompsA[i]["name"]
+
+        if tError is not empty then exit repeat
+      end repeat
+    end if
+
+    if tError is empty then
+      put tCompsA into xAppA["components"]
+    end if
+  end if
+
+  return tError
+end _packageComponents
+
+
+private command _processStacksInFolder pFolder, pPassword, pExclusions
+  local tError
+  local tFolders, tFolder, tFiles, tFile
+
+  set the wholematches to true
+
+  lock messages
+
+  put _fileListing(pFolder) into tFiles
+  repeat for each line tFile in tFiles
+    if there is a stack tFile then
+      if the scriptonly of stack tFile then
+        set the scriptonly of stack tFile to false
+        if pPassword is not empty AND tFile is not among the lines of pExclusions then
+          set the password of stack tFile to pPassword
+        end if
+        save stack tFile as tFile with newest format
+        put the result into tError
+      else
+        if pPassword is not empty AND tFile is not among the lines of pExclusions then
+          set the password of stack tFile to pPassword
+          save stack tFile as tFile with newest format
+          put the result into tError
+        end if
+      end if
+
+      delete stack tFile
+    end if
+
+    if tError is not empty then exit repeat
+  end repeat
+
+  if tError is empty then
+    put _folderListing(pFolder) into tFolders
+    repeat for each line tFolder in tFolders
+      _processStacksInFolder tFolder, pPassword
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  unlock messages
+
+  return tError
+end _processStacksInFolder
+
+
+private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
+  local tError
+  local tExtsA, i, j
+
+  set the itemdelimiter to "/"
+  set the wholematches to true
+
+  if the number of elements of xAppA["extensions"] > 0 then
+    repeat with i = 1 to the number of elements of xAppA["extensions"]
+      # We don't need to add extensions that are being built with the standalone
+      if _getKindFromExtensionFile(xAppA["extensions"][i]["filename"]) is not among the lines of pExtensionsBuiltIntoStandalone \
+          and xAppA["extensions"][i]["distribute"] is not false then
+        if there is not a folder (pOutputFolder & "/extensions") then
+          create folder (pOutputFolder & "/extensions")
+          put the result into tError
+          if tError is not empty then
+            exit repeat
+          end if
+        end if
+
+        add 1 to j
+
+        _fileCopyFile xAppA["extensions"][i]["filename"], pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"]
+        put the result into tError
+
+        if tError is empty then
+          put "extensions/" & the last item of xAppA["extensions"][i]["filename"] into tExtsA[j]["filename"]
+
+          if xAppA["extensions"][i]["resource folder"] is not empty then
+            # TODO: need to copy the resource folder and make sure it has a unique name
+          end if
+        end if
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    if tError is empty then
+      put tExtsA into xAppA["extensions"]
+    end if
+  end if
+
+  return tError for error
+end _packageExtensions
+
+
+private function _getKindFromExtensionFile pFilename
+  local tError, tKind, it
+
+  open file pFilename for binary read
+  put the result into tError
+
+  if tError is empty then
+    seek to 6 in file pFilename
+    put the result into tError
+
+    if tError is empty then
+      repeat forever
+        add 1 to i
+        read from file pFilename for 1 byte
+        put the result into tError
+
+        if tError is empty then
+          if byteToNum(it) < 46 then # Identifier: [A-Za-z][A-Za-z0-9.]* (46 is ".")
+            exit repeat
+          else
+            put it after tKind
+          end if
+        end if
+
+        if tError is not empty then exit repeat
+      end repeat
+
+      close file pFilename
+    end if
+  end if
+
+  if tError is empty then
+    return tKind for value
+  else
+    return tError for error
+  end if
+end _getKindFromExtensionFile
+
+
+private command _packageAssetStacks @xAppA, pOutputFolder
+  local tError, i
+  local tStackLoadOrder
+  local tStackName, tFilename
+  local tUnprotectedStackName
+
+  lock messages
+
+  # behaviors
+  if tError is empty then
+    put empty into tUnprotectedStackName
+
+    put "Levure Application Behaviors" into tStackName
+    create invisible stack tStackName
+
+    if xAppA["password"] is not empty then
+      set the password of stack tStackName to xAppA["password"]
+    end if
+
+    repeat with i = 1 to the number of elements of xAppA["behaviors"]
+      if xAppA["behaviors"][i]["encrypt"] is false then
+        put "Levure Application Unencrypted Behaviors" into tUnprotectedStackName
+        create invisible stack tUnprotectedStackName
+      end if
+    end repeat
+
+    repeat with i = 1 to the number of elements of xAppA["behaviors"]
+      if xAppA["behaviors"][i]["encrypt"] is false and tUnprotectedStackName is not empty then
+        set the mainstack of stack xAppA["behaviors"][i]["filename"] to tUnprotectedStackName
+      else
+        set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
+      end if
+    end repeat
+
+    save stack tStackName as (pOutputFolder & "/behaviors.livecode") with newest format
+    put the result into tError
+    delete stack tStackName
+
+    if tError is empty AND tUnprotectedStackName is not empty then
+      save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
+      put the result into tError
+
+      delete stack tUnprotectedStackName
+    end if
+
+    if tError is empty then
+      put empty into xAppA["behaviors"]
+      put "behaviors.livecode" into xAppA["behaviors"][1]["filename"]
+
+      if tUnprotectedStackName is not empty then
+        put "behaviors_.livecode" into xAppA["behaviors"][2]["filename"]
+      end if
+    end if
+  end if
+
+  # libraries
+  if tError is empty then
+    repeat for each item tAssetType in "frontscripts,backscripts,libraries"
+      put empty into tUnprotectedStackName
+      put empty into tStackLoadOrder
+
+      put "Levure Application" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tStackName
+      create invisible stack tStackName
+
+      if xAppA["password"] is not empty then
+        set the password of stack tStackName to xAppA["password"]
+      end if
+
+      repeat with i = 1 to the number of elements of xAppA[tAssetType]
+        if xAppA[tAssetType][i]["encrypt"] is false then
+          put "Levure Application Unencrypted" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tUnprotectedStackName
+          create invisible stack tUnprotectedStackName
+        end if
+      end repeat
+
+      repeat with i = 1 to the number of elements of xAppA[tAssetType]
+        if xAppA[tAssetType][i]["encrypt"] is false and tUnprotectedStackName is not empty then
+          set the mainstack of stack xAppA[tAssetType][i]["filename"] to tUnprotectedStackName
+        else
+          set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
+        end if
+
+        put the short name of stack xAppA[tAssetType][i]["filename"] & cr after tStackLoadOrder
+      end repeat
+      delete the last char of tStackLoadOrder
+
+      set the uStackLoadOrder of stack tStackName to tStackLoadOrder
+
+      save stack tStackName as (pOutputFolder & "/" & tAssetType & ".livecode") with newest format
+      put the result into tError
+      delete stack tStackName
+
+      if tError is empty AND tUnprotectedStackName is not empty then
+        save stack tUnprotectedStackName as (pOutputFolder & "/" & tAssetType & "_.livecode") with newest format
+        put the result into tError
+        delete stack tUnprotectedStackName
+      end if
+
+      if tError is empty then
+        put empty into xAppA[tAssetType]
+        put tAssetType & ".livecode" into xAppA[tAssetType][1]["filename"]
+
+        if tUnprotectedStackName is not empty then
+          put tAssetType & "_.livecode" into xAppA[tAssetType][2]["filename"]
+        end if
+      end if
+    end repeat
+  end if
+
+  unlock messages
+
+  return tError
+end _packageAssetStacks
+
+
+private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution, pBuildFolder, pOutputFolder
   local tError
   local tFolderContainingPlatformBuilds, tPlatformFolders, tPlatformFolder
-  local tWindowsFolder, tLinuxFolder, tMacOSXBundle
+  local tWindowsFolder, tLinuxFolder, tMacOSFolder, tMacOSBundle
   local tFiles, tFile
-  
-  put folderListing(pBuildFolder) into tFolderContainingPlatformBuilds
-  put folderListing(tFolderContainingPlatformBuilds) into tPlatformFolders
-  
+
+  put _folderListing(pBuildFolder) into tFolderContainingPlatformBuilds
+  put _folderListing(tFolderContainingPlatformBuilds) into tPlatformFolders
+
   set the itemdelimiter to "/"
-  
+
   repeat for each line tPlatformFolder in tPlatformFolders
     if the last item of tPlatformFolder begins with "Windows" then
       put tPlatformFolder into tWindowsFolder
     else if the last item of tPlatformFolder begins with "MacOSX" then
-      put folderListing(tPlatformFolder) into tMacOSXBundle
+      put _folderListing(tPlatformFolder) into tMacOSBundle
+      put tPlatformFolder into tMacOSFolder
     else if the last item of tPlatformFolder begins with "Linux" then
       put tPlatformFolder into tLinuxFolder
     else if tPlatformFolder ends with ".app" then
       ## OS X application
-      put tPlatformFolder into tMacOSXBundle
+      put tPlatformFolder into tMacOSBundle
+      put tFolderContainingPlatformBuilds into tMacOSFolder
     end if
   end repeat
-  
+
   ## No folders/mac app found? Only built for one platform so copy everything over
-  if tWindowsFolder is empty and tMacOSXBundle is empty and tLinuxFolder is empty then
-    put fileListing(tFolderContainingPlatformBuilds) into tFiles
+  if tWindowsFolder is empty and tMacOSBundle is empty and tLinuxFolder is empty then
+    put _fileListing(tFolderContainingPlatformBuilds) into tFiles
     if tFiles is not empty then
       repeat for each line tFile in tFiles
         if tFile ends with ".exe" then
@@ -190,141 +942,366 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildFolder, pOutput
       end repeat
     end if
   end if
-  
-  # Clear out externals folder
-  if tError is empty then
-    if there is a folder (pOutputFolder & "/Externals") then
-      revDeleteFolder (pOutputFolder & "/Externals")
-    end if
-    
-    if there is a folder (tWindowsFolder & "/Externals") or there is a folder (tLinuxFolder & "/Externals") then
-      create folder (pOutputFolder & "/Externals")
-      put the result into tError
-    end if
-  end if
-  
-  if tError is empty then
-    if tWindowsFolder is not empty then
-      repeat for each line tFile in fileListing(tWindowsFolder)
-        if there is a file (pOutputFolder & "/" & the last item of tFile) then
-          delete file (pOutputFolder & "/" & the last item of tFile)
-        end if
-        
-        rename file tFile to (pOutputFolder & "/" & the last item of tFile)
+
+  if pBuildForDistribution then
+    if tError is empty then
+      if tWindowsFolder is not empty then
+        rename folder tWindowsFolder to pOutputFolder & "/Windows"
         put the result into tError
-        
-        if tError is not empty then exit repeat
-      end repeat
-      
-      if tError is empty then
-        if there is a folder (tWindowsFolder & "/Externals") then
-          moveFilesAndFolders tWindowsFolder & "/Externals", pOutputFolder & "/Externals"
-          put the result into tError
-        end if
       end if
     end if
-  end if
-  
-  if tError is not empty then
-    if tLinuxFolder is not empty then
-      repeat for each line tFile in fileListing(tLinuxFolder)
-        if there is a file (pOutputFolder & "/" & last item of tFile) then
-          delete file (pOutputFolder & "/" & last item of tFile)
-        end if
-        
-        rename file tFile to (pOutputFolder & "/" & the last item of tFile)
+
+    if tError is empty then
+      if tLinuxFolder is not empty then
+        rename folder tLinuxFolder to pOutputFolder & "/Linux"
         put the result into tError
-        
-        if tError is not empty then exit repeat
-      end repeat
-      
-      if tError is empty then
-        if there is a folder (tLinuxFolder & "/Externals") then
-          moveFilesAndFolders tLinuxFolder & "/Externals", pOutputFolder & "/Externals"
+      end if
+    end if
+
+    if tError is empty then
+      if tMacOSFolder is not empty then
+        rename folder tMacOSFolder to pOutputFolder & "/MacOS/"
+        put the result into tError
+      end if
+    end if
+  else
+    # Clear out externals folder
+    if tError is empty then
+      if there is a folder (pOutputFolder & "/Externals") then
+        revDeleteFolder (pOutputFolder & "/Externals")
+      end if
+
+      if there is a folder (tWindowsFolder & "/Externals") or there is a folder (tLinuxFolder & "/Externals") then
+        create folder (pOutputFolder & "/Externals")
+        put the result into tError
+      end if
+    end if
+
+    if tError is empty then
+      if tWindowsFolder is not empty then
+        repeat for each line tFile in _fileListing(tWindowsFolder)
+          if there is a file (pOutputFolder & "/" & the last item of tFile) then
+            delete file (pOutputFolder & "/" & the last item of tFile)
+          end if
+
+          rename file tFile to (pOutputFolder & "/" & the last item of tFile)
           put the result into tError
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        if tError is empty then
+          if there is a folder (tWindowsFolder & "/Externals") then
+            _moveFilesAndFolders tWindowsFolder & "/Externals", pOutputFolder & "/Externals"
+            put the result into tError
+          end if
         end if
       end if
     end if
-  end if
-  
-  if tError is empty then
-    if tMacOSXBundle is not empty then
-      if there is a folder (pOutputFolder & "/" & the last item of tMacOSXBundle) then
-        revDeleteFolder (pOutputFolder & "/" & the last item of tMacOSXBundle)
+
+    if tError is not empty then
+      if tLinuxFolder is not empty then
+        repeat for each line tFile in _fileListing(tLinuxFolder)
+          if there is a file (pOutputFolder & "/" & last item of tFile) then
+            delete file (pOutputFolder & "/" & last item of tFile)
+          end if
+
+          rename file tFile to (pOutputFolder & "/" & the last item of tFile)
+          put the result into tError
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        if tError is empty then
+          if there is a folder (tLinuxFolder & "/Externals") then
+            _moveFilesAndFolders tLinuxFolder & "/Externals", pOutputFolder & "/Externals"
+            put the result into tError
+          end if
+        end if
       end if
-      rename folder tMacOSXBundle to (pOutputFolder & "/" & the last item of tMacOSXBundle)
+    end if
+
+    if tError is empty then
+      if tMacOSBundle is not empty then
+        if there is a folder (pOutputFolder & "/" & the last item of tMacOSBundle) then
+          revDeleteFolder (pOutputFolder & "/" & the last item of tMacOSBundle)
+        end if
+        rename folder tMacOSBundle to (pOutputFolder & "/" & the last item of tMacOSBundle)
+      end if
     end if
   end if
-  
+
   return tError for error
 end _copyExecutablesAndSupportingFilesToFolder
 
 
-private command moveFilesAndFolders pSourceFolder, pDestinationFolder
+private function _versionStringForFilenames
+  return levureAppGet("version") & "b" & levureAppGet("build")
+end _versionStringForFilenames
+
+
+private command _prepareAutoUpdateFiles pBuildProfile, pAppA, pOutputFolder
+  local tError, tUpdaterFolder
+
+  set the itemdelimiter to "/"
+
+  put pOutputFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
+
+  if tError is empty then
+    local tAppBundle, tCmd
+
+    put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
+    if there is a folder tAppBundle then
+      _fileCreateAllFoldersInPath tUpdaterFolder & "/MacOS", pOutputFolder
+      put the result into tError
+
+      put format("cd \"%s\";ditto -ck --rsrc --keepParent \"%s\" \"%s\"", item 1 to -2 of tAppBundle, \
+            the last item of tAppBundle, tUpdaterFolder & "/" & the last item of tAppBundle & ".zip") into tCmd
+      get shell(tCmd)
+      if the result > 0 then
+        put it into tError
+      end if
+    end if
+  end if
+
+  # TODO: Windows once we get Sparkle working for it
+
+  return tError for error
+end _prepareAutoUpdateFiles
+
+
+private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath, pBuildForDistribution
+  local tScript, tFunction
+
+  if pBuildForDistribution then
+    # load app stack into memory on startup
+    local tAppStackFilename
+
+    set the itemdelimiter to "/"
+    put pRelativeAppPath into tAppStackFilename
+    put the last item of levureAppStackFilename() into item (the number of items of tAppStackFilename + 1) of tAppStackFilename
+    # _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tAppStackFilename") & cr & \
+    put "on startup" & cr & \
+          _qstr("set the itemDelimiter to `/`") & cr & \
+          _qstr("if the platform is `macos` then") & cr & \
+          _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder) into tAppStackFilename") & cr & \
+          "else" & cr & \
+          _qstr("put resolvePath(`" & tAppStackFilename & "`, the engine folder) into tAppStackFilename") & cr & \
+          "end if" & cr & \
+          "put there is a stack tAppStackFilename into tLoaded" & cr & \
+          "if not tLoaded then" & cr & \
+          _qstr("answer `Could not locate app stack:` & tAppStackFilename") & cr & \
+          "quit" & cr & \
+          "end if" & cr & \
+          "end startup" into tScript
+  else
+    # Add code to locate framework and app files
+    put "appFolder()" into tFunction
+
+    put "on startup" & cr & \
+      _qstr("put resolvePath(`" & pRelativeFrameworkPath & "`, " & tFunction & ") into tStackfile") & cr & \
+      "set the behavior of me to the long id of stack tStackfile" & cr & \
+      "end startup" into tScript
+
+    put cr & cr & \
+      "function levureTestingStandaloneAppFolder" & cr & \
+      _qstr("put resolvePath(`" & pRelativeAppPath & "`, " & tFunction & ") into tStackfile") & cr & \
+      "return tStackfile for value" & cr & \
+      "end levureTestingStandaloneAppFolder" after tScript
+
+    put cr & cr & \
+          "private function appFolder" & cr & \
+          "set the itemdelimiter to slash" & cr & \
+          "put the effective filename of me into tFilename" & cr & \
+          "delete the last item of tFilename" & cr & \
+          _qstr("if the platform is `macos` and tFilename contains `.app/Contents/MacOS` then") & cr & \
+          "delete item -3 to -1 of tFilename" & cr & \
+          "end if" & cr & \
+          "return tFilename" & cr & \
+          "end appFolder" after tScript
+  end if
+
+  put cr & cr & \
+        "private function resolvePath pFilename, pRootFolder" & cr & \
+        _qstr("set the itemDelimiter to `/`") & cr & \
+        _qstr("repeat while pFilename begins with `../`") & cr & \
+        "if pRootFolder is empty then" & cr & \
+        _qstr("return `relative path is too deep for root folder` for error") & cr & \
+        "else" & cr & \
+        "delete the last item of pRootFolder" & cr & \
+        "delete char 1 to 3 of pFilename" & cr & \
+        "end if" & cr & \
+        "end repeat" & cr & \
+        _qstr("return pRootFolder & `/` & pFilename for value") & cr & \
+        "end resolvePath" after tScript
+
+  return tScript for value
+end _generateStartupScript
+
+
+private command _validateBuildProfile pBuildProfile
+  local tError
+
+  put word 1 to -1 of line 1 of pBuildProfile into pBuildProfile
+  if pBuildProfile is empty then put "invalid build profile" into tError
+
+  if tError is empty then
+    if pBuildProfile is not "test" and pBuildProfile is not among the keys of sAppA["build profiles"] then
+      put "invalid build profile" into tError
+    end if
+  end if
+
+  return tError for error
+end _validateBuildProfile
+
+
+private command _performPackagingPrechecks pStandaloneStackFilename, @xBuildProfile
+  local tError, tLoaded
+
+  put tolower(xBuildProfile) into xBuildProfile
+
+  _validateBuildProfile xBuildProfile
+  put the result into tError
+
+  if tError is empty then
+    put there is a stack pStandaloneStackFilename into tLoaded
+    if not tLoaded then
+      put "invalid standalone stack" into tError
+    end if
+  end if
+
+  # Check if encryption is supposed to happen but password is missing
+  if tError is empty then
+    local tPassword
+
+    if levureAppGet("encrypt stacks") and tPassword is empty then
+      --put "missing password" into tError
+    end if
+  end if
+
+  if tError is empty then
+    if not (levureAppFolder() begins with levureStandaloneFolder()) then
+      put "the app.yml file must be in the same directory or a subdirectory of the standalone stack" into tError
+    end if
+  end if
+
+  return tError for error
+end _performPackagingPrechecks
+
+
+private function _outputFolderForPlatform pPlatform, pOutputFolder, pUseRedirectOnMacOS
+  switch pPlatform
+    case "macos"
+      set the itemdelimiter to "/"
+
+      if pUseRedirectOnMacOS then
+        return pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() & "/Contents/Resources/_MacOS"
+      else
+        return pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() & "/Contents/MacOS"
+      end if
+    case "win32"
+      return pOutputFolder & "/Windows"
+    case "linux"
+      return pOutputFolder & "/Linux"
+    default
+      throw "invlaid platform:" && pPlatform
+  end switch
+end _outputFolderForPlatform
+
+
+private command _mirrorFoldersInFolder pSourceFolder, pCreateInFolder
+  local tError
+
+  set the itemDelimiter to "/"
+
+  put _folderListing(pSourceFolder, true) into tFolders
+
+  repeat for each line tFolder in tFolders
+    put the last item of tFolder into tName
+
+    if there is not a folder (pCreateInFolder & "/" & tName) then
+      create folder (pCreateInFolder & "/" & tName)
+      if the result is not empty then
+        put "error creating folder" && pCreateInFolder & "/" & tName into tError
+        exit repeat
+      end if
+    end if
+
+    _mirrorFoldersInFolder tFolder, pCreateInFolder & "/" & tName
+    put the result into tError
+
+    if tError is not empty then exit repeat
+  end repeat
+
+  return tError
+end _mirrorFoldersInFolder
+
+
+private command _moveFilesAndFolders pSourceFolder, pDestinationFolder
   local tError, tFile
 
   set the itemdelimiter to "/"
-  
-  if tError is empty then  
-    repeat for each line tFile in fileListing(pSourceFolder)
+
+  if tError is empty then
+    repeat for each line tFile in _fileListing(pSourceFolder)
       rename file tFile to (pDestinationFolder & "/" & the last item of tFile)
       put the result into tError
-    
+
       if tError is not empty then exit repeat
     end repeat
   end if
-  
+
   if tError is empty then
-    repeat for each line tFile in folderListing(pSourceFolder)
+    repeat for each line tFile in _folderListing(pSourceFolder)
       rename folder tFile to (pDestinationFolder & "/" & the last item of tFile)
       put the result into tError
-    
+
       if tError is not empty then exit repeat
     end repeat
   end if
-  
+
   return tError
-end moveFilesAndFolders
+end _moveFilesAndFolders
 
 
 private command _updateStandaloneVersionInfo pStackFilename
   local tError
   local tVersion, tMajor, tMinor, tRevision, tBuild
-  
+
   put levureAppGet("version") into tVersion
   put levureAppGet("build") into tBuild
-  
+
   set the itemdelimiter to "."
   put item 1 of tVersion into tMajor
   put item 2 of tVersion into tMinor
   put item 3 of tVersion into tRevision
-  
+
   ## -- Windows
   set the cRevStandaloneSettings["Windows,fileversion1"] of stack pStackFilename to tMajor
   set the cRevStandaloneSettings["Windows,fileversion2"] of stack pStackFilename to tMinor
   set the cRevStandaloneSettings["Windows,fileversion3"] of stack pStackFilename to tRevision
   set the cRevStandaloneSettings["Windows,fileversion4"] of stack pStackFilename to tBuild
-  
+
   set the cRevStandaloneSettings["Windows,productversion1"] of stack pStackFilename to tMajor
   set the cRevStandaloneSettings["Windows,productversion2"] of stack pStackFilename to tMinor
   set the cRevStandaloneSettings["Windows,productversion3"] of stack pStackFilename to tRevision
   set the cRevStandaloneSettings["Windows,productversion4"] of stack pStackFilename to tBuild
-  
+
   ## -- OS X
   if the cRevStandaloneSettings["OSX,plist"] of stack pStackFilename is not empty then
     local tPlist
-    
+
     put the filename of stack pStackFilename into tPlist
     set the itemdelimiter to slash
     put the cRevStandaloneSettings["OSX,plist"] of stack pStackFilename into the last item of tPlist
     if there is a file tPlist then
       local tData
-      
+
       ## Developer is doing this the proper way. Update plist
       put URL("binfile:" & tPlist) into tData
-      
+
       _updatePlistInfo tData
-      
+
       put tData into URL("binfile:" & tPlist)
       put the result into tError
       if tError is not empty then
@@ -340,31 +1317,31 @@ private command _updateStandaloneVersionInfo pStackFilename
     set the cRevStandaloneSettings["OSX,longVersion"] of stack pStackFilename \
           to format("%u.%u.%u (%u)", tMajor, tMinor, tRevision, tBuild)
   end if
-  
+
   return tError for error
 end _updateStandaloneVersionInfo
 
 
 private command _updatePlistInfo @xData, pVersionA
   local tRangeA, tVersion, tBuild, tString
-  
+
   put levureAppGet("version") into tVersion
   put levureAppGet("build") into tBuild
-  
+
   put _findRangeForPlistEntry(xData, "CFBundleGetInfoString") into tRangeA
   if tRangeA["start"] > 0 then
     put char tRangeA["start"] to tRangeA["end"] of xData into tString
-    
+
     put tVersion && "build" && levureAppGet("build") into tVersion
     put tVersion into item 1 of tString
     put tString into char tRangeA["start"] to tRangeA["end"] of xData
   end if
-  
+
   put _findRangeForPlistEntry(xData, "CFBundleShortVersionString") into tRangeA
   if tRangeA["start"] > 0 then
     put tVersion into char tRangeA["start"] to tRangeA["end"] of xData
   end if
-  
+
   put _findRangeForPlistEntry(xData, "CFBundleVersion") into tRangeA
   if tRangeA["start"] > 0 then
     put tBuild into char tRangeA["start"] to tRangeA["end"] of xData
@@ -374,10 +1351,10 @@ end _updatePlistInfo
 
 private function _findRangeForPlistEntry pData, pEntry
   local tRangeA, tFirstCharNo, tStartCharNo, tEndCharNo
-  
+
   put 0 into tRangeA["start"]
   put 0 into tRangeA["end"]
-  
+
   put offset("<key>" & pEntry & "</key>", pData) into tFirstCharNo
   if tFirstCharNo > 0 then
     put offset("<string>", pData, tFirstCharNo) into tStartCharNo
@@ -391,105 +1368,296 @@ private function _findRangeForPlistEntry pData, pEntry
       end if
     end if
   end if
-  
+
   return tRangeA
 end _findRangeForPlistEntry
 
 
-private command revSBListWidgetsOfStack pStack, @xWidgetKindsA
-  local tNumCards, tNumWidgets, tKind
-  put the number of cards of pStack into tNumCards
-  repeat with tCard = 1 to tNumCards
-    put the number of widgets of card tCard of pStack into tNumWidgets
-    repeat with tWidget = 1 to tNumWidgets
-      put the kind of widget tWidget of card tCard of pStack into tKind
-      put "" into xWidgetKindsA[tKind]
-    end repeat
+private command _packageForMAS pAppA, pOutputFolder
+  local tAppBundle, tCertName
+  local tPackage, tCmd
+
+  set the itemdelimiter to "/"
+
+  put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
+  if there is not a folder tAppBundle then return empty
+
+  put pAppA["build profiles"]["default"]["macos"]["certificate name"] into tCertName
+
+  set the itemdelimiter to "."
+  put tAppBundle into tPackage
+  put "pkg" into item -1 of tPackage
+
+  put format("productbuild --component \"%s\" /Applications --sign \"3rd Party Mac Developer Installer: %s\" \"%s\"", tAppBundle, tCertName, tPackage) into tCmd
+  get shell(tCmd)
+  if the result > 0 then
+    return it
+  else
+    return empty
+  end if
+end _packageForMAS
+
+
+private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
+  local tError, tCertName, tAppBundle
+
+  set the itemdelimiter to "/"
+
+  put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
+  if there is not a folder tAppBundle then return empty
+
+  put pAppA["build profiles"]["default"]["macos"]["certificate name"] into tCertName
+
+  if tCertName is not empty then
+    local isMAS
+
+    put pBuildProfile is "mas" OR "mac app store" into isMAS
+    if isMAS then
+      put "3rd Party Mac Developer Application:" && tCertName into tCertName
+    else
+      put "Developer ID Application:" && tCertName into tCertName
+    end if
+
+    local tCmd
+
+    # Sierra on up needs extended attributes stripped out
+    if tError is empty then
+       put format("chmod -R u+rw \"%s\"", tAppBundle) into tCmd
+       get shell(tCmd)
+       if the result > 0 then
+        put it into tError
+      end if
+    end if
+
+    if tError is empty then
+       put format("xattr -rc \"%s\"", tAppBundle) into tCmd
+       get shell(tCmd)
+       if the result > 0 then
+        put it into tError
+      end if
+    end if
+
+    if tError is empty then
+      _signAndStrip tAppBundle, tCertName, isMAS
+      put the result into tError
+    end if
+
+    if tShellError is empty then
+      put format("codesign -dvvv \"%s\"", tAppBundle) into tCmd
+      get shell(tCmd)
+      if the result > 0 then
+        put it into tError
+      end if
+    end if
+  end if
+
+  return tError for error
+end _signMacOSApplication
+
+
+## Monte Goulding with modifications by Trevor DeVore
+command _signAndStrip pBundle, pCertificate, pMas, pSignFile
+  local tError
+
+  # recursively parse any frameworks
+  if tError is empty then
+    put pBundle & "/Contents/Frameworks" into tRootFolder
+    if there is a folder tRootFolder then
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFiles
+      put the result into tError
+    end if
+  end if
+
+  # recursively parse the MacOS folder
+  if tError is empty then
+    put pBundle & "/Contents/MacOS" into tRootFolder
+    if there is a folder tRootFolder then
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFiles
+      put the result into tError
+    end if
+  end if
+
+  if tError is empty then
+    _signFile pBundle, pCertificate, pMas
+    put the result into tError
+  end if
+
+  return tError
+end _signAndStrip
+
+
+# Signs a file or folder
+private command _signFile pFilename, pCertificate, pMas
+  local tEntitlementsFile, tCmd, tError
+
+  if tError is empty then
+    put _bundleEntitlementFile(pFilename) into tEntitlementsFile
+
+    if tEntitlementsFile is not empty then
+      put format("codesign --verbose --force -s \"%s\" --entitlements \"%s\" \"%s\"", pCertificate, tEntitlementsFile, pFilename) into tCmd
+    else
+      put format("codesign --verbose --force -s \"%s\" \"%s\"", pCertificate, pFilename) into tCmd
+    end if
+
+    get shell(tCmd)
+    if the result > 0 then
+      put the result into tError
+      if tError is 1 then
+        put "codesign process failed:" && it into tError
+      else if tError is 2 then
+        put "invalid arguments passed to codesign:" && it into tError
+      else if tError is 3 then
+        put "requirements not met for -R flag in codesign:" && it into tError
+      else
+        put it into tError
+      end if
+    end if
+  end if
+
+  return tError for error
+end _signFile
+
+
+private function _bundleEntitlementFile pBundle
+  local tFiles, tBundleName
+
+  # Look for an entitlement file that matches the bundle name
+  set the itemdelimiter to "/"
+  put the last item of pBundle into tBundleName
+  set the itemDelimiter to "."
+  put item 1 to -2 of tBundleName into tBundleName
+
+  put _fileListing(pBundle & "/Contents/Resources", true) into tFiles
+  filter tFiles with "*/" & tBundleName & ".entitlements"
+  if tFiles is empty then
+    put _fileListing(pBundle & "/Contents", true) into tFiles
+    filter tFiles with "*/" & tBundleName & ".entitlements"
+  end if
+
+  return tFiles
+end _bundleEntitlementFile
+
+
+private function _isMacOSExecutable pFilepath
+  return pFilepath ends with ".bundle" \
+        OR pFilepath ends with ".dylib" \
+        OR pFilepath ends with ".framework" \
+        OR pFilepath ends with ".app"
+end _isMacOSExecutable
+
+
+## Monte Goulding with modifications by Trevor DeVore
+private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSignFiles
+  local tError, tOldDefaultFolder, tFolders, tFilesInfo, tFiles
+
+  put pSignFiles is not false into pSignFiles
+
+  # Get list of folders and reset. Can't wait until end as it messes up recursive calls.
+  put the defaultFolder into tOldDefaultFolder
+  set the defaultFolder to pFolder
+  put the folders into tFolders
+  put the detailed files into tFilesInfo
+  put the files into tFiles
+  set the defaultFolder to tOldDefaultFolder
+
+  repeat for each line tFolder in line 2 to -1 of tFolders
+    if _isMacOSExecutable(tFolder) then
+      _signAndStrip  pFolder & "/" & tFolder, pCertificate, pMAS, false # don't sign any files within bundle
+      put the result into tError
+    else if tFolder ends with ".app" OR tFolder ends with ".framework" then
+      _signAndStrip  pFolder & "/" & tFolder, pCertificate, pMAS, true # sign files within the app
+      put the result into tError
+    else
+      _findBundlesAndStripExecutables pFolder & "/" & tFolder, pCertificate, pMAS, pSignFiles # inherit behavior
+      put the result into tError
+    end if
+
+    if tError is not empty then exit repeat
   end repeat
-end revSBListWidgetsOfStack
+
+  # On Mavericks and above additional signing is required. Anything that can contain code (or that OS X thinks can contain code)
+  if tError is empty then
+    if pSignFiles then # don't sign if part of a bundle
+      set the itemdelimiter to "."
+
+      # sign things like .dylib before others. Otherwise codesign will try to sign app and complain that .dylib isn't signed.
+      put tFiles into tFilesWOExt
+      filter tFilesWOExt without "*.*"
+      filter tFiles with "*.*"
+      if tFilesWOExt is not empty then
+        put tFilesWOExt into line (the number of lines of tFiles + 1) of tFiles
+      end if
+
+      repeat for each line tFile in tFiles
+        if the platform is "macos" AND \
+              (item 1 of the itemDelimiter > 10 OR item 1 of the systemVersion = 10 AND item 2 of the systemVersion >= 9) then
+          _signFile pFolder & "/" & tFile, pCertificate, pMAS
+          put the result into tError
+        end if
+
+        if tError is not empty then exit repeat
+      end repeat
+    end if
+  end if
+
+  # strip
+  if tError is empty then
+    if pMAS then
+      set the itemDelimiter to ","
+
+      repeat for each line tFile in tFilesInfo
+        # If executable bit is set then lipo it.
+        # Prior to 2014-05-27 we assumed 755. Now we just check for a 7 in the first char.
+        # TODO: error reporting
+        if char 1 of item 10 of tFile = "7" then
+          get shell(format("lipo -remove ppc \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
+          put the result into tResult
+
+          if tResult is not empty then
+            get shell(format("lipo -remove ppc7400 \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
+            _log "lipo ppc7400" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
+          end if
+        end if
+      end repeat
+    end if
+  end if
+
+  return tError for error
+end _findBundlesAndStripExecutables
 
 
-private function folderListing pFilename
+private function _folderListing pFilename
   local tFolders, tFolder, tFullPathFolders
-  
+
   put folders(pFilename) into tFolders
   if line 1 of tFolders is ".." then delete line 1 of tFolders
-  
+
   repeat for each line tFolder in tFolders
     put pFilename & "/" & tFolder & cr after tFullPathFolders
   end repeat
   delete the last char of tFullPathFolders
-  
+
   return tFullPathFolders for value
-end folderListing
+end _folderListing
 
 
-private function fileListing pFilename
+private function _fileListing pFilename
   local tFiles, tFile, tFullPathFiles
-  
+
   put files(pFilename) into tFiles
-  
+
   repeat for each line tFile in tFiles
     put pFilename & "/" & tFile & cr after tFullPathFiles
   end repeat
   delete the last char of tFullPathFiles
-  
+
   return tFullPathFiles for value
-end fileListing
+end _fileListing
 
 
-private function generateStartupScript pRelativeFrameworkPath, pRelativeAppPath, pBuildForDistribution
-  local tScript, tFunction
-  
-  if pBuildForDistribution then
-    
-  else
-    put "appFolder()" into tFunction
-  end if
-  
-  put "on startup" & cr & \
-        qstr("put resolvePath(`" & pRelativeFrameworkPath & "`, " & tFunction & ") into tStackfile") & cr & \
-        "set the behavior of me to the long id of stack tStackfile" & cr & \
-        "end startup" into tScript
-        
-  put cr & cr & \
-      "function levureTestingStandaloneAppFolder" & cr & \
-      qstr("put resolvePath(`" & pRelativeAppPath & "`, " & tFunction & ") into tStackfile") & cr & \
-      "return tStackfile for value" & cr & \
-      "end levureTestingStandaloneAppFolder" after tScript
-  
-  put cr & cr & \
-        "private function resolvePath pFilename, pRootFolder" & cr & \
-        qstr("set the itemDelimiter to `/`") & cr & \
-        qstr("repeat while pFilename begins with `../`") & cr & \
-        "if pRootFolder is empty then" & cr & \
-        qstr("return `relative path is too deep for root folder` for error") & cr & \
-        "else" & cr & \
-        "delete the last item of pRootFolder" & cr & \
-        "delete char 1 to 3 of pFilename" & cr & \
-        "end if" & cr & \
-        "end repeat" & cr & \
-        qstr("return pRootFolder & `/` & pFilename for value") & cr & \
-        "end resolvePath" after tScript
-  
-  put cr & cr & \
-        "private function appFolder" & cr & \
-        "set the itemdelimiter to slash" & cr & \
-        "put the effective filename of me into tFilename" & cr & \
-        "delete the last item of tFilename" & cr & \
-        qstr("if the platform is `macos` and tFilename contains `.app/Contents/MacOS` then") & cr & \
-        "delete item -3 to -1 of tFilename" & cr & \
-        "end if" & cr & \
-        "return tFilename" & cr & \
-        "end appFolder" after tScript
-  
-  return tScript for value
-end generateStartupScript
-
-
-private function resolveRelativeFilenameReference pFilename, pRootFolder
+private function _resolveRelativeFilenameReference pFilename, pRootFolder
   set the itemDelimiter to "/"
-  
+
   repeat while pFilename begins with "../"
     if pRootFolder is empty then
       return "relative path is too deep for root folder" for error
@@ -498,26 +1666,26 @@ private function resolveRelativeFilenameReference pFilename, pRootFolder
       delete char 1 to 3 of pFilename
     end if
   end repeat
-  
+
   return pRootFolder & "/" & pFilename for value
-end resolveRelativeFilenameReference
+end _resolveRelativeFilenameReference
 
 
-private function makeRelativePath pFilename, pRootFolder
+private function _makeRelativePath pFilename, pRootFolder
   local tIndex
   local tMatchCount = 0
   local tNonMatchCount =0
-  
+
   ## NORMALIZE
   if char 1 of pFilename is slash then delete char 1 of pFilename
   if char 1 of pRootFolder is slash then delete char 1 of pRootFolder
   if the last char of pFilename is slash then delete the last char of pFilename
   if the last char of pRootFolder is slash then delete the last char of pRootFolder
   set the itemDelimiter to slash
-  
+
   if pFilename is empty then return empty
   if pRootFolder is empty then return empty
-  
+
   ## IS pFilename A CHILD DIRECTORY OF pRootFolder?
   if pRootFolder is item 1 to (the number of items of pRootFolder) of pFilename then
     delete char 1 to length(pRootFolder) + 1 of pFilename
@@ -528,7 +1696,7 @@ private function makeRelativePath pFilename, pRootFolder
     repeat with tIndex = 1 to the number of items of pRootFolder
       put "../" after pFilename
     end repeat
-  else       
+  else
     ## DETERMINE WHERE PATHS DIVERGE
     repeat with tIndex = 1 to the number of items of pFilename
       if item tIndex of pFilename is not item tIndex of pRootFolder then
@@ -536,22 +1704,274 @@ private function makeRelativePath pFilename, pRootFolder
         put the number of items of pRootFolder - tIndex + 1 into tNonMatchCount
         exit repeat
       end if
-    end repeat         
-    
+    end repeat
+
     if tMatchCount > 0 then
       delete item 1 to tMatchCount of pFilename
     end if
-    
+
     repeat with tIndex = 1 to tNonMatchCount
       put "../" before pFilename
     end repeat
   end if
-  
+
   return pFilename
-end makeRelativePath
+end _makeRelativePath
 
 
-private function qstr pStr
+private function _qstr pStr
   replace "`" with quote in pStr
   return pStr
-end qstr
+end _qstr
+
+
+private command _fileCopyFile pSrcFile, pDestFile
+  local tShellError, tTouchResult
+  local tError, tResult
+
+  if the platform is "MacOS" then
+    put _escapeForShell(pSrcFile) into pSrcFile
+    put _escapeForShell(pDestFile) into pDestFile
+    put shell ("cp -f" && pSrcFile && pDestFile) into tResult ## removed -p as it had problems with servers
+    put the result into tShellError
+
+    if tShellError is empty then
+      ## Copying to USB (10.5.2) wouldn't return file mod time when queried with detailed files
+      ## This fixes it
+      put shell ("touch -c -a" && pDestFile) into tTouchResult
+    end if
+  else if the platform is "Win32" then
+    put _escapeForShell(pSrcFile) into pSrcFile
+    put _escapeForShell(pDestFile) into pDestFile
+    put shell ("copy /Y /V" && pSrcFile && pDestFile) into tResult ## dies on long filenames
+    put the result into tShellError
+  else
+    put _escapeForShell(pSrcFile) into pSrcFile
+    put _escapeForShell(pDestFile) into pDestFile
+    put shell ("cp -f" && pSrcFile && pDestFile) into tResult
+    put the result into tShellError
+  end if
+
+  if tShellError is not empty then
+    if tResult is not empty then
+      put line 1 to 3 of tResult into tError
+    else
+      put tShellError into tError
+    end if
+  end if
+
+  return tError
+end _fileCopyFile
+
+
+command _fileCopyFolder pSrcFolder, pDestFolder
+  local tError, tLastItemofSrcFolder, tResult
+
+  if the platform is "MacOS" then
+    ## ditto copies contents of pSrcFolder to pDestFolder if pDestFolder exists
+    ## What we want is for pSrcFolder to exist within pDestFolder
+    if there is a directory pDestFolder then
+      set the itemdel to "/"
+      if char -1 of pDestFolder is "/" then delete char -1 of pDestFolder
+      put item -1 of pSrcFolder into tLastItemofSrcFolder
+      put "/" & tLastItemofSrcFolder after pDestFolder
+      create directory pDestFolder
+    end if
+
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+    put shell ("ditto" && pSrcFolder && pDestFolder) into tResult
+    if tResult contains "operation not permitted" then
+      # OS X sandbox may not let us copy some metadata.
+      # Don't know why but it happens. Saw it when copying from temp folder to temp folder.
+      put shell ("ditto --norsrc" && pSrcFolder && pDestFolder) into tResult
+    end if
+
+  else if the platform is "Win32" then
+    if there is a directory pDestFolder then
+      set the itemdel to "/"
+      if char -1 of pDestFolder is "/" then delete char -1 of pDestFolder
+      put item -1 of pSrcFolder into tLastItemofSrcFolder
+      put "/" & tLastItemofSrcFolder after pDestFolder
+      create directory pDestFolder
+    end if
+
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+
+    put shell ("robocopy" && pSrcFolder && pDestFolder && "/E /NFL /NDL /NS /NC /NJH /NJS") into tResult
+  else
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+    put shell ("cp -rf" && pSrcFolder && pDestFolder) into tResult
+  end if
+
+  if the result is not empty then
+    put line 1 of tResult into tError
+  end if
+
+  return tError
+end _fileCopyFolder
+
+
+private command _fileCreateAllFoldersInPath pPath, pRootPath
+  local tCheck, tError, tPathSegment
+
+  ## Watch for double slashes /Folder/To//Something//
+  ## You will not enter a never ending loop if you aren't careful.
+  _stripDoubleSlash pPath
+  _stripDoubleSlash pRootPath
+
+  ## Get rid of trailing slashes
+  ## We can safely ignore UNC paths starting with "//"
+  ## Neither pPath or pRootPath with values of just "//" would be valid
+  repeat until the last char of pPath is not slash
+    delete the last char of pPath
+  end repeat
+  if the number of chars of pRootPath > 1 and the last char of pRootPath is slash then
+    repeat forever
+      delete the last char of pRootPath
+      if the last char of pRootPath is not slash or the number of chars of pRootPath is 1 then
+        exit repeat
+      end if
+    end repeat
+  end if
+
+  set the itemDelimiter to slash
+
+  if pPath is empty or the number of items of pPath is 1 then
+    put "cannot create folder (invalid path)" into tError
+  end if
+
+  ## VALIDATE pRootPath
+  if tError is empty then
+    if pRootPath is empty then
+      put item 1 to 2 of pPath into pRootPath ## "/NODE"
+    end if
+
+    if tError is empty then
+      if last char of pRootPath is not slash then put slash after pRootPath ## Makes it easier to deal with "/" path
+
+      if not _fileIsFolder(pRootPath) then
+        put "root path does not exist" into tError
+      end if
+    end if
+  end if
+
+  ## VALIDATE ANCESTORY OF PATH
+  if tError is empty then
+    put char 1 to -2 of pRootPath into tCheck ## -2 gets rid of trailing slash
+    if char 1 to (number of chars of tCheck) of pPath is not tCheck then
+      put "path is not a child of root path" & cr & "[path:" & pPath & "]" & cr & "[root:" & pRootPath & "]" into tError
+      put the executioncontexts
+    end if
+  end if
+
+  ## CREATE FOLDERS
+  if tError is empty then
+    if number of items of pPath > number of items of pRootPath then
+      put pRootPath & item (number of items of pRootPath + 1) of pPath into tPathSegment
+
+      if not _fileIsFolder(tPathSegment) then
+        create folder tPathSegment
+        if the result is not empty then
+          put "error creating folder (" & the result & ")" into tError
+        end if
+      end if
+
+      if tError is empty then
+        _fileCreateAllFoldersInPath pPath, tPathSegment
+        put the result into tError
+      end if
+    end if
+  end if
+
+  return tError
+end _fileCreateAllFoldersInPath
+
+
+private function _fileIsFolder pPath
+  local tFolder, isAFolder
+
+  put the defaultFolder into tFolder
+  set the defaultfolder to pPath
+  put the result is empty into isAFolder
+  set the defaultFolder to tFolder
+  return isAFolder
+end _fileIsFolder
+
+
+private command _stripDoubleSlash @pVariable
+  local tCharNo, tPrefix
+
+  # Don't wipe out UNC prefixes
+  if char 1 to 2 of pVariable is "//" then
+    put "//" into tPrefix
+    delete char 1 to 2 of pVariable
+  end if
+
+  repeat forever
+    put offset("//", pVariable) into tCharNo
+    if tCharNo > 0 then
+      replace "//" with slash in pVariable
+    else
+      exit repeat
+    end if
+  end repeat
+
+  if tPrefix is not empty then
+    put tPrefix before pVariable
+  end if
+
+  return empty
+end _stripDoubleSlash
+
+
+private function _escapeForShell pStr
+  local tChar, tSpecialChars
+
+  if the platform is "win32" then
+    replace "/" with "\" in pStr
+    put quote & pStr & quote into pStr
+  else
+    put "\" & space & quote & "'`<>!;()[]?#$^&*=|" into tSpecialChars
+    repeat for each char tChar in tSpecialChars
+      replace tChar with ("\" & tChar) in pStr
+    end repeat
+  end if
+
+  return pStr
+end _escapeForShell
+
+
+private function _printArray pArray, pDimension, pFullData
+  if pDimension is empty then put 0 into pDimension
+
+  put the keys of pArray into theKeys
+  sort theKeys numeric
+
+  repeat for each line theKey in theKeys
+    if pArray[theKey] is an array then
+      put _printCharXTimes(space, pDimension * 3) & theKey & cr after theText
+      put pArray[theKey] into theTempArray
+      put _printArray(theTempArray, pDimension + 1, pFullData) after theText
+    else
+      if pFullData then
+        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && pArray[theKey] & cr after theText
+      else
+        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && line 1 of pArray[theKey] & cr after theText
+      end if
+    end if
+  end repeat
+
+  return theText
+end _printArray
+
+private function _printCharXTimes pChar, pTimes
+  local theStr
+
+  repeat with i = 1 to pTimes
+    put pChar after theStr
+  end repeat
+  return theStr
+end _printCharXTimes
