@@ -1159,6 +1159,16 @@ function levureAppFolder
 end levureAppFolder
 
 
+function levureRelativeAppFolderPath
+  local tPath
+
+  put sAppFolder into tPath
+  replace levureStandaloneFolder() with empty in tPath
+  if char 1 of tPath is "/" then delete char 1 of tPath
+  return tPath
+end levureRelativeAppFolderPath
+
+
 function levureStandaloneFolder
   local tFolder
 
