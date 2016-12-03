@@ -182,6 +182,29 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
+    # load logging and early helpers
+    local i
+
+    repeat with i = 1 to the number of elements of sAppA["frontscripts"]
+      if sAppA["frontscripts"][i]["filename"] ends with "logging.livecodescript" then
+        insert script of stack sAppA["frontscripts"][i]["filename"] into front
+        exit repeat
+      else
+        local tStack
+
+        repeat for each line tStack in the substacks of stack sAppA["frontscripts"][i]["filename"]
+          if tStack is "appLogging" then
+            insert script of stack tStack of stack sAppA["frontscripts"][i]["filename"] into front
+            exit repeat
+          end if
+        end repeat
+
+        if tStack is "appLogging" then
+          exit repeat
+        end if
+      end if
+    end repeat
+
     loadEarlyHelpers
     put the result into tError
   end if
