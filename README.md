@@ -263,7 +263,7 @@ extensions:
     source file: ../../extensions/myextension/myextension.lcb
 ```
 
-TODO: example config.yml file
+TODO: example helper.yml file
 
 ## Targeting files in the LiveCode user extensions folder.
 
@@ -349,7 +349,7 @@ There are two properties you will deal with for versioning: `version` and `build
 
 The framework supports building stub executables that can be used to launch your app in a standalone environment for testing. By using the stub executables for testing, you can be working on your application in the IDE and instantly test your work running in a standalone. 
 
-To build the stub executables open your standalone stack and call the function `levureBuildStandalonesForTesting` from the message box. The LiveCode standalone builder will be used to build standalones based on your settings. MacOS X, Windows, and Linux standalone files will be moved to a `test_executables` folder inside of the `build folder` that you have configured in `app.yml`.
+To build the stub executables open your standalone stack and call the function `levureBuildStandalonesForTesting` from the message box. The LiveCode standalone builder will be used to build standalones based on your settings. MacOS X, Windows, and Linux standalone files will be moved to a `test` folder inside of the `build folder` that you have configured in `app.yml`.
 
 # Packaging an Application
 
