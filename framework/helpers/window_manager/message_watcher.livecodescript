@@ -1,6 +1,8 @@
 ﻿script "Window Manager Frontscript"
 on shutdown
-  levureShutdownApplication
+  if the environment is not "development" then
+    levureShutdownApplication
+  end if
 
   pass shutdown
 end shutdown
