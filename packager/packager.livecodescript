@@ -1153,6 +1153,11 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
       "end levureTestingStandaloneAppFolder" after tScript
 
     put cr & cr & \
+      "function levureTestingStandaloneFrameworkPath" & cr & \
+      _qstr("return resolvePath(`" & pRelativeFrameworkPath & "`, " & tFunction & ")") & cr & \
+      "end levureTestingStandaloneFrameworkPath" after tScript
+
+    put cr & cr & \
           "private function appFolder" & cr & \
           "set the itemdelimiter to slash" & cr & \
           "put the effective filename of me into tFilename" & cr & \
