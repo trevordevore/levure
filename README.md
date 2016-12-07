@@ -1,3 +1,6 @@
+levure
+=====================
+
 # Levure Application Framework
 
 Levure is an application development framework for LiveCode. The primary goals of Levure are the following:
@@ -5,7 +8,7 @@ Levure is an application development framework for LiveCode. The primary goals o
 1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via libraries and helpers.
 2. Designed for use with version control systems. Wherever possible configuration and scripts are text based files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be handled via behaviors. Behaviors are stored as script only stacks in a `behaviors` folder alongside the binary stack. Each behavior stack is assigned to the `stackfiles` property of the binary stack so that the engine automatically finds them when the stack is opened. If the LiveCode engine supports a version control friendly version of stacks with UI in the future then the framework will seamlessly support it.
 
-## Try Out Sample Application
+# Try Out Sample Application
 
 1. Open the `sample_app/standalone.livecode` stack in LiveCode 8+. The `framework/levureFramework.livecodescript` stack is a behavior of this stack.
 2. Switch to the browser tool and click on the `Run Application` button.
@@ -13,7 +16,7 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
 
-## Organizing a Levure Framework Application
+# Organizing a Levure Framework Application
 
 - The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
 - Your app is configured using the `app.yml` YAML file. This file can be alongside the `standalone.livecode` stack file or directly within a folder that resides alongside the `standalone.livecode` stack file.
@@ -24,7 +27,7 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals or extensions.
 - In the `app.yml` file you can load components, libraries, backscripts, frontscripts, and helpers from any location on your computer, even the LiveCode User Extensions folder. When your application is packaged up all of the necessary resources will be brought together to build the final application.
 
-### An example
+## An example
 
 - app.yml
 - app.livecodescript
@@ -170,7 +173,7 @@ build profiles:
   release:
 ```
 
-### libraries, frontscripts, backscripts, and behaviors
+## libraries, frontscripts, backscripts, and behaviors
 
 Libraries, frontscripts, backscripts, and behaviors can be loaded individually or in bulk. If you point to a folder then every file in that folder should be a LiveCode stack. The folder will be loaded recursively so any subfolders will be loaded as well.
 
@@ -182,11 +185,11 @@ libraries:
     folder: ./libraries
 ```
 
-### components
+## components
 
 There are two different ways to load extensions. The first is to target a specific stack that represents the component. The second is to specify a folder containing folders of components.
 
-#### Example 1
+### Example 1
 
 ```
 components:
@@ -194,7 +197,7 @@ components:
     filename: ./components/main_window/main_window.livecode
 ```
 
-#### Example 2
+### Example 2
 
 ```
 components:
@@ -216,7 +219,7 @@ components:
 
 The component the you target with `filename` will be loaded first and then the folder of components will be loaded. The framework will see that the `complex_component` has already been loaded and will skip it when loading the folder of components.
 
-### Extensions
+## Extensions
 
 You can configure extensions used by the application in the configuration file. When configuring an extension you can point to both the filename and the source file for the extension. If you provide the source file then the framework can compile all of your extensions for you and place them in the specified location.
 
@@ -234,7 +237,7 @@ If your extensions rely on any other modules then put the `.lci` files for the o
 
 If you have your extensions installed in your IDE user extensions folder and include those extensions when building your standalone then you don't have to worry about building the extensions with `levureBuildExtensions`. For someone who may be trying to run your application on a different computer without your same IDE setup this tool can build the modules and get them up and running right away, however.
 
-### Helpers
+## Helpers
 
 Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following:
 
@@ -262,25 +265,25 @@ extensions:
 
 TODO: example config.yml file
 
-### Targeting files in the LiveCode user extensions folder.
+## Targeting files in the LiveCode user extensions folder.
 
 You can use the `{{USER_EXTENSIONS}}` variable in a any path to use the value returned by `revEnvironmentCustomizationPath()` in the IDE. This allows you to store commonly used resources in your LiveCode User Extension folder.
 
-#### Example:
+### Example:
 
 ```
 helpers:
   1: {{USER_EXTENSIONS}}/Helpers"
 ```
 
-### file extensions example
+## file extensions example
 
 ```
 file extensions:
   JPEG Files: jpg,jpeg
 ```
 
-### file extension groups example
+## file extension groups example
 
 ```
 Media Files:
@@ -295,7 +298,7 @@ Media Files:
       extensions: png,gif,bmp
 ```
 
-### Examples of where to put resource files
+## Examples of where to put resource files
 
 TODO: Describe a resource and then show where to put it
 
@@ -332,30 +335,57 @@ The framework logic is located in the `levure.livecodescript` file. The stack mu
 
 [*] As an alternative the developer could add or remove helpers as needed during packaging. We move the entire folder over to tmp folder, developer can prune it, and that gets packaged up. No need to dispatch message. Currently this message is not being sent.
   
-## Relaunching Application
+# Relaunching Application
 
 In the `app.yml` file you can configure a `multiple instances` property. Set to true if you want your application to support multiple instances. If `multiple instances` is `false` and you don't want the defaultStack to come forward when the user relaunches the application then set `relaunch in background` to true. 
 
 When the `relaunch` message is processed by the levure standalone a `RelaunchApplication` message will be dispatched to the `app` stack. If your application requires any special logic for bringing windows forward then it should be handled here. If any command line parameters are passed in to `relaunch` then the `ProcessCommandLineParameters` message will be dispatched to the `app` stack as well.
 
-## Version information
+# Version information
 
 There are two properties you will deal with for versioning: `version` and `build`. `version` is in the [major].[minor].[revision] format. This is what you would display to users. `build` is an integer that you should increment each time you build your application. The build number is used to uniquely identify your application for the Sparkle update framework as well as identify each package in a 'release train' that you submit to the Mac App Store when preparing to release a version to the public. You can start the build number at 1 and then increment by one each time you package your application and send it to someone.
 
-## Building executables for testing
+# Building executables for testing
 
 The framework supports building stub executables that can be used to launch your app in a standalone environment for testing. By using the stub executables for testing, you can be working on your application in the IDE and instantly test your work running in a standalone. 
 
 To build the stub executables open your standalone stack and call the function `levureBuildStandalonesForTesting` from the message box. The LiveCode standalone builder will be used to build standalones based on your settings. MacOS X, Windows, and Linux standalone files will be moved to a `test_executables` folder inside of the `build folder` that you have configured in `app.yml`.
 
-## Packaging an Application
+# Packaging an Application
 
-- Create a stack for behaviors
-  - Make all behavior stacks substacks of that stack.
+Levure will package up an application for distribution. To package your application for a specific build profile call the following handler:
 
-## Helpers Included with Framework
+```
+levurePackageApplication pBuildProfile
+```
 
-### ./libraries/filesAndURLs.livecodescript
+- Creates a folder named after the build profile in the `build folder`.
+- Within that folder a folder is created using the version and build number.
+- The packaged applications will be placed in folders for each platform you build your application for.
+- Any files in your `copy files` settings will be copied over. Variable replacement will be performed on any files.
+- If you are building on OS X and have configured a `certificate name` then the app will be signed.
+- If you are building for a profile named "mas" or "Mac App Store" then the app will be signed, zipped up, and prepared for upload to the Mac App Store.
+
+# Including levure as a submodule in a git project
+
+If you are using git to manage your application then you can include the `levure` project as a submodule that points to the `release` tag. 
+
+```
+git submodule add https://github.com/trevordevore/levure.git levure
+```
+
+```
+cd levure
+git checkout release
+cd ..
+git add levure
+git commit -m "Target the release tag in the levure submodule"
+git push
+```
+
+# Helpers Included with Framework
+
+## ./libraries/filesAndURLs.livecodescript
 
 Helps with files associated with your application, managing a recent files list, as well as when the OS asks your application to process a url. Also includes functions for generating file dialog type filter strings.
 
@@ -363,31 +393,31 @@ Helps with files associated with your application, managing a recent files list,
 
 `ProcessURL` message sent to `app` stack. Check `appGetURLsToProcessOnOpen()` when app opens for urls passed on the command line.
 
-### ./libraries/broadcaster
+## ./libraries/broadcaster
 
 API for broadcasting and listening for messages. 
 
-### ./libraries/translate.livecodescript
+## ./libraries/translate.livecodescript
 
 API for providing translated versions of strings in your app. When you call translateSetLocale the library looks for a `./locales/[LANG_CODE].yml` file alongside your `app.yml` file.
 
-### ./frontscripts/logging.livecodescript
+## ./frontscripts/logging.livecodescript
 
 API for setting up a log file. Has option to log internet traffic. Turning it on will intercept the ulLogit message that libURL uses and log those messages to your log file.
 
-### ./helpers/preferences
+## ./helpers/preferences
 
 API for managing your application preferences. On OS X and external is used so that you can set preferences using the OS X APIs. On Windows and Linux preferences are stored in a file containing data serialized using arrayEncode.
 
-### ./helpers/undo_manager
+## ./helpers/undo_manager
 
 Manage undo in your application.
 
-### ./helpers/window_manager
+## ./helpers/window_manager
 
 Manages windows in your application. Set a flag on a stack and it's position will be stored across sessions. Also keeps stacks on screen when the desktopChanged message is received.
 
-## Helpers to build:
+# Helpers to build:
 
 - MAS (security-scoped filenames and licensing)
 - auto update
@@ -395,14 +425,14 @@ Manages windows in your application. Set a flag on a stack and it's position wil
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
 - error dialog
 
-## TODO
+# TODO
 
 - Move preferences external for OS X to a module.
 - Create module for WinSparkle and Sparkle.
 - Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
 - Create module for security scoped bookmark APIs.
 
-## Known Issues
+# Known Issues
 
 - If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors stored in the `./behaviors` folder as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
 - Window manager increases height of stacks when they are reopened on OS X.
