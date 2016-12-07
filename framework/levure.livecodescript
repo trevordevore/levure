@@ -16,8 +16,11 @@ on mouseUp pBtnNum
   if sRuntimePropertiesA["state"] is empty then
     if pBtnNum is 1 and word 1 of the target is "button" and the owner of the owner of the target is me then
       startup
+      exit mouseUp
     end if
   end if
+
+  pass mouseUp
 end mouseUp
 
 
