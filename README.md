@@ -21,7 +21,7 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
 - Your app is configured using the `app.yml` YAML file. This file can be alongside the `standalone.livecode` stack file or directly within a folder that resides alongside the `standalone.livecode` stack file.
 - Alongside the `app.yml` file is the `app.livecodescript` stack file.
-- Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders. 
+- Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders.
 - The `components` folder is where you will store the stacks used for your user interface. Each UI stack consistes of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
 - The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. Behaviors will be loaded into memory so that the stack is available globally. After the stack is loaded into memory the `LoadBehavior` message will dispatched to it. This enables a script only stack to set its own behavior.
 - The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals or extensions.
@@ -73,7 +73,7 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
     - macos.bundle
     - windows.dll
     - linux.so
-  
+
 ## app.yml
 
 The `app.yml` file is a YAML file that describes your application. The framework will use these settings when loading your application into the IDE as well as when packaging your application for distribution.
@@ -95,39 +95,39 @@ components:
   2:
     folder: [path to folder containing components]
 extensions:
-  1: 
+  1:
     filename: [relative path to .lcm extension file]
-  2: 
+  2:
     folder: [relative path to folder containing .lcm extensions]
   ...
 behaviors:
-  1: 
+  1:
     filename: [relative path to stack file within behaviors folder]
-  2: 
+  2:
     folder: [relative path a folder with behavior stack files]
   ...
 libraries:
-  1: 
+  1:
     filename: [relative path to stack file within libraries folder]
-  2: 
+  2:
     folder: [relative path a folder with library stack files]
   ...
 frontscripts:
-  1: 
+  1:
     filename: [relative path to stack file within frontscripts folder]
-  2: 
+  2:
     folder: [relative path a folder with frontscript stack files]
   ...
 backscripts:
-  1: 
+  1:
     filename: [relative path to stack file within backscript folder]
-  2: 
+  2:
     folder: [relative path a folder with backscript stack files]
   ...
 helpers:
-  1: 
+  1:
     filename: [relative path to folder containing helper]
-  2: 
+  2:
     folder: [relative path a folder with helper folders]
   ...
 preferences:
@@ -179,9 +179,9 @@ Libraries, frontscripts, backscripts, and behaviors can be loaded individually o
 
 ```
 libraries:
-  1: 
+  1:
     filename: ../../shared/mylibrary.livecodescript
-  2: 
+  2:
     folder: ./libraries
 ```
 
@@ -193,7 +193,7 @@ There are two different ways to load extensions. The first is to target a specif
 
 ```
 components:
-  1: 
+  1:
     filename: ./components/main_window/main_window.livecode
 ```
 
@@ -201,7 +201,7 @@ components:
 
 ```
 components:
-  1: 
+  1:
     folder: ./components
 ```
 
@@ -211,9 +211,9 @@ You can mix targeting specific files to load with bulk loading. For example, let
 
 ```
 components:
-  1: 
+  1:
     filename: ./components/complex_component/ui.livecode
-  2: 
+  2:
     folder: ./components
 ```
 
@@ -316,7 +316,7 @@ This stack file must be located directly alongside the `app.yml` file. The stack
 - `PreShutdownApplication`: Sent before the application shuts down. Perform any cleanup.
 - `ProcessURL`: First parameter is line delimited list of urls that your app has been requested to process.
 - `ProcessFiles`: First parameter is line delimited list of files that your application supports and that you should process.
-  
+
 ## levureFramework.livecodescript
 
 The framework logic is located in the `levure.livecodescript` file. The stack must be assigned as the behavior of another stack which is assumed to be the `standalone.livecode` stack. The `levureInitializeAndRunApplication` will initialize and load the framework. Here is what happens during loading:
@@ -334,10 +334,10 @@ The framework logic is located in the `levure.livecodescript` file. The stack mu
 11. Dispatch `OpenApplication` to `app` stack.
 
 [*] As an alternative the developer could add or remove helpers as needed during packaging. We move the entire folder over to tmp folder, developer can prune it, and that gets packaged up. No need to dispatch message. Currently this message is not being sent.
-  
+
 # Relaunching Application
 
-In the `app.yml` file you can configure a `multiple instances` property. Set to true if you want your application to support multiple instances. If `multiple instances` is `false` and you don't want the defaultStack to come forward when the user relaunches the application then set `relaunch in background` to true. 
+In the `app.yml` file you can configure a `multiple instances` property. Set to true if you want your application to support multiple instances. If `multiple instances` is `false` and you don't want the defaultStack to come forward when the user relaunches the application then set `relaunch in background` to true.
 
 When the `relaunch` message is processed by the levure standalone a `RelaunchApplication` message will be dispatched to the `app` stack. If your application requires any special logic for bringing windows forward then it should be handled here. If any command line parameters are passed in to `relaunch` then the `ProcessCommandLineParameters` message will be dispatched to the `app` stack as well.
 
@@ -347,7 +347,7 @@ There are two properties you will deal with for versioning: `version` and `build
 
 # Building executables for testing
 
-The framework supports building stub executables that can be used to launch your app in a standalone environment for testing. By using the stub executables for testing, you can be working on your application in the IDE and instantly test your work running in a standalone. 
+The framework supports building stub executables that can be used to launch your app in a standalone environment for testing. By using the stub executables for testing, you can be working on your application in the IDE and instantly test your work running in a standalone.
 
 To build the stub executables open your standalone stack and call the function `levureBuildStandalonesForTesting` from the message box. The LiveCode standalone builder will be used to build standalones based on your settings. MacOS X, Windows, and Linux standalone files will be moved to a `test` folder inside of the `build folder` that you have configured in `app.yml`.
 
@@ -368,7 +368,7 @@ levurePackageApplication pBuildProfile
 
 # Including levure as a submodule in a git project
 
-If you are using git to manage your application then you can include the `levure` project as a submodule that points to the `release` tag. 
+If you are using git to manage your application then you can include the `levure` project as a submodule that points to the `release` tag.
 
 ```
 git submodule add https://github.com/trevordevore/levure.git levure
@@ -376,7 +376,7 @@ git submodule add https://github.com/trevordevore/levure.git levure
 
 ```
 cd levure
-git checkout release
+git checkout release-1
 cd ..
 git add levure
 git commit -m "Target the release tag in the levure submodule"
@@ -395,7 +395,7 @@ Helps with files associated with your application, managing a recent files list,
 
 ## ./libraries/broadcaster
 
-API for broadcasting and listening for messages. 
+API for broadcasting and listening for messages.
 
 ## ./libraries/translate.livecodescript
 
