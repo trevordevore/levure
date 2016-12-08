@@ -379,7 +379,7 @@ cd levure
 git checkout release-1
 cd ..
 git add levure
-git commit -m "Target the release tag in the levure submodule"
+git commit -m "Target a specific tag in the levure submodule"
 git push
 ```
 
