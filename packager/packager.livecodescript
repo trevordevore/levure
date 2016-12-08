@@ -20,6 +20,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   _performPackagingPrechecks pStandaloneStackFilename, pBuildProfile
   put the result into tError
 
+  put levureAppGetConfig() into sAppA
 
   if tError is empty then
     put levureAppFolder() into tAppFolder
@@ -47,7 +48,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   # Refresh after having unloaded for standalone builder
   loadAppConfig
-  put levureAppGetConfig() into sAppA
 
   # Make sure that macos is processed last
   # tWorkingOutputFolder will be used for mirroring redirect folder after file copy operation
@@ -169,15 +169,19 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   # prepare auto update files for Sparkle
   if tError is empty then
-    _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
-    put the result into tError
+    if sAppA["build profiles"]["default"]["base auto update url"] is not empty then
+      _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
+      put the result into tError
+    end if
   end if
 
   if tError is emtpy then
     _dispatchPostBuild pBuildProfile, sAppA, tOutputFolder
 
-    _packageForMAS sAppA, tOutputFolder
-    put the result into tError
+    if pBuildProfile is "mas" or pBuildProfile is "Mac App Store" then
+      _packageForMAS sAppA, tOutputFolder
+      put the result into tError
+    end if
   end if
 
   # TODO: Add auto update url to tAppA
@@ -274,6 +278,13 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
+    if there is not a folder tOutputFolder then
+      create folder tOutputFolder
+      put the result into tError
+    end if
+  end if
+
+  if tError is empty then
     if buildForDistribution then
       put "/" & pBuildProfile after tOutputFolder
       if there is not a folder tOutputFolder then
@@ -308,7 +319,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   if tError is empty then
     local tTempStandaloneStack
 
-    put tSourceFolder & "/levureBuildStandaloneTemp_" && the milliseconds & ".livecode" into tTempStandaloneStack
+    put tSourceFolder & "/levureBuildStandaloneTemp_" & the milliseconds & ".livecode" into tTempStandaloneStack
 
     delete stack pStandaloneStackFilename
 
@@ -335,6 +346,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     local tFrameworkPath
 
     set the itemdelimiter to ","
+
     put item 2 to -1 of line tLineNo of tStackFiles into tFrameworkPath
     put _resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
     put _makeRelativePath(tFrameworkPath, tOutputFolder) into tFrameworkPath
@@ -352,6 +364,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
 
     set the script of stack tTempStandaloneStack to tScript
+
     revIDESaveStack the long id of stack tTempStandaloneStack
     put the result into tError
   end if
@@ -363,8 +376,11 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     put the short name of stack tTempStandaloneStack into tStack
     put specialFolderPath("temporary") into tTempBuildFolder
     put "/revstandalone" & the milliseconds after tTempBuildFolder
+    # Assign defaultBuildFolder so that IDE doesn't ask you to save stack
+    set the cRevStandaloneSettings["defaultBuildFolder"] of stack tTempStandaloneStack to tTempBuildFolder
     try
       delete stack "levureFramework"
+
       revSetTestEnvironment true
       set the itemdelimiter to "."
       dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
@@ -446,11 +462,13 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
 
   # Create Update Folder
   if tError is empty then
-    local tUpdaterFolder
+    if pAppA["build profiles"]["default"]["base auto update url"] is not empty then
+      local tUpdaterFolder
 
-    put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
-    _fileCreateAllFoldersInPath tUpdaterFolder, pDestinationFolder
-    put the result into tError
+      put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
+      _fileCreateAllFoldersInPath tUpdaterFolder, pDestinationFolder
+      put the result into tError
+    end if
   end if
 
   if tError is empty then
@@ -843,54 +861,58 @@ private command _packageAssetStacks @xAppA, pOutputFolder
   if tError is empty then
     put empty into tUnprotectedStackName
 
-    put "Levure Application Behaviors" into tStackName
-    create invisible stack tStackName
+    if the number of elements of xAppA["behaviors"] > 0 then
+      put "Levure Application Behaviors" into tStackName
+      create invisible stack tStackName
 
-    if xAppA["password"] is not empty then
-      set the password of stack tStackName to xAppA["password"]
-    end if
-
-    repeat with i = 1 to the number of elements of xAppA["behaviors"]
-      if xAppA["behaviors"][i]["encrypt"] is false then
-        put "Levure Application Unencrypted Behaviors" into tUnprotectedStackName
-        create invisible stack tUnprotectedStackName
+      if xAppA["password"] is not empty then
+        set the password of stack tStackName to xAppA["password"]
       end if
-    end repeat
 
-    repeat with i = 1 to the number of elements of xAppA["behaviors"]
-      if xAppA["behaviors"][i]["encrypt"] is false and tUnprotectedStackName is not empty then
-        set the mainstack of stack xAppA["behaviors"][i]["filename"] to tUnprotectedStackName
-      else
-        set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
-      end if
-    end repeat
+      repeat with i = 1 to the number of elements of xAppA["behaviors"]
+        if xAppA["behaviors"][i]["encrypt"] is false then
+          put "Levure Application Unencrypted Behaviors" into tUnprotectedStackName
+          create invisible stack tUnprotectedStackName
+        end if
+      end repeat
 
-    save stack tStackName as (pOutputFolder & "/behaviors.livecode") with newest format
-    put the result into tError
-    delete stack tStackName
+      repeat with i = 1 to the number of elements of xAppA["behaviors"]
+        if xAppA["behaviors"][i]["encrypt"] is false and tUnprotectedStackName is not empty then
+          set the mainstack of stack xAppA["behaviors"][i]["filename"] to tUnprotectedStackName
+        else
+          set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
+        end if
+      end repeat
 
-    if tError is empty AND tUnprotectedStackName is not empty then
-      save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
+      save stack tStackName as (pOutputFolder & "/behaviors.livecode") with newest format
       put the result into tError
+      delete stack tStackName
 
-      delete stack tUnprotectedStackName
-    end if
+      if tError is empty AND tUnprotectedStackName is not empty then
+        save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
+        put the result into tError
 
-    if tError is empty then
-      put empty into xAppA["behaviors"]
-      put "behaviors.livecode" into xAppA["behaviors"][1]["filename"]
+        delete stack tUnprotectedStackName
+      end if
 
-      if tUnprotectedStackName is not empty then
-        put "behaviors_.livecode" into xAppA["behaviors"][2]["filename"]
+      if tError is empty then
+        put empty into xAppA["behaviors"]
+        put "behaviors.livecode" into xAppA["behaviors"][1]["filename"]
+
+        if tUnprotectedStackName is not empty then
+          put "behaviors_.livecode" into xAppA["behaviors"][2]["filename"]
+        end if
       end if
     end if
   end if
 
-  # libraries
+  # libraries, frontscripts, backscript
   if tError is empty then
     repeat for each item tAssetType in "frontscripts,backscripts,libraries"
       put empty into tUnprotectedStackName
       put empty into tStackLoadOrder
+
+      if the number of elements of xAppA[tAssetType] is 0 then next repeat
 
       put "Levure Application" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tStackName
       create invisible stack tStackName
