@@ -713,9 +713,10 @@ private command loadAppAssets
         put sAppA["helpers"][i]["stacks"][j]["name"] & "," & sAppA["helpers"][i]["stacks"][j]["filename"] & cr after tStackFiles
       end repeat
     end repeat
-  end if
 
-  delete the last char of tStackFiles
+    delete the last char of tStackFiles
+    set the stackFiles of stack kAppStackName to tStackFiles
+  end if
 
   # extensions
   if tError is empty then
@@ -752,8 +753,6 @@ private command loadAppAssets
         delete stack "Ask Dialog"
       end if
     end if
-
-    set the stackFiles of stack kAppStackName to tStackFiles
   end if
 
   return tError
