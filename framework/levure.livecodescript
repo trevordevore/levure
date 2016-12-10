@@ -982,7 +982,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
       put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
     end repeat
 
-    if the platform is "win32" then put "win" into tTargetPlatform
+    if the platform is "win32" then put "windows" into tTargetPlatform
     else put the platform into tTargetPlatform
 
     set the wholematches to true
