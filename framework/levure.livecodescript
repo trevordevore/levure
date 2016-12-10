@@ -1350,8 +1350,8 @@ private command replaceVariablesInPaths @pFilesA
       if tKey is among the keys of pFilesA[i] then
         replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i][tKey]
 
-        if pFilesA[i][tKey] contains "{{LEVURE}}" then
-          replace "{{LEVURE}}" with tFrameworkFolder in pFilesA[i][tKey]
+        if pFilesA[i][tKey] contains "{{FRAMEWORK}}" then
+          replace "{{FRAMEWORK}}" with tFrameworkFolder in pFilesA[i][tKey]
           put true into pFilesA[i]["preload"] # framework files should be available to all app libraries, etc.
         end if
       end if
