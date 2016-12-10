@@ -1175,6 +1175,11 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
       "end levureTestingStandaloneAppFolder" after tScript
 
     put cr & cr & \
+      "function levureTestingRevCustomizationFolder" & cr & \
+      _qstr("return `" & revEnvironmentCustomizationPath() & "` for value") & cr & \
+      "end levureTestingRevCustomizationFolder" after tScript
+
+    put cr & cr & \
       "function levureTestingStandaloneFrameworkPath" & cr & \
       _qstr("return resolvePath(`" & pRelativeFrameworkPath & "`, " & tFunction & ")") & cr & \
       "end levureTestingStandaloneFrameworkPath" after tScript
