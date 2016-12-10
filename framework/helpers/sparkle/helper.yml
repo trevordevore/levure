@@ -3,4 +3,4 @@ externals:
     1:
       filename: mergSparkle.bundle
       name: mergSparkle
-  win:
+  windows:
