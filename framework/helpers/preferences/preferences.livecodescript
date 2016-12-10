@@ -12,13 +12,13 @@ on libraryStack
   else
     put null into sPrefsA["user"]
     put null into sPrefsA["shared"]
-    
+
     _loadDefaultPreferences
     if the result is not empty then
       throw "error loading default preferences:" && the result
     end if
   end if
-  
+
   pass libraryStack
 end libraryStack
 
@@ -31,7 +31,7 @@ on releaseStack
       end if
     end if
   end if
-  
+
   pass releaseStack
 end releaseStack
 
@@ -41,28 +41,28 @@ private function useBroadcaster
     set the wholematches to true
     put "appBroadcaster" is among the lines of the stacksinuse into sUseBroadcaster
   end if
-  
+
   return sUseBroadcaster
 end useBroadcaster
 
 
 private function useExternal pUserOrShared
-  if sUseExternal is empty then    
+  if sUseExternal is empty then
     set the wholematches to true
     put the platform is "macos" and "Preferences" is among the lines of levureExternalsLoadedInMemory() into sUseExternal
   end if
-  
+
   return sUseExternal and (pUserOrShared is "user")
 end useExternal
 
 
 private function prefFilenameForPlatform pUserOrShared, pPlatform
   local tA
-  
+
   validateKey pUserOrShared
-  
+
   if pPlatform is empty then put the platform into pPlatform
-  if pPlatform is "win32" then put "win" into pPlatform
+  if pPlatform is "win32" then put "windows" into pPlatform
   put "preferences" into tA[1]
   put pUserOrShared into tA[2]
   put pPlatform into tA[3]
@@ -73,13 +73,13 @@ end prefFilenameForPlatform
 
 private command _loadDefaultPreferences
   local tYamlFile
-  
+
   put levureAppFolder() & "/prefs.yml" into tYamlFile
   if there is a file tYamlFile then
     put yamlFileToArray(tYamlFile) into sDefaultPrefsA
     put the result into tError
   end if
-  
+
   if tError is empty then
     put levureAppFolder() & "/prefs_shared.yml" into tYamlFile
     if there is a file tYamlFile then
@@ -87,7 +87,7 @@ private command _loadDefaultPreferences
       put the result into tError
     end if
   end if
-  
+
   return tError for error
 end _loadDefaultPreferences
 
@@ -103,17 +103,17 @@ end appGetDefaultPrefs
 
 command appResetPrefs pUserOrShared
   validateKey pUserOrShared
-  
+
   ## OS X external behavior
   if useExternal(pUserOrShared) then
-    /* 
+    /*
     Implement once we switch to a module
     http://stackoverflow.com/questions/8259786/cocoa-resetting-nsuserdefaults
     */
   else
     put empty into sPrefsA[pUserOrShared]
     appSavePrefs pUserOrShared
-    
+
     put empty into sPrefsA[pUserOrShared]["init"]
     delete local sPrefsA[pUserOrShared]["init"]
   end if
@@ -140,9 +140,9 @@ end appReloadPrefs
 */
 command appSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
-  
+
   validateKey pUserOrShared
-  
+
   ## OS X external behavior
   if useExternal(pUserOrShared) then
     if the keys of pValue is empty then
@@ -157,19 +157,19 @@ command appSetPref pKey, pValue, pUserOrShared, pType
       osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
     end if
     put the result into tError
-    
+
   else
     _ensurePrefsAreLoaded pUserOrShared
     put pValue into sPrefsA[pUserOrShared][pKey]
   end if
-  
+
   # Broadcasting is one of framework helpers
   if tError is empty then
     if useBroadcaster() then
       appBroadcast "prefs", pKey, empty
     end if
   end if
-  
+
   return tError for error
 end appSetPref
 
@@ -184,19 +184,19 @@ end appSetPref
 */
 function appGetPref pKey, pUserOrShared
   local tStack, tValue
-  
+
   validateKey pUserOrShared
-  
-  if not appPrefIsSet(pKey, pUserOrShared) then    
+
+  if not appPrefIsSet(pKey, pUserOrShared) then
     if pUserOrShared is "shared" then
       put sDefaultSharedPrefsA[pKey] into tValue
     else
       put sDefaultPrefsA[pKey] into tValue
-    end if  
+    end if
   else
     if useExternal(pUserOrShared) then
       local tValueA
-      
+
       osxHLPrefGet pKey, "tValueA", prefFilenameForPlatform("user")
       if the result is empty then
         switch tValueA["type"]
@@ -215,13 +215,13 @@ function appGetPref pKey, pUserOrShared
             break
         end switch
       end if
-      
+
     else
       _ensurePrefsAreLoaded pUserOrShared
       put sPrefsA[pUserOrShared][pKey] into tValue
     end if
   end if
-  
+
   return tValue for value
 end appGetPref
 
@@ -234,14 +234,14 @@ end appGetPref
 */
 function appPrefIsSet pKey, pUserOrShared
   local tStack
-  
+
   validateKey pUserOrShared
-  
+
   ## OS X external behavior
   if useExternal(pUserOrShared) then
-    
+
     return osxHLPrefExists(pKey, prefFilenameForPlatform("user"))
-    
+
   else
     _ensurePrefsAreLoaded pUserOrShared
     return pKey is among the keys of sPrefsA[pUserOrShared]
@@ -260,36 +260,36 @@ end appPrefIsSet
 */
 command appSavePrefs pUserOrShared
   local tError, tFile
-  
+
   validateKey pUserOrShared
-  
+
   put appGetPreferenceFile(pUserOrShared) into tFile
-  
+
   if tFile is not empty then
     if useExternal(pUserOrShared) then
-      
+
       osxHLPrefSavePrefs prefFilenameForPlatform("user")
       put the result into tError
-      
+
     else
-      
+
       saveContentsToFile tFile, arrayEncode(sPrefsA[pUserOrShared])
       put the result into tError
-      
+
     end if
   end if
-  
+
   return tError
 end appSavePrefs
 
 
 function appGetPreferenceFile pUserOrShared
   local tFile
-  
+
   validateKey pUserOrShared
-  
+
   put prefFilenameForPlatform(pUserOrShared) into tFile
-  
+
   if tFile is not empty then
     if pUserOrShared is "user" then
       return _systemPreferencesFolder() & slash & tFile
@@ -343,18 +343,18 @@ end _systemAppDataFolder
 
 private command _ensurePrefsAreLoaded pUserOrShared
   validateKey pUserOrShared
-  
+
   if sPrefsA[pUserOrShared] is null then
     if pUserOrShared is "shared" then
       put appGetPreferenceFile("shared") into tFile
     else
       put appGetPreferenceFile("user") into tFile
     end if
-    
+
     if there is a file tFile then
       put readFileContents(tFile) into tData
       put the result into tError
-      
+
       if tError is empty then
         if tData is not empty then
           try
@@ -391,19 +391,19 @@ end _errorMsg
 
 private function readFileContents pFilename
   local tError
-  
+
   open file pFilename for binary read
   put the result into tError
-  
+
   if tError is empty then
     read from file pFilename until eof
     if the result is not "eof" then
       put the result into tError
     end if
-    
+
     close file pFilename
   end if
-  
+
   if tError is empty then
     return it for value
   else
@@ -414,34 +414,34 @@ end readFileContents
 
 private command saveContentsToFile pFilename, pData
   local tError
-  
+
   put pFilename & ".tmp" into tTempFilename
-  
+
   open file tTempFilename for binary write
   put the result into tError
-  
+
   if tError is empty then
     write pData to file tTempFilename
     put the result into tError
-    
+
     close file tTempFilename
   end if
-  
+
   if tError is not empty then
     put "(" & pFilename & ")" after tError
   end if
-  
+
   if tError is empty then
     delete file pFilename
-    
+
     rename file tTempFilename to pFilename
     put _errorMsg("renaming temp file" && tTempFilename, the result) into tError
   end if
-  
+
   if tTempFilename is not empty then
     delete file tTempFilename
   end if
-  
+
   if tError is empty then
     return empty for value
   else
