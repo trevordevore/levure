@@ -1341,7 +1341,11 @@ private command replaceVariablesInPaths @pFilesA
   if the environment is "development" then
     put revEnvironmentCustomizationPath() into tUserExtensionsFolder
   else
-    put levureTestingRevCustomizationFolder() into tUserExtensionsFolder
+    try
+      put levureTestingRevCustomizationFolder() into tUserExtensionsFolder
+    catch e
+      # This won't be packaged application
+    end try
   end if
   put levureFrameworkFolder() into tFrameworkFolder
 
