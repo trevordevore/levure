@@ -586,6 +586,9 @@ private command loadAppStack
     end if
   end if
 
+  # Put in message path so shutdown, shutdownrequest, etc. are handled.
+  start using stack kAppStackName
+
   return empty for value
 end loadAppStack
 
