@@ -191,29 +191,7 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
-    # load logging and early helpers
-    local i
-
-    repeat with i = 1 to the number of elements of sAppA["frontscripts"]
-      if sAppA["frontscripts"][i]["filename"] ends with "logging.livecodescript" then
-        insert script of stack sAppA["frontscripts"][i]["filename"] into front
-        exit repeat
-      else
-        local tStack
-
-        repeat for each line tStack in the substacks of stack sAppA["frontscripts"][i]["filename"]
-          if tStack is "appLogging" then
-            insert script of stack tStack of stack sAppA["frontscripts"][i]["filename"] into front
-            exit repeat
-          end if
-        end repeat
-
-        if tStack is "appLogging" then
-          exit repeat
-        end if
-      end if
-    end repeat
-
+    # Preload special helpers
     loadEarlyHelpers
     put the result into tError
   end if
@@ -546,20 +524,10 @@ command loadAppConfig
         put empty into tFilesA
         put 0 into j
 
-        if there is a folder (levureFrameworkFolder() & "/" & tSource) then
+        repeat with i = 1 to the number of elements of sAppA[tSource]
           add 1 to j
-          put levureFrameworkFolder() & "/" & tSource into tFilesA[j]["folder"]
-        end if
-
-        if the number of elements of sAppA[tSource] > 0 then
-          repeat with i = 1 to the number of elements of sAppA[tSource]
-            add 1 to j
-            put sAppA[tSource][i] into tFilesA[j]
-          end repeat
-        else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/" & tSource) then
-          add 1 to j
-          put sAppFolder & "/" & tSource into tFilesA[j]["folder"]
-        end if
+          put sAppA[tSource][i] into tFilesA[j]
+        end repeat
 
         if the number of elements of tFilesA > 0 then
           put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
@@ -572,20 +540,10 @@ command loadAppConfig
       put empty into tFilesA
       put 0 into j
 
-      if there is a folder (levureFrameworkFolder() & "/components") then
+      repeat with i = 1 to the number of elements of sAppA["components"]
         add 1 to j
-        put levureFrameworkFolder() & "/components" into tFilesA[j]["folder"]
-      end if
-
-      if the number of elements of sAppA["components"] > 0 then
-        repeat with i = 1 to the number of elements of sAppA["components"]
-          add 1 to j
-          put sAppA["components"][i] into tFilesA[j]
-        end repeat
-      else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/components") then
-        add 1 to j
-        put sAppFolder & "/components" into tFilesA[j]["folder"]
-      end if
+        put sAppA["components"][i] into tFilesA[j]
+      end repeat
 
       if the number of elements of tFilesA > 0 then
         put expandComponentAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["components"]
@@ -597,27 +555,10 @@ command loadAppConfig
       put empty into tFilesA
       put 0 into j
 
-      if there is a folder (levureFrameworkFolder() & "/helpers") then
-        local tHelperFolders, tHelperFolder
-
-        set the itemdelimiter to "/"
-        set the wholematches to true
-        put folderListing(levureFrameworkFolder() & "/helpers") into tHelperFolders
-        repeat for each line tHelperFolder in tHelperFolders
-          add 1 to j
-          put tHelperFolder into tFilesA[j]["filename"]
-        end repeat
-      end if
-
-      if the number of elements of sAppA["helpers"] > 0 then
-        repeat with i = 1 to the number of elements of sAppA["helpers"]
-          add 1 to j
-          put sAppA["helpers"][i] into tFilesA[j]
-        end repeat
-      else if sAppFolder is not levureFrameworkFolder() AND there is a folder (sAppFolder & "/helpers") then
+      repeat with i = 1 to the number of elements of sAppA["helpers"]
         add 1 to j
-        put sAppFolder & "/helpers" into tFilesA[j]["folder"]
-      end if
+        put sAppA["helpers"][i] into tFilesA[j]
+      end repeat
 
       if the number of elements of tFilesA > 0 then
         put expandHelperAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["helpers"]
@@ -668,11 +609,9 @@ private command loadEarlyHelpers
   put the stackFiles of stack kAppStackName into tStackFiles
   if tStackFiles is not empty then put cr after tStackFiles
 
-  # Load execution_error_dialog and preferences
-  # external for preferences has already been loaded
+  # Load any helpers marked preload=true
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    if sAppA["helpers"][i]["filename"] ends with "/execution_error_dialog" or \
-        sAppA["helpers"][i]["filename"] ends with "/preferences" then
+    if sAppA["helpers"][i]["preload"] then
       loadExtensions sAppA["helpers"][i]
       put the result into tError
 
@@ -685,8 +624,6 @@ private command loadEarlyHelpers
       end if
 
       if tError is not empty then exit repeat
-
-      put true into sAppA["helpers"][i]["loaded"]
     end if
   end repeat
 
@@ -727,7 +664,7 @@ private command loadAppAssets
     local j
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["loaded"] then next repeat
+      if sAppA["helpers"][i]["preload"] then next repeat
       repeat with j = 1 to the number of elements of sAppA["helpers"][i]["stacks"]
         put sAppA["helpers"][i]["stacks"][j]["name"] & "," & sAppA["helpers"][i]["stacks"][j]["filename"] & cr after tStackFiles
       end repeat
@@ -743,7 +680,7 @@ private command loadAppAssets
     put the result into tError
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["loaded"] then next repeat
+      if sAppA["helpers"][i]["preload"] then next repeat
       loadExtensions sAppA["helpers"][i]
     end repeat
   end if
@@ -753,7 +690,7 @@ private command loadAppAssets
     loadMessagePathAssets sAppA
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["loaded"] then next repeat
+      if sAppA["helpers"][i]["preload"] then next repeat
       loadMessagePathAssets sAppA["helpers"][i]
     end repeat
 
@@ -998,7 +935,10 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
   local tConfigA
 
   # When packaged the array will already be filled in.
-  if the keys of xHelperA is "filename" then
+  put the keys of xHelperA into tKeys
+  sort lines of tKeys ascending
+
+  if tKeys is "filename" OR tKeys is "filename" & cr & "preload" then
     if there is a file (xHelperA["filename"] & "/helper.yml") then
       put yamlFileToArray(xHelperA["filename"] & "/helper.yml") into tConfigA
       put the result into tError
@@ -1031,6 +971,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
     local tPlatform, tTargetPlatform
 
     put xHelperA["filename"] into tConfigA["filename"]
+    put xHelperA["preload"] is true into tConfigA["preload"]
 
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["stacks"]
@@ -1391,18 +1332,28 @@ end expandComponentAssetsFileReferenceArray
 
 
 private command replaceVariablesInPaths @pFilesA
+  local tUserExtensionsFolder, tFrameworkFolder
+  local tKey, i
+
   if the environment is "development" then
-    local tUserExtensionsFolder, i
-
     put revEnvironmentCustomizationPath() into tUserExtensionsFolder
+  else
+    put levureTestingRevCustomizationFolder() into tUserExtensionsFolder
+  end if
+  put levureFrameworkFolder() into tFrameworkFolder
 
-    repeat with i = 1 to the number of elements of pFilesA
-      replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i]["filename"]
-      if "source" is among the keys of pFilesA[i] then
-        replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i]["source"]
+  repeat with i = 1 to the number of elements of pFilesA
+    repeat for each item tKey in "filename,folder,source"
+      if tKey is among the keys of pFilesA[i] then
+        replace "{{USER_EXTENSIONS}}" with tUserExtensionsFolder in pFilesA[i][tKey]
+
+        if pFilesA[i][tKey] contains "{{LEVURE}}" then
+          replace "{{LEVURE}}" with tFrameworkFolder in pFilesA[i][tKey]
+          put true into pFilesA[i]["preload"] # framework files should be available to all app libraries, etc.
+        end if
       end if
     end repeat
-  end if
+  end repeat
 
   return empty for value
 end replaceVariablesInPaths
