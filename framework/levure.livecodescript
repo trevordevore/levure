@@ -380,18 +380,36 @@ end normalizeAppArray
 
 
 private command unloadApp
-  # TODO: This isn't complete. Helpers can have scripts as well.
-  repeat with i = 1 to the number of elements of sAppA["frontscripts"]
-    remove the script of stack sAppA["frontscripts"][i]["filename"] from front
+  # Unload assets in reverse order
+  unloadAssets sAppA
+
+  repeat with i = the number of elements of sAppA["helpers"] down to 1
+    if sAppA["helpers"][i]["preload"] then next repeat
+    unloadAssets sAppA["helpers"][i]
   end repeat
-  repeat with i = 1 to the number of elements of sAppA["backscripts"]
-    remove the script of stack sAppA["backscripts"][i]["filename"] from back
+
+  repeat with i = the number of elements of sAppA["helpers"] down to 1
+    if not sAppA["helpers"][i]["preload"] then next repeat
+    unloadAssets sAppA["helpers"][i]
   end repeat
-  repeat with i = 1 to the number of elements of sAppA["libraries"]
-    stop using stack sAppA["libraries"][i]["filename"]
-  end repeat
+
   unloadExternals
 end unloadApp
+
+
+private command unloadAssets pArrayA
+  repeat for each item tKey in "frontscripts,backscripts,libraries"
+    repeat with i = the number of elements of pArrayA["frontscripts"] down to 1
+      remove the script of stack pArrayA["frontscripts"][i]["filename"] from front
+    end repeat
+    repeat with i = the number of elements of pArrayA["backscripts"] down to 1
+      remove the script of stack pArrayA["backscripts"][i]["filename"] from back
+    end repeat
+    repeat with i = the number of elements of pArrayA["libraries"] down to 1
+      stop using stack pArrayA["libraries"][i]["filename"]
+    end repeat
+  end repeat
+end unloadAssets
 
 
 /**
@@ -435,6 +453,7 @@ command levureShutdownApplication
       answer "An error occurred while saving shared preferences:" && tError & "."
     end if
 
+    unloadApp
   end if
 
   # Cleanup anything that might keep application from shutting down properly
