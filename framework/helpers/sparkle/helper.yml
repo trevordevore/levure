@@ -1,3 +1,6 @@
+libraries:
+  1:
+    filename: sparkle.livecodescript
 externals:
   macos:
     1:
