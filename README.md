@@ -134,12 +134,12 @@ preferences:
   user:
     macos:
       filename: [com.mycompany.myproduct]
-    win:
+    windows:
       filename: [relative path to preference file within user app data folder] e.g. ./MyApp/1.0/MyApp.pref
   shared:
     macos:
       filename: [relative path to preference file within shared app data folder]
-    win:
+    windows:
       filename: [relative path to preference file within shared app data folder]
 file extensions:
   [Description]: [Extensions (comma-delimited)]
@@ -163,7 +163,7 @@ build profiles:
         ...
       macos:
         ...
-      win:
+      windows:
         ...
       linux:
         ...

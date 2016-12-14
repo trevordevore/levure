@@ -13,7 +13,7 @@ on desktopChanged
 
   repeat for each line tStackName in the openstacks
     if tStackName is not empty then
-      if windowIsManaged(tStackName) then
+      if windowPropertyIsManaged(tStackName, "rect") then
         windowPositionWithinConstraints tStackName
       end if
     end if
@@ -30,7 +30,7 @@ on closeStack
   if levureApplicationState() is "shutting down" then pass closeStack
 
   if windowIsManaged(the short name of the owner of the target) then
-    if levureApplicationState() is "running" and windowGetProperty("save window state") is not "false" then
+    if levureApplicationState() is "running" and windowPropertyIsManaged(empty, "rect") then
       windowSaveWindowPosition the short name of the owner of the target
     end if
 
@@ -88,7 +88,10 @@ on preOpenStack
 
   if not windowIsManaged() then pass preOpenStack
 
-  if not windowIsInit() then
+  local tIsInit
+  put windowIsInit() into tIsInit
+
+  if not tIsInit and windowPropertyIsManaged(empty, "rect") then
     lock messages ## Don't send resizeStack message
     put true into restoreRectFromPrefs
     windowPositionWithinConstraints empty, restoreRectFromPrefs
@@ -96,10 +99,12 @@ on preOpenStack
   end if
 
   ## DISPATCH MESSAGE
-  dispatch "PreOpenWindow" to the target with windowIsInit()
+  if windowPropertyIsManaged(empty, "messages") then
+    dispatch "PreOpenWindow" to the target with windowIsInit()
+  end if
 
   ## SET COLOR AND MENU EDITING
-  if not windowIsInit() then
+  if not tIsInit and windowPropertyIsManaged(empty, "menu") then
     if there is a group (the menubar of this stack) of this stack then
       set backgroundcolor of group (the menubar of this stack) of this stack to effective backgroundcolor of this stack
     end if
@@ -119,7 +124,7 @@ end preOpenStack
 -- one parameter that is true/false.  IF true THEN the card has been opened before.
 -- IF false THEN this is the first time the card has been opened.
 on preOpenCard
-  if not windowIsManaged() then pass preOpenCard
+  if not windowPropertyIsManaged(empty, "messages") then pass preOpenCard
 
   ## DISPATCH MESSAGE
   dispatch "PreOpenView" to the target with windowIsCardInit()
@@ -132,7 +137,7 @@ end preOpenCard
 -- For managed windows sends windowOpen to the stack.  One parameter is passed which
 -- is true/false.  IF true, THEN the stack has been opened before.  False IF it has not.
 on openStack
-  if not windowIsManaged() then pass openStack
+  if not windowPropertyIsManaged(empty, "messages") then pass openStack
 
   ## DISPATCH MESSAGE
   dispatch "OpenWindow" to the target with windowIsInit()
@@ -145,7 +150,7 @@ end openStack
 -- IF it is true THEN the card has been opened before.  IF it is false THEN it has not been
 -- opened before.
 on openCard
-  if not windowIsManaged() then pass openCard
+  if not windowPropertyIsManaged(empty, "messages") then pass openCard
 
   ## DISPATCH MESSAGES
   dispatch "OpenView" to the target with windowIsCardInit()
@@ -157,11 +162,15 @@ end openCard
 
 -- Sends the ResizeView message to managed cards.
 on resizeStack pWidth, pHeight, pOldWidth, pOldHeight
-  if not windowIsManaged() then pass resizeStack
+  if not windowPropertyIsManaged(empty, "messages") then pass resizeStack
 
-  windowResizeMenu the short name of the owner of the target
+  if windowPropertyIsManaged(empty, "menu") then
+    windowResizeMenu the short name of the owner of the target
+  end if
 
-  dispatch "ResizeView" to the target with pWidth, pHeight, pOldWidth, pOldHeight
+  if windowPropertyIsManaged(empty, "messages") then
+    dispatch "ResizeView" to the target with pWidth, pHeight, pOldWidth, pOldHeight
+  end if
 
   pass resizeStack
 end resizeStack

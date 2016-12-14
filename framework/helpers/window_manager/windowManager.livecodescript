@@ -80,9 +80,6 @@ end windowResizeMenu
 on windowSaveWindowPosition pStackName
   put the rect of stack pStackName into tRect
   appSetPref "window."& pStackName &".rect", tRect
-  ## For stacks with odd width I haven't found way to accurately restore loc based on rect
-  ## So we store loc (Update: we would floor the center loc of the rect)
-  //appSetPref "window."& pStackName &".loc", the loc of stack pStackName
   appSetPref "window."& pStackName &".card", the short name of the current card of stack pStackName
 end windowSaveWindowPosition
 
@@ -95,8 +92,16 @@ end windowSaveWindowPosition
 */
 function windowIsManaged pWindow
   if pWindow is empty then put short name of this stack into pWindow
-  return windowGetProperty("manage window", pWindow) is true
+  return windowGetProperty("managed properties", pWindow) is not empty
 end windowIsManaged
+
+
+function windowPropertyIsManaged pWindow, pProperty
+  local tProps
+  set the wholematches to true
+  put windowGetProperty("managed properties", pWindow) into tProps
+  return tProps is "all" or pProperty is among the items of tProps
+end windowPropertyIsManaged
 
 
 /**
@@ -235,8 +240,8 @@ end windowHasCardRectChanged
 * \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
 * \param pRestoreFromPrefs If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
 *
-* This handler will use uGLXApp["default window width"] and uGLXApp["default window height"] to size a window that \
-      * is being opened for the first time. This handler is called automatically for windows that have uGLXApp["manage window"] set to true.
+* This handler will use uGLXApp["default width"] and uGLXApp["default height"] to size a window that \
+* is being opened for the first time. This handler is called automatically for windows that have uGLXApp["manage window"] set to true.
 *
 * \return empty
 */
@@ -275,8 +280,9 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
 
       local tDefaultWidth, tDefaultHeight, tPercent
 
-      put windowGetProperty("default window width", pWindowName) into tDefaultWidth
-      put windowGetProperty("default window height", pWindowName) into tDefaultHeight
+      put windowGetProperty("default width", pWindowName) into tDefaultWidth
+      put windowGetProperty("default height", pWindowName) into tDefaultHeight
+      put windowGetProperty("default loc", pWindowName) into tLoc
 
       if tDefaultWidth is not empty then
         put item 3 of tScreenRect - item 1 of tScreenRect into tWidth
@@ -331,20 +337,23 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
     end if
   end if
 
-  ## vscroll is being used then engine will shift stack up half of vscroll from assigned loc
-  ## Add half of vscroll to loc so it appears where we want it.
-  if the vScroll of tStack > 0 and \
-        windowIsManaged(pWindowName) and not windowIsInit(pWindowName) then
-    add floor(the vScroll of tStack / 2) to item 2 of tLoc
-  end if
-
   set the lockMessages to msgsAreLocked
 
   ## PLACE STACK ON SCREEN
   lock screen
+  # http://quality.livecode.com/show_bug.cgi?id=18997
+  put the effective rect of stack pWindowName into tTempEffectiveRect
+  put the rect of stack pWindowName into tTempRect
+  put tRect into tEffectiveRect
+  subtract (item 1 of tTempRect - item 1 of tTempEffectiveRect) from item 1 of tEffectiveRect
+  subtract (item 2 of tTempRect - item 2 of tTempEffectiveRect) from item 2 of tEffectiveRect
+  add (item 3 of tTempEffectiveRect - item 3 of tTempRect) to item 3 of tEffectiveRect
+  add (item 4 of tTempEffectiveRect - item 4 of tTempRect) to item 4 of tEffectiveRect
+  # end bug workaround
+
   set rect of stack pWindowName to tRect
   set loc of stack pWindowName to tLoc
-  windowMoveWindowOnScreen pWindowName
+  windowMoveWindowOnScreen pWindowName, tEffectiveRect
   unlock screen
 
   return empty
@@ -361,7 +370,7 @@ end windowPositionWithinConstraints
 *
 * \return empty
 */
-command windowMoveWindowOnScreen pWindowName
+command windowMoveWindowOnScreen pWindowName, pEffectiveRect -- http://quality.livecode.com/show_bug.cgi?id=18997
   local tConstraintRect, tHeight, tWidth
   local tMaxHeight, tMaxWidth, tRect, tScreenNo
 
@@ -376,7 +385,11 @@ command windowMoveWindowOnScreen pWindowName
   ## WHAT WIDTHS/HEIGHTS ARE WE WORKING WITH?
   put item 3 of tConstraintRect - item 1 tConstraintRect into tMaxWidth
   put item 4 of tConstraintRect - item 2 tConstraintRect into tMaxHeight
-  put the effective rect of stack pWindowName into tRect
+
+  put pEffectiveRect into tRect
+  if tRect is not a rect then
+    put the effective rect of stack pWindowName into tRect
+  end if
   put item 3 of tRect - item 1 of tRect into tWidth
   put item 4 of tRect - item 2 of tRect into tHeight
 
@@ -399,17 +412,23 @@ command windowMoveWindowOnScreen pWindowName
     # Anything less than this and stack is repositioned on screen
     put 25 into tBuffer
 
+    # Added temporary workarounds until bug is fixed
+    # http://quality.livecode.com/show_bug.cgi?id=18997
     if item 2 of tRect < item 2 of tConstraintRect then
-      set the effective top of stack pWindowName to item 2 of tConstraintRect
+      --set the effective top of stack pWindowName to item 2 of tConstraintRect
+      set the top of stack pWindowName to item 2 of tConstraintRect + 25 -- 25 is so title shows up.
     else if item 2 of tRect > item 4 of tConstraintRect - tBuffer then
-      set the effective bottom of stack pWindowName to item 4 of tConstraintRect
+      --set the effective bottom of stack pWindowName to item 4 of tConstraintRect
+      set the bottom of stack pWindowName to item 4 of tConstraintRect - 10
     end if
     if item 1 of tRect > item 3 of tConstraintRect - tBuffer then
       ## LEFT CAN'T BE PAST RIGHT
-      set the effective right of stack pWindowName to item 3 of tConstraintRect
+      --set the effective right of stack pWindowName to item 3 of tConstraintRect
+      set the right of stack pWindowName to item 3 of tConstraintRect - 10
     else if item 3 of tRect < item 1 of tConstraintRect + tBuffer then
       ## RIGHT CAN'T BE PAST LEFT
-      set the effective left of stack pWindowName to item 1 of tConstraintRect
+      --set the effective left of stack pWindowName to item 1 of tConstraintRect
+      set the left of stack pWindowName to item 1 of tConstraintRect + 10
     end if
   end if
 

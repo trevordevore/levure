@@ -5,7 +5,7 @@ preferences:
   user:
     macos:
       filename: com.levure-app-framework.unit_test_app
-    win:
+    windows:
       filename: LevureUnitTestApp/1.0/UnitTest Prefs.dat
 file extensions:
   Text File: txt
