@@ -283,8 +283,9 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
 
       local tDefaultWidth, tDefaultHeight, tPercent
 
-      put windowGetProperty("default window width", pWindowName) into tDefaultWidth
-      put windowGetProperty("default window height", pWindowName) into tDefaultHeight
+      put windowGetProperty("default width", pWindowName) into tDefaultWidth
+      put windowGetProperty("default height", pWindowName) into tDefaultHeight
+      put windowGetProperty("default loc", pWindowName) into tLoc
 
       if tDefaultWidth is not empty then
         put item 3 of tScreenRect - item 1 of tScreenRect into tWidth
