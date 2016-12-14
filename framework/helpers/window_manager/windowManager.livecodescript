@@ -95,8 +95,16 @@ end windowSaveWindowPosition
 */
 function windowIsManaged pWindow
   if pWindow is empty then put short name of this stack into pWindow
-  return windowGetProperty("manage window", pWindow) is true
+  return windowGetProperty("managed properties", pWindow) is not empty
 end windowIsManaged
+
+
+function windowPropertyIsManaged pWindow, pProperty
+  local tProps
+  set the wholematches to true
+  put windowGetProperty("managed properties", pWindow) into tProps
+  return tProps is "all" or pProperty is among the items of tProps
+end windowPropertyIsManaged
 
 
 /**
@@ -235,8 +243,8 @@ end windowHasCardRectChanged
 * \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
 * \param pRestoreFromPrefs If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
 *
-* This handler will use uGLXApp["default window width"] and uGLXApp["default window height"] to size a window that \
-      * is being opened for the first time. This handler is called automatically for windows that have uGLXApp["manage window"] set to true.
+* This handler will use uGLXApp["default width"] and uGLXApp["default height"] to size a window that \
+* is being opened for the first time. This handler is called automatically for windows that have uGLXApp["manage window"] set to true.
 *
 * \return empty
 */
