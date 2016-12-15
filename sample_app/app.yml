@@ -2,10 +2,11 @@ multiple instances: false
 relaunch in background: false
 application data folder: MyApp/1.0
 preferences:
-  macos:
-    filename: com.my-company.myapp_osx
-  windows:
-    filename: MyApp/1.0/MyApp Preferences.dat
+  user:
+    macos:
+      filename: com.my-company.myapp_osx
+    windows:
+      filename: MyApp/1.0/MyApp Preferences.dat
 file extensions:
   Text File: txt
 file extension groups:
@@ -16,4 +17,7 @@ file extension groups:
 components:
   1:
     name: MyApp
-    filename: myapp/myapp.livecode
+    filename: components/myapp/myapp.livecode
+libraries:
+  1:
+    folder: libraries
