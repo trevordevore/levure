@@ -132,13 +132,12 @@ command levureBuildStandalonesForTesting
   end if
 
   if tError is empty then
-    local tStandaloneStack, tBuildProfile, tSubfolder
+    local tStandaloneStack, tBuildProfile
 
     put the effective filename of me into tStandaloneStack
     put "test" into tBuildProfile
-    put "test_executables" into tSubfolder
     # This stack will be removed from memory so send in time
-    send "packagerBuildStandalones tStandaloneStack, tBuildProfile, tSubfolder" to stack tStackFilename in 10 milliseconds
+    send "packagerBuildStandalones tStandaloneStack, tBuildProfile" to stack tStackFilename in 10 milliseconds
   end if
 
   return tError for error
