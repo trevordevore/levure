@@ -72,7 +72,7 @@ end prefFilenameForPlatform
 
 
 private command _loadDefaultPreferences
-  local tYamlFile
+  local tError, tYamlFile
 
   put levureAppFolder() & "/prefs.yml" into tYamlFile
   if there is a file tYamlFile then
@@ -345,6 +345,8 @@ private command _ensurePrefsAreLoaded pUserOrShared
   validateKey pUserOrShared
 
   if sPrefsA[pUserOrShared] is null then
+    local tFile
+
     if pUserOrShared is "shared" then
       put appGetPreferenceFile("shared") into tFile
     else
@@ -352,6 +354,8 @@ private command _ensurePrefsAreLoaded pUserOrShared
     end if
 
     if there is a file tFile then
+      local tError, tData
+
       put readFileContents(tFile) into tData
       put the result into tError
 
@@ -413,7 +417,7 @@ end readFileContents
 
 
 private command saveContentsToFile pFilename, pData
-  local tError
+  local tError, tTempFilename
 
   put pFilename & ".tmp" into tTempFilename
 

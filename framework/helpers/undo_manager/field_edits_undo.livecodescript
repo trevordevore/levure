@@ -3,7 +3,7 @@ local sWatchForFirstInput = false
 local sLogMessages = false
 
 on openField
-  put true into sWatchForFirstInput    
+  put true into sWatchForFirstInput
   pass openField
 end openField
 
@@ -32,25 +32,31 @@ end backspaceKey
 
 ## Change to rawkeydown once we get a hold of a list of keys to ignore
 on keydown pKeyCode
-  if sWatchForFirstInput then put "Typing" into theMsg
-  else put "Replace Text" into theMsg
-  _logUndoIfNecessary theMsg
+  local tMsg
+
+  if sWatchForFirstInput then put "Typing" into tMsg
+  else put "Replace Text" into tMsg
+  _logUndoIfNecessary tMsg
   pass keydown
 end keydown
 
 
 on returnInField
-  if sWatchForFirstInput then put "Typing" into theMsg
-  else put "Replace Text" into theMsg
-  _logUndoIfNecessary theMsg
+  local tMsg
+
+  if sWatchForFirstInput then put "Typing" into tMsg
+  else put "Replace Text" into tMsg
+  _logUndoIfNecessary tMsg
   pass returnInField
 end returnInField
 
 
 on enterInField
-  if sWatchForFirstInput then put "Typing" into theMsg
-  else put "Replace Text" into theMsg
-  _logUndoIfNecessary theMsg
+  local tMsg
+
+  if sWatchForFirstInput then put "Typing" into tMsg
+  else put "Replace Text" into tMsg
+  _logUndoIfNecessary tMsg
   pass enterInField
 end enterInField
 
@@ -58,7 +64,7 @@ end enterInField
 ## We override the memento restorer so we can log first input logging
 command undoTextRestoreMementoExtended @pUndoObjectA, @pInverseUndoObjectA
   undoTextRestoreMemento pUndoObjectA, pInverseUndoObjectA
-  
+
   ## Start watching text input again
   put true into sWatchForFirstInput
 end undoTextRestoreMementoExtended
@@ -86,15 +92,15 @@ end _logUndoIfNecessary
 command undoLogEditFieldUndo pMsg
   ## text is selected
   undoAddActionToUndoStack "edit field", "edit field", pMsg, "control:" & _longIDWithoutHierarchy(the long id of the selectedfield), "control selected chunk:" & the selectedchunk
-  put false into sWatchForFirstInput 
+  put false into sWatchForFirstInput
 end undoLogEditFieldUndo
 
 
 private function _longIDWithoutHierarchy pControl
   local tFirstCharToDelete,tLastCharToDelete
-  
+
   put the long ID of pControl into pControl
-  
+
   if word 1 of pControl is not among the items of "card,stack" then
     if pControl contains "of group id" then
       put length(word 1 to 4 of pControl) + 1 into tFirstCharToDelete
@@ -102,6 +108,6 @@ private function _longIDWithoutHierarchy pControl
       delete char tFirstCharToDelete to tLastCharToDelete of pControl
     end if
   end if
-  
+
   return pControl
 end _longIDWithoutHierarchy

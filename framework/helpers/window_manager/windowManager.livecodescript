@@ -40,6 +40,8 @@ end windowGetProperty
 
 
 function windowTopMostWindowWithModeOfCeiling pMode
+  local tMode
+
   repeat for each line tStack in the openstacks
     if tStack is empty then next repeat
 
@@ -78,6 +80,8 @@ end windowResizeMenu
 
 
 on windowSaveWindowPosition pStackName
+  local tRect
+
   put the rect of stack pStackName into tRect
   appSetPref "window."& pStackName &".rect", tRect
   appSetPref "window."& pStackName &".card", the short name of the current card of stack pStackName
@@ -192,6 +196,7 @@ end windowSetCardInit
 */
 on windowGoStack pWindow, pMode
   local tStackReference, tCard
+  local tDo
 
   if pMode is empty then put "toplevel" into pMode
 
@@ -209,12 +214,12 @@ on windowGoStack pWindow, pMode
       put quote & tCard & quote into tCard
     end if
 
-    put "go to card" && tCard && "of stack" && tStackReference && "as" && pMode into theDo
+    put "go to card" && tCard && "of stack" && tStackReference && "as" && pMode into tDo
   else
-    put "go stack" && tStackReference && "as" && pMode into theDo
+    put "go stack" && tStackReference && "as" && pMode into tDo
   end if
 
-  do theDo
+  do tDo
 end windowGoStack
 
 
@@ -342,6 +347,8 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
   ## PLACE STACK ON SCREEN
   lock screen
   # http://quality.livecode.com/show_bug.cgi?id=18997
+  local tTempEffectiveRect, tTempRect, tEffectiveRect
+
   put the effective rect of stack pWindowName into tTempEffectiveRect
   put the rect of stack pWindowName into tTempRect
   put tRect into tEffectiveRect
@@ -410,6 +417,7 @@ command windowMoveWindowOnScreen pWindowName, pEffectiveRect -- http://quality.l
     ## IF HEIGHT/WIDTH CHECK OUT THEN ENSURE ENTIRE WINDOW IS ON SCREEN
 
     # Anything less than this and stack is repositioned on screen
+    local tBuffer
     put 25 into tBuffer
 
     # Added temporary workarounds until bug is fixed

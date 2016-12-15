@@ -13,7 +13,7 @@ end releaseStack
 
 command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   local tError
-  local tSubFolder, tOutputFolder
+  local tSubFolder, tOutputFolder, tAppFolder, tStandaloneFolder
 
   put levureAppGetConfig() into sAppA
 
@@ -132,7 +132,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
         set the scriptonly of stack tAppStackFilename to false
         set the uAppA of stack tAppStackFilename to tAppA
-        set the password of stack tAppStackFilename to xAppA["password"]
+        set the password of stack tAppStackFilename to tAppA["password"]
         save stack tAppStackFilename with newest format
         put the result into tError
 
@@ -175,7 +175,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     end if
   end if
 
-  if tError is emtpy then
+  if tError is empty then
     _dispatchPostBuild pBuildProfile, sAppA, tOutputFolder
 
     if pBuildProfile is "mas" or pBuildProfile is "Mac App Store" then
@@ -195,6 +195,8 @@ end packagerPackageApplication
 
 
 private command _pruneAppArray @xAppA, pPlatform
+  local tKeysToDelete
+
   delete local xAppA["password"]
   delete local xAppA["build folder"]
   delete local xAppA["encrypt stacks"]
@@ -221,6 +223,8 @@ end _pruneAppArray
 
 
 private command _dispatchFinalizeBuild pBuildProfile
+  local tFilename
+
   put _postBuildScriptStackFile() into tFilename
   if tFilename is not empty then
     dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile
@@ -229,6 +233,8 @@ end _dispatchFinalizeBuild
 
 
 private command _dispatchPostBuild pBuildProfile
+  local tFilename
+
   put _postBuildScriptStackFile() into tFilename
   if tFilename is not empty then
     dispatch "finishedBuildingPackageForBuildProfile" to stack tFilename with pBuildProfile
@@ -239,7 +245,7 @@ end _dispatchPostBuild
 
 command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfolder
   local tError
-  local buildForDistribution, tTempBuildFolder, tSourceFolder
+  local buildForDistribution, tTempBuildFolder, tSourceFolder, tOutputFolder
 
   if the keys of sAppA is empty then
     put levureAppGetConfig() into sAppA
@@ -343,7 +349,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
-    local tFrameworkPath
+    local tFrameworkPath, tScript
 
     set the itemdelimiter to ","
 
@@ -435,8 +441,8 @@ end _postBuildScriptStackFile
 
 private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   local tError
-  local i, tProfile, tFilename, tFiledata
-  local tBaseAutoUpdateURL
+  local i, tProfile, tFilename, tFiledata, tFoldersA
+  local tBaseAutoUpdateURL, tAutoUpdateURL
 
   put tolower(pBuildProfile) into pBuildProfile
   set the itemdelimiter to "/"
@@ -672,6 +678,7 @@ end _packageHelpers
 private command _packageComponents @xAppA, pOutputFolder
   local tError
   local tCompsA, i
+  local tComponentFolder
 
   set the itemdelimiter to "/"
 
@@ -811,7 +818,7 @@ end _packageExtensions
 
 
 private function _getKindFromExtensionFile pFilename
-  local tError, tKind, it
+  local tError, tKind, it, i
 
   open file pFilename for binary read
   put the result into tError
@@ -1286,6 +1293,7 @@ end _outputFolderForPlatform
 
 private command _mirrorFoldersInFolder pSourceFolder, pCreateInFolder
   local tError
+  local tFolders, tName
 
   set the itemDelimiter to "/"
 
@@ -1519,7 +1527,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
       put the result into tError
     end if
 
-    if tShellError is empty then
+    if tError is empty then
       put format("codesign -dvvv \"%s\"", tAppBundle) into tCmd
       get shell(tCmd)
       if the result > 0 then
@@ -1535,12 +1543,13 @@ end _signMacOSApplication
 ## Monte Goulding with modifications by Trevor DeVore
 command _signAndStrip pBundle, pCertificate, pMas, pSignFile
   local tError
+  local tRootFolder
 
   # recursively parse any frameworks
   if tError is empty then
     put pBundle & "/Contents/Frameworks" into tRootFolder
     if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFiles
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFile
       put the result into tError
     end if
   end if
@@ -1549,7 +1558,7 @@ command _signAndStrip pBundle, pCertificate, pMas, pSignFile
   if tError is empty then
     put pBundle & "/Contents/MacOS" into tRootFolder
     if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFiles
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFile
       put the result into tError
     end if
   end if
@@ -1655,6 +1664,8 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSi
   # On Mavericks and above additional signing is required. Anything that can contain code (or that OS X thinks can contain code)
   if tError is empty then
     if pSignFiles then # don't sign if part of a bundle
+      local tFilesWOExt
+
       set the itemdelimiter to "."
 
       # sign things like .dylib before others. Otherwise codesign will try to sign app and complain that .dylib isn't signed.
@@ -1680,6 +1691,8 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSi
   # strip
   if tError is empty then
     if pMAS then
+      local tResult
+
       set the itemDelimiter to ","
 
       repeat for each line tFile in tFilesInfo
@@ -2026,33 +2039,35 @@ end _escapeForShell
 
 
 private function _printArray pArray, pDimension, pFullData
+  local tKeys, tKey, tText, tTempArray
+
   if pDimension is empty then put 0 into pDimension
 
-  put the keys of pArray into theKeys
-  sort theKeys numeric
+  put the keys of pArray into tKeys
+  sort tKeys numeric
 
-  repeat for each line theKey in theKeys
-    if pArray[theKey] is an array then
-      put _printCharXTimes(space, pDimension * 3) & theKey & cr after theText
-      put pArray[theKey] into theTempArray
-      put _printArray(theTempArray, pDimension + 1, pFullData) after theText
+  repeat for each line tKey in tKeys
+    if pArray[tKey] is an array then
+      put _printCharXTimes(space, pDimension * 3) & tKey & cr after tText
+      put pArray[tKey] into tTempArray
+      put _printArray(tTempArray, pDimension + 1, pFullData) after tText
     else
       if pFullData then
-        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && pArray[theKey] & cr after theText
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && pArray[tKey] & cr after tText
       else
-        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && line 1 of pArray[theKey] & cr after theText
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && line 1 of pArray[tKey] & cr after tText
       end if
     end if
   end repeat
 
-  return theText
+  return tText
 end _printArray
 
 private function _printCharXTimes pChar, pTimes
-  local theStr
+  local tStr
 
   repeat with i = 1 to pTimes
-    put pChar after theStr
+    put pChar after tStr
   end repeat
-  return theStr
+  return tStr
 end _printCharXTimes

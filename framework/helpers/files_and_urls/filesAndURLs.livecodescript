@@ -30,17 +30,17 @@ end appFilesToProcessOnOpen
 on appleEvent pClass, pID, pSender
   ## Don't let user execute random scripts
   if the environment is not "development" and pClass & pID is among the items of "miscDOSC,miscEVAL" then exit appleEvent
-  
+
   if pClass is "aevt" and pID is "odoc" then
     local tFiles
-    
+
     request appleEvent data
     put it into tFiles
-    
+
     if tFiles is not "not found" then
       put extractAppAssociatedFilesFromList(tFiles) into tFiles
-      
-      if tFiles is not empty then      
+
+      if tFiles is not empty then
         if not hasAppLoaded() then
           if sFilesToProcessOnOpen is not empty then
             put sFilesToProcessOnOpen into line (the number of lines of tFiles + 1) of tFiles
@@ -79,14 +79,14 @@ end appleEvent
 */
 command appProcessCommandLineParameters pParams
   local tLineNo
-  
+
   set the wholeMatches to true
-  
+
   put lineoffset("-url", pParams) into tLineNo
   if tLineNo > 0 then
     if not hasAppLoaded() then
       local tValue
-      
+
       put line (tLineNo + 1) of pParams into tValue
       if sURLsToProcessOnOpen is not empty then
         put sURLsToProcessOnOpen into line (the number of lines of tValue + 1) of tValue
@@ -97,7 +97,7 @@ command appProcessCommandLineParameters pParams
     end if
   else
     local tFiles
-    
+
     put extractAppAssociatedFilesFromList(pParams) into tFiles
     if tFiles is not empty then
       if not hasAppLoaded() then
@@ -110,17 +110,17 @@ command appProcessCommandLineParameters pParams
       end if
     end if
   end if
-  
+
   return empty
 end appProcessCommandLineParameters
 
 
 function appFileExtensionsForTypes pTypes
   local tType, tExtensionsA, tExtensions
-  
+
   put getFileExtensionsArray() into tExtensionsA
-  
-  if pTypes is not empty then      
+
+  if pTypes is not empty then
     repeat for each item tType in pTypes
       if tExtensionsA[tType] is not empty then
         put tExtensionsA[tType] & cr after tExtensions
@@ -134,7 +134,7 @@ function appFileExtensionsForTypes pTypes
   delete the last char of tExtensions
   replace comma with cr in tExtensions
   sort lines of tExtensions ascending
-  
+
   return tExtensions
 end appFileExtensionsForTypes
 
@@ -150,27 +150,27 @@ end appFileExtensionsForTypes
 function appFileDialogTypeFilterFromGroup pFileExtGroupName
   local tFileExtGroupsA, tGroupA
   local tFilter
-  
+
   put getFileExtensionsGroupsArray() into tFileExtGroupsA
   put tFileExtGroupsA[pFileExtGroupName] into tGroupA
-  
+
   if tGroupA is an array then
     local i
     local tFileTypes # not used
-    
-    repeat with i = 1 to the number of elements of tGroupA      
+
+    repeat with i = 1 to the number of elements of tGroupA
       if tGroupA[i]["extensions"] is not empty then
         put tGroupA[i]["name"] & "|" & tGroupA[i]["extensions"] & "|" & tFileTypes & cr after tFilter
       end if
     end repeat
     delete the last char of tFilter
   end if
-  
+
   return tFilter
 end appFileDialogTypeFilterFromGroup
 
 
-/** 
+/**
 * \brief Registers the application to process a particular URL handler on Windows.
 *
 * \param pProtocol The protocol to register (i.e. x-myapplication).
@@ -183,13 +183,13 @@ end appFileDialogTypeFilterFromGroup
 */
 command appRegisterURLProtocol pProtocol, pDescription
   local tError
-  
+
   if pDescription is empty then put pProtocol && "Protocol" into pDescription
-  
+
   switch the platform
     case "win32"
       local tFilename, wasSuccessful
-      
+
       put levureStandaloneFilename() into tFilename
       replace "/" with "\" in tFilename
       put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\", "URL:" & pDescription) into wasSuccessful ## default value
@@ -200,7 +200,7 @@ command appRegisterURLProtocol pProtocol, pDescription
       put setRegistry("HKEY_CURRENT_USER\Software\Classes\" & pProtocol & "\UseOriginalUrlEncoding", "1") into wasSuccessful # IE9 recognizes this and won't decode URL prior to passing to app
       break
   end switch
-  
+
   return tError
 end appRegisterURLProtocol
 
@@ -216,19 +216,19 @@ end appRegisterURLProtocol
 */
 function appFileDialogTypeFilterFromExtension pExtensionName
   local tFilter, tExtensionsA
-  
+
   put getFileExtensionsArray() into tExtensionsA
-  
+
   if pExtensionName[pExtensionName] is an array then
     put pExtensionName & "|" & pExtensionName[pExtensionName] & "|" & empty into tFilter
   end if
-  
+
   return tFilter
 end appFileDialogTypeFilterFromExtension
 
 
 /**
-* \brief Returns a list of file extensions for a File Type Filter Group. 
+* \brief Returns a list of file extensions for a File Type Filter Group.
 * \param pFileFilterName Name of File Type Filter object to locate group in.
 * \param pGroupName Name of group to return extensions for.
 *
@@ -246,12 +246,12 @@ end appFileDialogTypeFilterFromExtension
 */
 function appFileExtensionGroupExtensions pGroupName
   local tExtGroupsA, tExtensions
-  
+
   put getFileExtensionsGroupsArray() into tExtGroupsA
-  
+
   if tExtGroupsA[pGroupName] is an array then
     local i
-    
+
     repeat with i = 1 to the number of elements of tExtGroupsA[pGroupName]
       if tExtGroupsA[pGroupName][i]["extensions"] is not empty then
         put tExtGroupsA[pGroupName][i]["extensions"] & "," after tExtensions
@@ -266,12 +266,12 @@ end appFileExtensionGroupExtensions
 
 function appFileExtensionGroupExtensionsForCategory pGroupName, pCategoryName
   local tExtGroupsA, tExtensions
-  
+
   put getFileExtensionsGroupsArray() into tExtGroupsA
-  
+
   if tExtGroupsA[pGroupName] is an array then
     local i
-    
+
     repeat with i = 1 to the number of elements of tExtGroupsA[pGroupName]
       if tExtGroupsA[pGroupName][i]["name"] is pCategoryName then
         put tExtGroupsA[pGroupName][i]["extensions"] into tExtensions
@@ -295,7 +295,7 @@ end getFileExtensionsGroupsArray
 
 
 /**
-* \brief Given a list of files this function will extract all files that have extensions that are supported by your application. 
+* \brief Given a list of files this function will extract all files that have extensions that are supported by your application.
 * \param pFiles CR delimited list of files to search in.
 *
 * \package Files
@@ -306,14 +306,14 @@ private function extractAppAssociatedFilesFromList pFiles
   local tExtensions, tSupportedFiles
   local tFile, tCorrectedFilepath
   local tFileName, tExtension, tLineNo
-  
+
   set the wholeMatches to true
-  
+
   put appFileExtensionsForTypes(empty) into tExtensions
-  
+
   repeat for each line tFile in pFiles
     put _longFilePath(tFile) into tCorrectedFilepath
-    
+
     set the itemDelimiter to slash
     put item -1 of tCorrectedFilepath into tFileName
     set the itemDelimiter to "."
@@ -326,11 +326,11 @@ private function extractAppAssociatedFilesFromList pFiles
     else
       # TODO: Check creator types on mac os (2016-11-12: is this relevant any longer?)
       if the platform is "MacOS" then
-        
+
       end if
     end if
   end repeat
-  
+
   delete the last char of tSupportedFiles
   return tSupportedFiles
 end extractAppAssociatedFilesFromList
@@ -343,10 +343,10 @@ end hasAppLoaded
 
 private function _longFilePath pPath
   if pPath is empty then return empty
-  
+
   if the platform is "win32" then
     local tLongPath
-    
+
     # http://quality.runrev.com/show_bug.cgi?id=14453
     put the longFilePath of pPath into tLongPath
     if tLongPath is empty then
@@ -360,7 +360,7 @@ private function _longFilePath pPath
 end _longFilePath
 
 
-private function _encodeTextForMenu pString   
+private function _encodeTextForMenu pString
   replace slash with slash & slash in pString
   replace "(" with "((" in pString
   replace "&" with "&&" in pString
@@ -400,13 +400,13 @@ end appSetMaxRecentFiles
 command appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
   local tError,tFilesA
   local tLineOffset, i
-  
+
   set the wholeMatches to true
-  
+
   put word 1 to -1 of (line 1 of pFile) into pFile
-  
+
   if pTag is empty then put pFile into pTag
-  
+
   put appGetPref("recently opened:" && pCategory) into tFilesA
   if tFilesA is not an array then ## old behavior was just a list of files
     put tFilesA into tFilesA["files"]
@@ -417,29 +417,29 @@ command appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
     delete line tLineOffset of tFilesA["files"]
     delete line tLineOffset of tFilesA["tags"]
   end if
-  
+
   # Do this before adding cr to pTag
   put pSecurityBookmark into tFilesA["security bookmarks"][pTag]
-  
+
   if tFilesA["files"] is not empty then
     put cr after pFile
     put cr after pTag
   end if
   put pFile before tFilesA["files"]
   put pTag before tFilesA["tags"]
-  
+
   if the number of lines of tFilesA["files"] > sMaxRecentFiles then
     repeat with i = (sMaxRecentFiles+1) to the number of lines of tFilesA["tags"]
       delete local tFilesA["security bookmarks"][line i of tFilesA["tags"]]
     end repeat
     delete line (sMaxRecentFiles+1) to -1 of tFilesA["files"]
-    delete line (sMaxRecentFiles+1) to -1 of tFilesA["tags"]    
+    delete line (sMaxRecentFiles+1) to -1 of tFilesA["tags"]
   end if
-  
+
   appSetPref "recently opened:" && pCategory, tFilesA
   appSavePrefs
   put the result into tError
-  
+
   return tError
 end appAddToRecentlyOpened
 
@@ -455,9 +455,9 @@ end appAddToRecentlyOpened
 */
 command appRemoveFromRecentlyOpened pCategory, pFile
   local tError,tFilesA,tLineOffset
-  
+
   set the wholeMatches to true
-  
+
   put appGetPref("recently opened:" && pCategory) into tFilesA
   if tFilesA is not an array then
     put tFilesA into tFilesA["files"]
@@ -471,11 +471,11 @@ command appRemoveFromRecentlyOpened pCategory, pFile
     delete line tLineOffset of tFilesA["files"]
     delete line tLineOffset of tFilesA["tags"]
   end if
-  
+
   appSetPref "recently opened:" && pCategory, tFilesA
   appSavePrefs
   put the result into tError
-  
+
   return tError
 end appRemoveFromRecentlyOpened
 
@@ -483,21 +483,21 @@ end appRemoveFromRecentlyOpened
 /**
 * \brief Returns a list of recently opened files for a particular category.
 * \param pCategory The category to retrieve the list of recently opened files for.
-* \param pShortVersion Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path. 
+* \param pShortVersion Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path.
 *
 * \return CR delimited list
 */
 function appRecentlyOpened pCategory, pShortVersion
-  local tFile,tFileKeysA,tFileList,tFiles
+  local tFile,tFileKeysA,tFilesA,tFileList,tFiles
   local tIndex,tItemCount,tKey
-  
+
   put appGetPref("recently opened:" && pCategory) into tFilesA
-  
+
   if tFilesA is not an array then
     put tFilesA into tFilesA["files"]
     put tFilesA["files"] into tFilesA["tags"]
   end if
-  
+
   if pShortVersion then
     set the itemdelimiter to slash
     repeat for each line tFile in tFilesA["tags"]
@@ -509,7 +509,7 @@ function appRecentlyOpened pCategory, pShortVersion
         put item tIndex to -1 of tFile into tKey
       end REPEAT
       put 1 into tFileKeysA[tKey]
-      
+
       if char 1 of tKey is "/" then put ".." before tKey
       if the platform is "win32" then replace "/" with "\" in tKey
       put tKey & cr after tFileList
@@ -517,7 +517,7 @@ function appRecentlyOpened pCategory, pShortVersion
     delete the last char of tFileList
     return tFileList
   else
-    return tFilesA["tags"]        
+    return tFilesA["tags"]
   end if
 end appRecentlyOpened
 
@@ -532,16 +532,16 @@ end appRecentlyOpened
 * \return CR delimited list
 */
 function appRecentlyOpenedMenuText pCategory
-  local tFile,tFileKeysA,tFileList,tFiles
+  local tFile,tFileKeysA,tFilesA,tFileList,tFiles
   local tIndex,tItemCount,tKey
   local tLineNo
-  
+
   put appGetPref("recently opened:" && pCategory) into tFilesA
   if tFilesA is not an array then
     put tFilesA into tFilesA["files"]
     put tFilesA["files"] into tFilesA["tags"]
   end if
-  
+
   set the itemDelimiter to slash
   repeat for each line tFile in tFilesA["files"]
     add 1 to tLineNo
@@ -553,11 +553,11 @@ function appRecentlyOpenedMenuText pCategory
       put item tIndex to -1 of tFile into tKey
     end repeat
     put 1 into tFileKeysA[tKey]
-    
+
     if char 1 of tKey is "/" then put ".." before tKey
     if the platform is "win32" then replace "/" with "\" in tKey
     put tab & _encodeTextForMenu(tKey) & "/|" & urlencode(line tLineNo of tFilesA["tags"]) & cr after tFileList
-  end REPEAT
+  end repeat
   delete the last char of tFileList
   return tFileList
 end appRecentlyOpenedMenuText
@@ -572,10 +572,10 @@ end appRecentlyOpenedMenuText
 * \return bookmark data
 */
 function appSecurityBookmarkForRecentlyOpenedFile pCategory, pTag
-  local tFile,tFiles,tKeys,tLineNo
-  
+  local tFilesA
+
   set the wholeMatches to true
-  
+
   put appGetPref("recently opened:" && pCategory) into tFilesA
   return tFilesA["security bookmarks"][pTag]
 end appSecurityBookmarkForRecentlyOpenedFile

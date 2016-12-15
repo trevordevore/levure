@@ -92,6 +92,8 @@ on preOpenStack
   put windowIsInit() into tIsInit
 
   if not tIsInit and windowPropertyIsManaged(empty, "rect") then
+    local restoreRectFromPrefs
+
     lock messages ## Don't send resizeStack message
     put true into restoreRectFromPrefs
     windowPositionWithinConstraints empty, restoreRectFromPrefs

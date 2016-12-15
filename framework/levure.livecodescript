@@ -132,7 +132,7 @@ command levureBuildStandalonesForTesting
   end if
 
   if tError is empty then
-    local tStandaloneStack, tBuildProfile
+    local tStandaloneStack, tBuildProfile, tSubfolder
 
     put the effective filename of me into tStandaloneStack
     put "test" into tBuildProfile
@@ -810,7 +810,7 @@ command levureBuildExtensions
     put the result into tError
   end if
 
-  return tError as error
+  return tError for error
 end levureBuildExtensions
 
 
@@ -935,7 +935,7 @@ end resolveHelperAssets
 
 private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
   local tError
-  local tConfigA
+  local tConfigA, tKeys
 
   # When packaged the array will already be filled in.
   put the keys of xHelperA into tKeys
@@ -1076,6 +1076,8 @@ private command loadExternals pFilenames
   set the lockMessages to msgsAreLocked
 
   if tError is empty then
+    local tExternalPackagesInMemory
+
     put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
     repeat for each line tExternalPackageName in sAppA["externals packages to verify"]
       if tExternalPackageName is not among the lines of tExternalPackagesInMemory then
@@ -1180,6 +1182,8 @@ end levureBuildFolder
 
 
 function levureFrameworkFolder
+  local tFolder
+
   put the filename of (the long id this me) into tFolder
   set the itemDelimiter to "/"
   delete the last item of tFolder
@@ -1425,11 +1429,13 @@ end isFilenameRelative
 
 
 private function fileExtension pFilename
+  local tExtension
+
   set the itemdelimiter to "/"
-  put the last item of pFilename into tExt
+  put the last item of pFilename into tExtension
   set the itemdelimiter to "."
-  if the number of items of tExt > 1 then
-    return the last item of tExt
+  if the number of items of tExtension > 1 then
+    return the last item of tExtension
   else
     return empty
   end if
@@ -1510,7 +1516,7 @@ end levureExternalsLoadedInMemory
 
 
 function yamlFileToArray pFilename
-  local tError
+  local tError, tYaml
 
   put readFileContents(pFilename) into tYaml
   put the result into tError
@@ -1748,33 +1754,35 @@ end yamlPathToArrayPath
 
 
 private function _printArray pArray, pDimension, pFullData
+  local tKeys, tKey, tText, tTempArray
+
   if pDimension is empty then put 0 into pDimension
 
-  put the keys of pArray into theKeys
-  sort theKeys numeric
+  put the keys of pArray into tKeys
+  sort tKeys numeric
 
-  repeat for each line theKey in theKeys
-    if pArray[theKey] is an array then
-      put _printCharXTimes(space, pDimension * 3) & theKey & cr after theText
-      put pArray[theKey] into theTempArray
-      put _printArray(theTempArray, pDimension + 1, pFullData) after theText
+  repeat for each line tKey in tKeys
+    if pArray[tKey] is an array then
+      put _printCharXTimes(space, pDimension * 3) & tKey & cr after tText
+      put pArray[tKey] into tTempArray
+      put _printArray(tTempArray, pDimension + 1, pFullData) after tText
     else
       if pFullData then
-        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && pArray[theKey] & cr after theText
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && pArray[tKey] & cr after tText
       else
-        put _printCharXTimes(space, pDimension * 3) &  theKey & ":" && line 1 of pArray[theKey] & cr after theText
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && line 1 of pArray[tKey] & cr after tText
       end if
     end if
   end repeat
 
-  return theText
+  return tText
 end _printArray
 
 private function _printCharXTimes pChar, pTimes
-  local theStr
+  local tStr
 
   repeat with i = 1 to pTimes
-    put pChar after theStr
+    put pChar after tStr
   end repeat
-  return theStr
+  return tStr
 end _printCharXTimes
