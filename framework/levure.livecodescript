@@ -1,4 +1,4 @@
-﻿script "levureFramework"
+script "levureFramework"
 ##########
 ## This script must be assigned to a behavior of a stack that will be built as a standalone.
 ##########
@@ -142,6 +142,24 @@ command levureBuildStandalonesForTesting
 
   return tError for error
 end levureBuildStandalonesForTesting
+
+
+command levureLoadExternalEditorServer
+  local tStackFilename, tStackPath
+
+  set the itemdelimiter to "/"
+
+  put levureFrameworkFolder() into tStackFilename
+  put "utils/external_editor_server/external_editor_server.livecodescript" into tStackPath
+  put tStackPath into the last item of tStackFilename
+  if there is a stack tStackFilename then
+    # TODO: Send port from .env file
+    dispatch "levureExternalEditorStartServer" to stack tStackFilename
+  else
+    answer error tStackPath && "was not found"
+  end if
+
+end levureLoadExternalEditorServer
 
 
 # So no scripts have to hard code name
