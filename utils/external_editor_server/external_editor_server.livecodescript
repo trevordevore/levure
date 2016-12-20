@@ -34,7 +34,6 @@ on levureExternalEditorClientRequest pIPAddr
          write "success" to socket pIPAddr
       catch e
          write "error:" && e to socket pIPAddr
-         return empty
       end try
    else
       write "file not found" to socket pIPAddr
