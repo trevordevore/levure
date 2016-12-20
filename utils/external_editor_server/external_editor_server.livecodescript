@@ -14,9 +14,18 @@ end releaseStack
 
 
 command levureExternalEditorStartServer pPort
+  local tError, tDefaultInterface
+
   if pPort is not an integer then put kDefaultPort into pPort
+
+  put the defaultnetworkinterface into tDefaultInterface
+  set the defaultnetworkinterface to "127.0.0.1"
   accept connections on port pPort with message "levureExternalEditorClientRequest"
-  return the result
+  put the result into tError
+
+  set the defaultnetworkinterface to tDefaultInterface
+
+  return tError for error
 end levureExternalEditorStartServer
 
 
