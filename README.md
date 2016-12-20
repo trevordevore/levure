@@ -368,19 +368,10 @@ levurePackageApplication pBuildProfile
 
 # Including levure as a submodule in a git project
 
-If you are using git to manage your application then you can include the `levure` project as a submodule that points to the `release` tag.
+If you are using git to manage your application then you can include the `levure` project as a submodule.
 
 ```
 git submodule add https://github.com/trevordevore/levure.git levure
-```
-
-```
-cd levure
-git checkout release-1
-cd ..
-git add levure
-git commit -m "Target a specific tag in the levure submodule"
-git push
 ```
 
 # Helpers Included with Framework
