@@ -1,4 +1,4 @@
-﻿script "Application Preferences Library"
+script "Application Preferences Library"
 local sUseExternal, sUseBroadcaster
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA

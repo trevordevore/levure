@@ -1,4 +1,4 @@
-﻿script "Undo Manager"
+script "Undo Manager"
 local sUndoStructure
 local sUndoLogA
 local sMaxUndo = 30

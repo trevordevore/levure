@@ -1,4 +1,4 @@
-﻿script "Undo Manager Field Edits Undo Frontscript"
+script "Undo Manager Field Edits Undo Frontscript"
 local sWatchForFirstInput = false
 local sLogMessages = false
 

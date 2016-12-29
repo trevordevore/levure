@@ -1,4 +1,4 @@
-﻿script "appFilesAndURLs"
+script "appFilesAndURLs"
 constant kAppStackName = "app"
 
 local sURLsToProcessOnOpen

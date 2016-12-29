@@ -1,4 +1,4 @@
-﻿script "Window Manager Library"
+script "Window Manager Library"
 local sWindowsA
 
 on libraryStack
