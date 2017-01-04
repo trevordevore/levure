@@ -1,17 +1,31 @@
 script "appLogging"
-local sLogFile
+local sLogTarget
 local sLogNetworkTraffic = "false"
 local sNetworkFilters
 
 
-command appSetLogFile pFilename
-  put pFilename into sLogFile
-end appSetLogFile
+command appSetLogTarget pTarget
+  put pTarget into sLogTarget
+
+  if sLogTarget begins with "field " then
+    put the long id of sLogTarget into sLogTarget
+    # Trim off substack
+    local tFirstChar, tSecondChar
+
+    put offset(" of stack " & quote, sLogTarget) into tFirstChar
+    if tFirstChar > 0 then
+      put offset(" of stack " & quote, sLogTarget, tFirstChar) into tSecondChar
+      if tSecondChar > 0 then
+        delete char (tFirstChar + tSecondChar) to -1 of sLogTarget
+      end if
+    end if
+  end if
+end appSetLogTarget
 
 
-function appGetLogfile
-  return sLogFile
-end appGetLogfile
+function appGetLogTarget
+  return sLogTarget
+end appGetLogTarget
 
 
 command appLogNetworkTraffic pBoolean
@@ -30,19 +44,25 @@ end appGetNetworkTrafficLogFilters
 
 
 command appLogMsg pMsg
+  if sLogTarget is empty then return empty
+
   local tError
 
-  if sLogFile is "console" then
+  put "[" & the internet date & "] " && pMsg & cr into pMsg
+
+  if sLogTarget is "console" then
     write pMsg & cr to stdout
-  else if sLogFile is not empty then
-    open file sLogFile for append
+  else if sLogTarget begins with "field " and there is a sLogTarget then
+    put pMsg after field id (word 3 of sLogTarget) of stack (word -2 to -1 of sLogTarget)
+  else
+    open file sLogTarget for append
     put the result into tError
 
     if tError is empty then
-      write "[" & the internet date & "] " && pMsg & cr to file sLogFile
+      write pMsg to file sLogTarget
     end if
 
-    close file sLogFile
+    close file sLogTarget
   end if
 
   return tError for error
@@ -50,7 +70,7 @@ end appLogMsg
 
 # LCB
 on logChanged pMsg
-  if sLogFile is not empty then
+  if sLogTarget is not empty then
     appLogMsg pMsg
   else
     pass logChanged
@@ -59,7 +79,7 @@ end logChanged
 
 # libURL
 on ulLogIt pMsg
-  if sLogNetworkTraffic AND sLogFile is not empty then
+  if sLogNetworkTraffic AND sLogTarget is not empty then
     _logLibURLMessage pMsg
   else
     pass ulLogIt
