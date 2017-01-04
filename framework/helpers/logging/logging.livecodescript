@@ -33,6 +33,11 @@ command appLogNetworkTraffic pBoolean
 end appLogNetworkTraffic
 
 
+function appGetLogNetworkTraffic
+  return sLogNetworkTraffic
+end appGetLogNetworkTraffic
+
+
 command appSetNetworkTrafficLogFilters pFilters
   put pFilters into sNetworkFilters
 end appSetNetworkTrafficLogFilters
