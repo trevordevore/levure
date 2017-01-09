@@ -214,6 +214,11 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
+    createApplicationDataFolders
+    put the result into tError
+  end if
+
+  if tError is empty then
     dispatch "PreloadApplication" to stack kAppStackName
   end if
 
@@ -291,28 +296,41 @@ end levurefinishLoadingApplication
 
 
 function levureApplicationDataFolder pUserOrShared
+  local tFolder
+
+  if sAppA["application data"]["folder"] is empty then return empty
+
   if pUserOrShared is not "shared" then
     switch the platform
       case "win32"
       case "macos"
-        return specialFolderPath("support") & "/" & sAppA["application data folder"]
+        put specialFolderPath("support") & "/" into tFolder
+        break
       case "linux"
-        return specialFolderPath("home") & "/." & sAppA["application data folder"]
+        put specialFolderPath("home") & "/." into tFolder
+        break
       default
         return empty
     end switch
   else
     switch the platform
       case "macos"
-        return specialFolderPath("asup") & "/" & sAppA["application data folder"]
+        put specialFolderPath("asup") & "/" into tFolder
+        break
       case "win32"
-        return specialFolderPath("35") & "/" & sAppA["application data folder"]
+        put specialFolderPath("35") & "/" into tFolder
+        break
       case "linux"
-        return "/opt/." & sAppA["application data folder"]
+        put "/opt/." into tFolder
+        break
       default
         return empty
     end switch
   end if
+
+  put sAppA["application data"]["folder"] after tFolder
+
+  return tFolder
 end levureApplicationDataFolder
 
 
@@ -359,9 +377,9 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
-  put normalizeFolderPath(sAppA["application data folder"]) into sAppA["application data folder"]
-  repeat while char 1 of sAppA["application data folder"] is "/"
-    delete char 1 of sAppA["application data folder"]
+  put normalizeFolderPath(sAppA["application data"]["folder"]) into sAppA["application data"]["folder"]
+  repeat while char 1 of sAppA["application data"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["folder"]
   end repeat
 
   repeat for each item tKey in "password,file extensions,file extension groups"
@@ -619,6 +637,53 @@ private function appStackFilename
     return empty
   end if
 end appStackFilename
+
+
+private command createApplicationDataFolders
+  local tError
+
+  if sAppA["application data"]["folder"] is not empty then
+    local tRootFolder
+
+    set the itemdelimiter to "/"
+
+    if sAppA["application data"]["user"] then
+      put levureApplicationDataFolder("user") into tRootFolder
+      replace "/" & sAppA["application data"]["folder"] with empty in tRootFolder
+      createSubfolders tRootFolder, sAppA["application data"]["folder"]
+      put the result into tError
+    end if
+
+    if tError is empty and sAppA["application data"]["shared"] then
+      put levureApplicationDataFolder("shared") into tRootFolder
+      replace "/" & sAppA["application data"]["folder"] with empty in tRootFolder
+      createSubfolders tRootFolder, sAppA["application data"]["folder"]
+      put the result into tError
+    end if
+  end if
+
+  return tError for error
+end createApplicationDataFolders
+
+
+private command createSubfolders pRootFolder, pSubfolder
+  local tError, tTargetFolder
+
+  repeat for each item tFolder in pSubfolder
+    put pRootFolder & "/" & tFolder into tTargetFolder
+    if there is not a folder tTargetFolder then
+      create folder tTargetFolder
+      put the result into tError
+      put pRootFolder & "/" & tFolder into pRootFolder
+      if tError is not empty then
+        put "unable to create folder" && pRootFolder & ":" && tError into tError
+        exit repeat
+      end if
+    end if
+  end repeat
+
+  return tError for error
+end createSubfolders
 
 
 private command loadEarlyHelpers
