@@ -1534,6 +1534,15 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
         put it into tError
       end if
     end if
+
+    if tError is empty then
+      put format("spctl --verbose --assess --type execute -v \"%s\"", tAppBundle) into tCmd
+      get shell(tCmd)
+      if the result > 0 then
+        put "spctl error:" && it into tError
+      end if
+    end if
+
   end if
 
   return tError for error
