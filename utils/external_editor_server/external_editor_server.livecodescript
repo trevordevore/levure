@@ -36,7 +36,7 @@ on levureExternalEditorClientRequest pIPAddr
       write "error:" && e to socket pIPAddr
       beep
       put e
-      answer "Error setting script of stack" && tStackName & "."
+      answer error "Error setting script of stack" && tStackName & "."
     end try
   else
     write "file not found" to socket pIPAddr
