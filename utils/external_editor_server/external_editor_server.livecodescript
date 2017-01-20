@@ -19,7 +19,7 @@ end levureExternalEditorStartServer
 
 
 on levureExternalEditorClientRequest pIPAddr
-  local tStackName, tFilename
+  local tStackName, tFilename, tError
 
   read from socket pIPAddr until linefeed
   delete the last char of it
@@ -30,14 +30,39 @@ on levureExternalEditorClientRequest pIPAddr
 
   if there is a stack tStackName and the filename of stack tStackName is tFilename then
     try
-      set the script of stack tStackName to (line 2 to -1 of url("file:" & tFilename))
-      write "success" to socket pIPAddr
-    catch e
-      write "error:" && e to socket pIPAddr
-      beep
-      put e
-      answer error "Error setting script of stack" && tStackName & "."
+      local tOldPreserveVariables, tOldExplicitVariables, tDefaultStack
+
+      put the defaultStack into tDefaultStack
+      put the preserveVariables into tOldPreserveVariables
+
+      set the defaultStack to me
+      set the preserveVariables to true
+
+      lock messages
+      create button "CompileScript"
+
+      set the script of button "CompileScript" to (line 2 to -1 of url("file:" & tFilename))
+      put the result into tError
+
+      if tError is empty then
+        set the script of stack tStackName to the script of button "CompileScript"
+        write "success" to socket pIPAddr
+      end if
+
+      delete button "CompileScript"
+      set the preserveVariables to tOldPreserveVariables
+      set the defaultStack to tDefaultStack
+      unlock messages
+    catch tError
+
     end try
+
+    if tError is not empty then
+      write "error:" && tError to socket pIPAddr
+      beep
+      put tError
+      answer error "Error setting script of stack" && tStackName & "."
+    end if
   else
     write "file not found" to socket pIPAddr
   end if
