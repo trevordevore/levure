@@ -1064,13 +1064,19 @@ end resolveHelperAssets
 
 private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
   local tError
-  local tConfigA, tKeys
+  local tConfigA, tKeys, tAlreadyFilledIn
 
   # When packaged the array will already be filled in.
   put the keys of xHelperA into tKeys
-  sort lines of tKeys ascending
+  set the wholematches to true
+  repeat for each item tKey in "libraries,backscripts,frontscripts,behaviors,stacks,extensions,externals"
+    if tKey is among the lines of tKeys then
+      put true into tAlreadyFilledIn
+      exit repeat
+    end if
+  end repeat
 
-  if tKeys is "filename" OR tKeys is "filename" & cr & "preload" then
+  if not tAlreadyFilledIn then
     if there is a file (xHelperA["filename"] & "/helper.yml") then
       put yamlFileToArray(xHelperA["filename"] & "/helper.yml") into tConfigA
       put the result into tError
@@ -1104,6 +1110,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
 
     put xHelperA["filename"] into tConfigA["filename"]
     put xHelperA["preload"] is true into tConfigA["preload"]
+    put xHelperA["encrypt"] is true into tConfigA["encrypt"]
 
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["stacks"]
@@ -1347,6 +1354,9 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
         if "distribute" is among the keys of pFilesA[i] then
           put pFilesA[i]["distribute"] into tFilesA[j]["distribute"]
         end if
+        if "encrypt" is among the keys of pFilesA[i] then
+          put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
+        end if
       end if
     end if
   end repeat
@@ -1457,6 +1467,9 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
         add 1 to j
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
         put pFilesA[i]["name"] into tFilesA[j]["name"]
+        if "encrypt" is among the keys of pFilesA[i] then
+          put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
+        end if
       end if
     end if
   end repeat
