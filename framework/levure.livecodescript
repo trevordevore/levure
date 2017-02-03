@@ -74,6 +74,14 @@ on relaunch
 end relaunch
 
 
+on errorDialog pError
+  if the environment is "development" OR sRuntimePropertiesA["state"] is "running" then pass errorDialog
+
+  answer error pError
+  quit
+end errorDialog
+
+
 function levureAppStackFilename
   return appStackFilename()
 end levureAppStackFilename
