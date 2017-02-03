@@ -1,5 +1,5 @@
-﻿script "Levure Framework Application Packager"
-local sAppA
+script "Levure Framework Application Packager"
+local sAppA, sPassword, sBuildLogFile
 
 on libraryStack
   pass libraryStack
@@ -11,6 +11,29 @@ on releaseStack
 end releaseStack
 
 
+private command log pMsg
+  local tError
+
+  open file sBuildLogFile for "utf8" text append
+  put the result into tError
+
+  if tError is empty then
+    write pMsg & cr to file sBuildLogFile
+    put the result into tError
+  end if
+
+  close file sBuildLogFile
+
+  return tError
+end log
+
+
+private command resetLogging
+  put levureBuildFolder() & "/build.log" into sBuildLogFile
+  delete file sBuildLogFile
+end resetLogging
+
+
 command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   local tError
   local tSubFolder, tOutputFolder, tAppFolder, tStandaloneFolder
@@ -20,15 +43,16 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   _performPackagingPrechecks pStandaloneStackFilename, pBuildProfile
   put the result into tError
 
+  resetLogging
+  log "[" & the system date & "] Packaging app using profile" && pBuildProfile
+
   put levureAppGetConfig() into sAppA
 
   if tError is empty then
+    local tOutputAppFolder, tExtensionsBuiltIntoStandalone
+
     put levureAppFolder() into tAppFolder
     put levureStandaloneFolder() into tStandaloneFolder
-  end if
-
-  if tError is empty then
-    local tOutputAppFolder, tExtensionsBuiltIntoStandalone
 
     put tAppFolder into tOutputAppFolder
     replace tStandaloneFolder with empty in tOutputAppFolder
@@ -37,6 +61,14 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put levureAppGet("version") & "(" & levureAppGet("build") & ")" into tSubFolder
     put levureBuildFolder() & "/" & pBuildProfile & "/" & tSubFolder into tOutputFolder
 
+    log "Output folder:" && tOutputFolder
+
+    if there is a folder tOutputFolder then
+      revDeleteFolder tOutputFolder
+    end if
+  end if
+
+  if tError is empty then
     put the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename into tExtensionsBuiltIntoStandalone
 
     packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, tSubFolder
@@ -55,6 +87,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     # Is this platform being packaged?
     if there is not a folder _outputFolderForPlatform(tPlatform, tOutputFolder) then next repeat
 
+    log "----------" & cr & "Packaging for" && tPlatform & cr & "----------"
+
     # Create version of app array that will be modfiied and stored with package
     put sAppA into tAppA
 
@@ -69,6 +103,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
       put tWorkingOutputFolder into tExecutableOutputFolder
       replace "Resources/_MacOS" with "MacOS" in tExecutableOutputFolder
+
+      log "OS X engine folder:" && tMacOSEngineFolder
     else
       if tOutputAppFolder is not empty then
         put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder) into tWorkingOutputFolder
@@ -77,6 +113,9 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
       put tWorkingOutputFolder into tExecutableOutputFolder
     end if
+
+    log "Working output folder:" && tWorkingOutputFolder
+    log "Executable output folder:" && tExecutableOutputFolder
 
     if tError is empty then
       _fileCreateAllFoldersInPath tWorkingOutputFolder, tOutputFolder
@@ -121,9 +160,15 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       _pruneAppArray tAppA, tPlatform
 
+      log "tAppA:" && _printArray(tAppA,,true)
+
       set the itemdelimiter to "/"
       put levureAppStackFilename() into tSourceStackFilename
       put tWorkingOutputFolder & "/" & the last item of tSourceStackFilename into tAppStackFilename
+
+      log "Source stack filename:" && tSourceStackFilename
+      log "App stack filename:" && tAppStackFilename
+
       _fileCopyFile tSourceStackFilename, tAppStackFilename
       put the result into tError
 
@@ -161,6 +206,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   # dispatch and then sign macos bundle
   if tError is empty then
+    log "Dispatching final build"
     _dispatchFinalizeBuild pBuildProfile, sAppA, tOutputFolder
 
     _signMacOSApplication pBuildProfile, sAppA, tOutputFolder
@@ -176,9 +222,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   end if
 
   if tError is empty then
+    log "Dispatching post build message"
     _dispatchPostBuild pBuildProfile, sAppA, tOutputFolder
 
     if pBuildProfile is "mas" or pBuildProfile is "Mac App Store" then
+      log "----------" & cr & "Packaging for MAS" & cr & "----------"
       _packageForMAS sAppA, tOutputFolder
       put the result into tError
     end if
@@ -187,7 +235,10 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   # TODO: Add auto update url to tAppA
 
   if tError is not empty then
+    log "Done packaging application with error:" && tError
     answer error tError
+  else
+    log "Done packaging application"
   end if
 
   return tError for error
@@ -256,6 +307,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   _validateBuildProfile pBuildProfile
   put the result into tError
 
+  log "Build: Building standalones for profile:" && pBuildProfile
+
   put word 1 to -1 of line 1 of pSubfolder into pSubfolder
 
   set the itemdelimiter to "/"
@@ -303,6 +356,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
       put "/" & pBuildProfile after tOutputFolder
     end if
 
+    log "Build: Output folder:" && tOutputFolder
+
     if there is a folder tOutputFolder then
       revDeleteFolder tOutputFolder
     end if
@@ -312,11 +367,15 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
+    log "Build: Update standalone version info"
+
     _updateStandaloneVersionInfo pStandaloneStackFilename
     put the result into tError
   end if
 
   if tError is empty then
+    log "Build: Saving stack using IDE call"
+
     revIDESaveStack the long id of stack pStandaloneStackFilename
     put the result into tError
   end if
@@ -326,6 +385,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     local tTempStandaloneStack
 
     put tSourceFolder & "/levureBuildStandaloneTemp_" & the milliseconds & ".livecode" into tTempStandaloneStack
+
+    log "Build: Temp stack:" && tTempStandaloneStack
 
     delete stack pStandaloneStackFilename
 
@@ -369,7 +430,11 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
 
     put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
 
+    log "Build: Startup script:" && tScript
+
     set the script of stack tTempStandaloneStack to tScript
+
+    log "Build: Saving temporary stack with IDE call"
 
     revIDESaveStack the long id of stack tTempStandaloneStack
     put the result into tError
@@ -387,6 +452,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     try
       delete stack "levureFramework"
 
+      log "Build: revSaveAsStandalone"
+
       revSetTestEnvironment true
       set the itemdelimiter to "."
       dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
@@ -400,6 +467,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
 
   ## Finally, copy standalones to proper folder
   if tError is empty then
+    log "Build: copy standalones to proper folder"
+
     _copyExecutablesAndSupportingFilesToFolder buildForDistribution, tTempBuildFolder, tOutputFolder
     put the result into tError
   end if
@@ -456,6 +525,8 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
     put "/" & pBuildProfile after tBaseAutoUpdateURL
     put tBaseAutoUpdateURL & "/" & _versionStringForFilenames() into tAutoUpdateURL
   end if
+
+  log "Auto update url:" && tAutoUpdateURL
 
   # Copy files and replace variables
   local tRootFoldersA
@@ -550,6 +621,8 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
     if pPlatform is "win32" then put "windows" into tPlatformKey
     else put tolower(pPlatform) into tPlatformKey
 
+    log "Packaging Helpers for platform" && pPlatform
+
     local tDestFolder, tExecutableDestFolder, tFolder
     local j, k
     local tRootFolder, tExclusions
@@ -566,6 +639,8 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
       put pOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tDestFolder
       put pExecutableOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tExecutableDestFolder
 
+      log "  Adding helper:" && xAppA["helpers"][i]["filename"]
+
       _fileCreateAllFoldersInPath tDestFolder, tRootFolder
       put the result into tError
 
@@ -574,6 +649,9 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
         # stacks, libraries, frontscripts, backscripts, and behaviors
         repeat for each item tKey in "stacks/libraries/frontscripts/backscripts/behaviors"
           repeat with j = 1 to the number of elements of xAppA["helpers"][i][tKey]
+            log "  Adding" && tKey && "helper file:" && xAppA["helpers"][i][tKey][j]["filename"]
+            log "    to folder:" && tDestFolder
+
             _fileCopyFile xAppA["helpers"][i][tKey][j]["filename"], tDestFolder
             put the result into tError
 
@@ -597,6 +675,9 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
             delete local xAppA["helpers"][i]["externals"][tKey]
           else
             repeat with j = 1 to the number of elements of xAppA["helpers"][i]["externals"][tPlatformKey]
+              log "  Adding external helper file:" && xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
+              log "    to folder:" && tExecutableDestFolder
+
               _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
               put the result into tError
 
@@ -622,6 +703,9 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
         # extensions
         if tError is empty then
           repeat with j = 1 to the number of elements of xAppA["helpers"][i]["extensions"]
+            log "  Adding extension helper file:" && xAppA["helpers"][i]["extensions"][j]["filename"]
+            log "    to folder:" && tExecutableDestFolder
+
             _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
             put the result into tError
 
@@ -632,6 +716,9 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
 
             if tError is empty then
               if xAppA["helpers"][i]["extensions"][j]["resource folder"] is not empty then
+                log "  Adding extension helper resource folder:" && xAppA["helpers"][i]["extensions"][j]["resource folder"]
+                log "    to folder:" && tDestFolder
+
                 _fileCopyFolder xAppA["helpers"][i]["extensions"][j]["resource folder"], tDestFolder
                 put the result into tError
 
@@ -652,6 +739,9 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
         # Move over any folders
         repeat for each line tFolder in _folderListing(xAppA["helpers"][i]["filename"])
           if not (tFolder ends with ".bundle") then
+            log "  Adding extension helper additional folder:" && tFolder
+            log "    to folder:" && tDestFolder & "/" & the last item of tFolder
+
             _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
             put the result into tError
           end if
@@ -683,6 +773,8 @@ private command _packageComponents @xAppA, pOutputFolder
   set the itemdelimiter to "/"
 
   if the number of elements of xAppA["components"] > 0 then
+    log "Packaging components"
+
     create folder (pOutputFolder & "/components")
     put the result into tError
 
@@ -691,6 +783,8 @@ private command _packageComponents @xAppA, pOutputFolder
 
       repeat with i = 1 to the number of elements of xAppA["components"]
         put item 1 to -2 of xAppA["components"][i]["filename"] into tComponentFolder
+
+        log "  Adding component:" && xAppA["components"][i]["filename"]
 
         put pOutputFolder & "/components/" & the last item of tComponentFolder into tDestFolder
         _fileCopyFolder tComponentFolder, tDestFolder
@@ -727,6 +821,9 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
   local tError
   local tFolders, tFolder, tFiles, tFile
 
+  log "Processing stacks in folder:" && pFolder
+  log "  Stacks excluded from encryption:" && pExclusions
+
   set the wholematches to true
 
   lock messages
@@ -737,6 +834,7 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
       if the scriptonly of stack tFile then
         set the scriptonly of stack tFile to false
         if pPassword is not empty AND tFile is not among the lines of pExclusions then
+          log "  Encrypting stack" && tFile
           set the password of stack tFile to pPassword
         end if
         save stack tFile as tFile with newest format
@@ -744,6 +842,7 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
       else
         if pPassword is not empty AND tFile is not among the lines of pExclusions then
           set the password of stack tFile to pPassword
+          log "  Encrypting stack" && tFile
           save stack tFile as tFile with newest format
           put the result into tError
         end if
@@ -779,6 +878,8 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
   set the wholematches to true
 
   if the number of elements of xAppA["extensions"] > 0 then
+    log "Packaging extensions"
+
     repeat with i = 1 to the number of elements of xAppA["extensions"]
       # We don't need to add extensions that are being built with the standalone
       if _getKindFromExtensionFile(xAppA["extensions"][i]["filename"]) is not among the lines of pExtensionsBuiltIntoStandalone \
@@ -792,6 +893,8 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
         end if
 
         add 1 to j
+
+        log "  Adding extension:" && xAppA["extensions"][i]["filename"]
 
         _fileCopyFile xAppA["extensions"][i]["filename"], pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"]
         put the result into tError
@@ -869,6 +972,8 @@ private command _packageAssetStacks @xAppA, pOutputFolder
     put empty into tUnprotectedStackName
 
     if the number of elements of xAppA["behaviors"] > 0 then
+      log "Packaging behaviors"
+
       put "Levure Application Behaviors" into tStackName
       create invisible stack tStackName
 
@@ -885,17 +990,23 @@ private command _packageAssetStacks @xAppA, pOutputFolder
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
         if xAppA["behaviors"][i]["encrypt"] is false and tUnprotectedStackName is not empty then
+          log "  Adding unprotected behavior stack:" && xAppA["behaviors"][i]["filename"]
           set the mainstack of stack xAppA["behaviors"][i]["filename"] to tUnprotectedStackName
         else
+          log "  Adding behavior stack:" && xAppA["behaviors"][i]["filename"]
           set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
         end if
       end repeat
+
+      log "Saving behavior stack:" && pOutputFolder & "/behaviors.livecode"
 
       save stack tStackName as (pOutputFolder & "/behaviors.livecode") with newest format
       put the result into tError
       delete stack tStackName
 
       if tError is empty AND tUnprotectedStackName is not empty then
+        log "Saving unprotected behavior stack:" && pOutputFolder & "/behaviors_.livecode"
+
         save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
         put the result into tError
 
@@ -937,8 +1048,10 @@ private command _packageAssetStacks @xAppA, pOutputFolder
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
         if xAppA[tAssetType][i]["encrypt"] is false and tUnprotectedStackName is not empty then
+          log "  Adding unprotected" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
           set the mainstack of stack xAppA[tAssetType][i]["filename"] to tUnprotectedStackName
         else
+          log "  Adding" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
           set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
         end if
 
@@ -948,11 +1061,13 @@ private command _packageAssetStacks @xAppA, pOutputFolder
 
       set the uStackLoadOrder of stack tStackName to tStackLoadOrder
 
+      log "Saving" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & ".livecode"
       save stack tStackName as (pOutputFolder & "/" & tAssetType & ".livecode") with newest format
       put the result into tError
       delete stack tStackName
 
       if tError is empty AND tUnprotectedStackName is not empty then
+        log "Saving unprotected" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & "_.livecode"
         save stack tUnprotectedStackName as (pOutputFolder & "/" & tAssetType & "_.livecode") with newest format
         put the result into tError
         delete stack tUnprotectedStackName
@@ -1305,6 +1420,8 @@ private command _mirrorFoldersInFolder pSourceFolder, pCreateInFolder
     put the last item of tFolder into tName
 
     if there is not a folder (pCreateInFolder & "/" & tName) then
+      log "Creating a mirror folder:" && pCreateInFolder & "/" & tName
+
       create folder (pCreateInFolder & "/" & tName)
       if the result is not empty then
         put "error creating folder" && pCreateInFolder & "/" & tName into tError
@@ -1502,6 +1619,8 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
     else
       put "Developer ID Application:" && tCertName into tCertName
     end if
+
+    log "Signing application for OS X using cert:" && tCertName
 
     local tCmd
 
