@@ -519,23 +519,43 @@ command loadAppConfig
   put levureStandaloneFolder() into sRootFolder
 
   if (the environment is not "development") and (there is a stack kAppStackName) and (the uAppA of stack kAppStackName is an array) then
+    local tRootFolder
+
     # packaged application, app stack is already in memory
     put the uAppA of stack kAppStackName into sAppA
 
     set the itemdelimiter to "/"
     put the filename of stack kAppStackName into sAppFolder
     delete the last item of sAppFolder
-    set the itemdelimiter to ","
+    put sAppFolder into tRootFolder
 
-    repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
-      put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], sAppFolder) into sAppA[tSource]
-    end repeat
+    # The engine will tell us that app.livecodescript is in the Contents/MacOS folder
+    # It is really in the Contents/Resources/_MacOS folder.
+    # Externals are the only resources actually in Contents/MacOS. Use this folder to load
+    # all resources but use the actual location of the app.livecodescript folder for
+    # sAppFolder. A developer won't be able to find files relative to levureAppFolder() otherwise.
+    if the platform is "macos" then
+      put "Resources/_MacOS" into item -1 of sAppFolder
+    end if
 
-    put expandComponentAssetsFileReferenceArray(sAppA["components"], sAppFolder) into sAppA["components"]
+    if tError is empty then
+      loadAppStack
+      put the result into tError
+    end if
 
-    put expandHelperAssetsFileReferenceArray(sAppA["helpers"], sAppFolder) into sAppA["helpers"]
-    resolveHelperAssets
-    put the result into tError
+    if tError is empty then
+      set the itemdelimiter to ","
+
+      repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
+        put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder) into sAppA[tSource]
+      end repeat
+
+      put expandComponentAssetsFileReferenceArray(sAppA["components"], tRootFolder) into sAppA["components"]
+
+      put expandHelperAssetsFileReferenceArray(sAppA["helpers"], tRootFolder) into sAppA["helpers"]
+      resolveHelperAssets
+      put the result into tError
+    end if
   else
     # Development
 
