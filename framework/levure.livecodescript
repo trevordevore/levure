@@ -352,6 +352,25 @@ function levureAppGetConfig
 end levureAppGetConfig
 
 
+function levureAppGetENV
+  local tError, tEnvA
+
+  put readFileContents(sAppFolder & "/.env") into tEnvA
+  put the result into tError
+
+  if tError is empty then
+    local tKey
+
+    split tEnvA by CR AND "="
+    repeat for each key tKey in tEnvA
+      put word 1 to -1 of line 1 of tEnvA[tKey] into tEnvA[tKey]
+    end repeat
+  end if
+
+  return tEnvA
+end levureAppGetENV
+
+
 function levureAppGet pProp
   # todo: validate that array index lookup is valid
   if pProp is an array or pProp is among the keys of sAppA then
