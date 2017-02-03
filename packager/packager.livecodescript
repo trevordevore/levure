@@ -177,7 +177,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
         set the scriptonly of stack tAppStackFilename to false
         set the uAppA of stack tAppStackFilename to tAppA
-        set the password of stack tAppStackFilename to tAppA["password"]
+        set the password of stack tAppStackFilename to sPassword
         save stack tAppStackFilename with newest format
         put the result into tError
 
@@ -656,8 +656,8 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
             put the result into tError
 
             if tError is empty then
-              if xAppA["helpers"][i][tKey][j]["encrypt"] is false then
-                put xAppA["helpers"][i][tKey][j]["filename"] & cr after tExclusions
+              if xAppA["helpers"][i]["encrypt"] is false OR xAppA["helpers"][i][tKey][j]["encrypt"] is false then
+                put tDestFolder & "/" & the last item of xAppA["helpers"][i][tKey][j]["filename"] & cr after tExclusions
               end if
 
               replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i][tKey][j]["filename"]
@@ -750,7 +750,7 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
         end repeat
 
         if tError is empty then
-          _processStacksInFolder tDestFolder, xAppA["password"], tExclusions
+          _processStacksInFolder tDestFolder, sPassword, tExclusions
           put the result into tError
         end if
       end if
@@ -794,10 +794,10 @@ private command _packageComponents @xAppA, pOutputFolder
           local tExclusions
 
           if xAppA["components"][i]["encrypt"] is false then
-            put xAppA["components"][i]["filename"] into tExclusions
+            put tDestFolder & "/" & the last item of xAppA["components"][i]["filename"] into tExclusions
           end if
 
-          _processStacksInFolder tDestFolder, xAppA["password"], tExclusions
+          _processStacksInFolder tDestFolder, sPassword, tExclusions
           put the result into tError
         end if
 
@@ -977,8 +977,8 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       put "Levure Application Behaviors" into tStackName
       create invisible stack tStackName
 
-      if xAppA["password"] is not empty then
-        set the password of stack tStackName to xAppA["password"]
+      if sPassword is not empty then
+        set the password of stack tStackName to sPassword
       end if
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
@@ -1036,8 +1036,8 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       put "Levure Application" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tStackName
       create invisible stack tStackName
 
-      if xAppA["password"] is not empty then
-        set the password of stack tStackName to xAppA["password"]
+      if sPassword is not empty then
+        set the password of stack tStackName to sPassword
       end if
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
@@ -1357,6 +1357,7 @@ end _validateBuildProfile
 private command _performPackagingPrechecks pStandaloneStackFilename, @xBuildProfile
   local tError, tLoaded
 
+  put empty into sPassword
   put tolower(xBuildProfile) into xBuildProfile
 
   _validateBuildProfile xBuildProfile
@@ -1371,10 +1372,19 @@ private command _performPackagingPrechecks pStandaloneStackFilename, @xBuildProf
 
   # Check if encryption is supposed to happen but password is missing
   if tError is empty then
-    local tPassword
+    if xBuildProfile is not "test" AND levureAppGet("encrypt stacks") then
+      put levureAppGet("password") into sPassword
 
-    if levureAppGet("encrypt stacks") and tPassword is empty then
-      --put "missing password" into tError
+      if sPassword is empty then
+        local tEnvA
+
+        put levureAppGetENV() into tEnvA
+        put tEnvA["PASSWORD"] into sPassword
+      end if
+
+      if sPassword is empty then
+        put "no password was provided to encrypt stacks" into tError
+      end if
     end if
   end if
 
