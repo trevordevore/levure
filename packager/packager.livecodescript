@@ -985,6 +985,7 @@ private command _packageAssetStacks @xAppA, pOutputFolder
         if xAppA["behaviors"][i]["encrypt"] is false then
           put "Levure Application Unencrypted Behaviors" into tUnprotectedStackName
           create invisible stack tUnprotectedStackName
+          exit repeat
         end if
       end repeat
 
@@ -1043,6 +1044,7 @@ private command _packageAssetStacks @xAppA, pOutputFolder
         if xAppA[tAssetType][i]["encrypt"] is false then
           put "Levure Application Unencrypted" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tUnprotectedStackName
           create invisible stack tUnprotectedStackName
+          exit repeat
         end if
       end repeat
 
