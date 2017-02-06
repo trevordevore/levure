@@ -1,6 +1,6 @@
 libraries:
   1:
-    filename: sparkle.livecodescript
+    filename: app_updater.livecodescript
 externals:
   macos:
     1:

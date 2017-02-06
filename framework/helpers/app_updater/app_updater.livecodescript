@@ -69,20 +69,24 @@ command _appInitializeUpdaterInBackground
     appCheckForUpdate
     put the result into tError
 
-    if theError is empty then
+    if tError is empty then
       if glxapp_getProp("update available") then
+        local tVersion, tLineNo
+
         ## Is user skipping this version?
         set the wholematches to true
-        put glxapp_getProp("application update version") into theVersion
-        put lineoffset(theVersion, appGetPref("updates to ignore")) into theLineNo
+        put glxapp_getProp("application update version") into tVersion
+        put lineoffset(tVersion, appGetPref("updates to ignore")) into tLineNo
 
-        if theLineNo is 0 then
+        if tLineNo is 0 then
+          local theA
+
           ## Notify
           put true into theA["show skip button"]
           glxapp_promptUserToUpdate theA
           if the result is "install" then
             glxapp_installUpdate
-            put the result into theError
+            put the result into tError
           end if
         end if
       end if
