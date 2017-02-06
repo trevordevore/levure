@@ -453,7 +453,7 @@ end unloadAssets
 
 
 /**
-* \brief Cleans up and shuts down the application. Dispatches glxapp_cleanupApplication.
+* \brief Cleans up and shuts down the application. Dispatches PreShutdownApplication.
 *
 * This command is called by the framework. There is no need for a developer to call this message.
 *
