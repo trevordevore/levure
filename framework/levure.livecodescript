@@ -2,7 +2,7 @@ script "levureFramework"
 ##########
 ## This script must be assigned to a behavior of a stack that will be built as a standalone.
 ##########
-constant kVersion = "0.0.1.0"
+constant kVersion = "0.0.2.0"
 constant kAppStackName = "app"
 constant kApplicationExternals = "levureAppExternals"
 
