@@ -1,6 +1,7 @@
 script "appLogging"
 local sLogTarget
 local sLogNetworkTraffic = "false"
+local sLogMsgBoxMessages = "false"
 local sNetworkFilters
 
 
@@ -26,6 +27,16 @@ end appSetLogTarget
 function appGetLogTarget
   return sLogTarget
 end appGetLogTarget
+
+
+# Only use with LC 9
+command appLogMessageBoxMessages pBoolean, pSetAsTarget
+  if pSetAsTarget then
+    messageBoxRedirect the long id of me
+  end if
+
+  put pBoolean is true into sLogMsgBoxMessages
+end appLogMessageBoxMessages
 
 
 command appLogNetworkTraffic pBoolean
@@ -90,6 +101,14 @@ on ulLogIt pMsg
     pass ulLogIt
   end if
 end ulLogIt
+
+# Message Box
+on msgChanged
+  if sLogMsgBoxMessages then
+    appLogMsg "Message box" & cr & "Object:" && messageBoxLastObject() & cr & "Message:" && msg
+  end if
+  pass msgChanged
+end msgChanged
 
 
 private command _logLibURLMessage pMsg
