@@ -400,6 +400,11 @@ function levureBuildProfile
 end levureBuildProfile
 
 
+command levureUnloadApplication
+  unloadApp
+end levureUnloadApplication
+
+
 private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]

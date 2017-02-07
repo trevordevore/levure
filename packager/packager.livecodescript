@@ -215,7 +215,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   # prepare auto update files for Sparkle
   if tError is empty then
-    if sAppA["build profiles"]["default"]["base auto update url"] is not empty then
+    if sAppA["build profiles"]["default"]["root auto update url"] is not empty then
       _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
       put the result into tError
     end if
@@ -273,22 +273,40 @@ private command _pruneAppArray @xAppA, pPlatform
 end _pruneAppArray
 
 
-private command _dispatchFinalizeBuild pBuildProfile
+private function _toArray
+  local i, tA
+  repeat with i = 1 to the paramcount
+    put param(i+1) into tA[param(i)]
+    add 1 to i
+  end repeat
+  return tA
+end _toArray
+
+
+private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
   local tFilename
 
-  put _postBuildScriptStackFile() into tFilename
+  put _postBuildScriptStackFile(pAppA, pBuildProfile) into tFilename
   if tFilename is not empty then
-    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile
+    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile, \
+          _toArray( \
+          "output folder", pOutputFolder, \
+          "autoupdate binaries folder", pOutputFolder & "/Update/" & _versionStringForFilenames() \
+          )
   end if
 end _dispatchFinalizeBuild
 
 
-private command _dispatchPostBuild pBuildProfile
+private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
   local tFilename
 
-  put _postBuildScriptStackFile() into tFilename
+  put _postBuildScriptStackFile(pAppA, pBuildProfile) into tFilename
   if tFilename is not empty then
-    dispatch "finishedBuildingPackageForBuildProfile" to stack tFilename with pBuildProfile
+    dispatch "finishedBuildingPackageForBuildProfile" to stack tFilename with pBuildProfile, \
+          _toArray( \
+          "output folder", pOutputFolder, \
+          "autoupdate binaries folder", pOutputFolder & "/Update/" & _versionStringForFilenames() \
+          )
     delete stack tFilename
   end if
 end _dispatchPostBuild
@@ -511,19 +529,19 @@ end _postBuildScriptStackFile
 private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
-  local tBaseAutoUpdateURL, tAutoUpdateURL
+  local tRootAutoUpdateURL, tBuildProfileAutoUpdateURL, tAutoUpdateURL
 
   put tolower(pBuildProfile) into pBuildProfile
   set the itemdelimiter to "/"
 
   # Auto Update URLs
-  put pAppA["build profiles"][pBuildProfile]["base auto update url"] into tBaseAutoUpdateURL
-  if tBaseAutoUpdateURL is empty then
-    put pAppA["build profiles"]["default"]["base auto update url"] into tBaseAutoUpdateURL
+  put pAppA["build profiles"][pBuildProfile]["root auto update url"] into tRootAutoUpdateURL
+  if tRootAutoUpdateURL is empty then
+    put pAppA["build profiles"]["default"]["root auto update url"] into tRootAutoUpdateURL
   end if
-  if tBaseAutoUpdateURL is not empty then
-    put "/" & pBuildProfile after tBaseAutoUpdateURL
-    put tBaseAutoUpdateURL & "/" & _versionStringForFilenames() into tAutoUpdateURL
+  if tRootAutoUpdateURL is not empty then
+    put tRootAutoUpdateURL & "/" & pBuildProfile into tBuildProfileAutoUpdateURL
+    put tBuildProfileAutoUpdateURL & "/" & _versionStringForFilenames() into tAutoUpdateURL
   end if
 
   log "Auto update url:" && tAutoUpdateURL
@@ -539,7 +557,7 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
 
   # Create Update Folder
   if tError is empty then
-    if pAppA["build profiles"]["default"]["base auto update url"] is not empty then
+    if pAppA["build profiles"]["default"]["root auto update url"] is not empty then
       local tUpdaterFolder
 
       put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
@@ -570,6 +588,8 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
             else
               replace "{{APP_FOLDER}}" with _resolveRelativeFilenameReference(levureRelativeAppFolderPath(), tFoldersA[tTarget]) in tDestination
             end if
+
+            replace "{{OUTPUT_FOLDER}}" with _resolveRelativeFilenameReference(levureRelativeAppFolderPath(), tFoldersA[tTarget]) in tDestination
           end if
 
           # Copy file or folder
@@ -578,12 +598,10 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
 
             replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
             replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
-            replace textEncode("[[LONG_VERSION]]", "utf8") with levureAppGet("version") & "b" & levureAppGet("build") in tFiledata
-            replace textEncode("[[VERSION_INFO_VERSION]]", "utf8") with levureAppGet("version") in tFiledata
-
+            replace textEncode("[[ENGINE_VERSION]]", "utf8") with the version & "." & the buildNumber in tFiledata
             replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/MacOS/" & the last item of levureStandaloneFilename() in tFiledata
-
-            replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBaseAutoUpdateURL in tFiledata
+            replace textEncode("[[ROOT_AUTOUPDATE_URL]]", "utf8") with tRootAutoUpdateURL in tFiledata
+            replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBuildProfileAutoUpdateURL in tFiledata
             replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tAutoUpdateURL in tFiledata
 
             replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
@@ -1225,7 +1243,7 @@ end _copyExecutablesAndSupportingFilesToFolder
 
 
 private function _versionStringForFilenames
-  return levureAppGet("version") & "b" & levureAppGet("build")
+  return levureAppGet("version") & "-" & levureAppGet("build")
 end _versionStringForFilenames
 
 
@@ -1545,9 +1563,7 @@ private command _updatePlistInfo @xData, pVersionA
   put _findRangeForPlistEntry(xData, "CFBundleGetInfoString") into tRangeA
   if tRangeA["start"] > 0 then
     put char tRangeA["start"] to tRangeA["end"] of xData into tString
-
-    put tVersion && "build" && levureAppGet("build") into tVersion
-    put tVersion into item 1 of tString
+    put tVersion && "build" && tBuild into item 1 of tString
     put tString into char tRangeA["start"] to tRangeA["end"] of xData
   end if
 
@@ -1559,6 +1575,11 @@ private command _updatePlistInfo @xData, pVersionA
   put _findRangeForPlistEntry(xData, "CFBundleVersion") into tRangeA
   if tRangeA["start"] > 0 then
     put tBuild into char tRangeA["start"] to tRangeA["end"] of xData
+  end if
+
+  put _findRangeForPlistEntry(xData, "CFBundleLongVersionString") into tRangeA
+  if tRangeA["start"] > 0 then
+    put tVersion & "." & tBuild into char tRangeA["start"] to tRangeA["end"] of xData
   end if
 end _updatePlistInfo
 
