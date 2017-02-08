@@ -79,7 +79,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   local tMacOSEngineFolder
 
   # Refresh after having unloaded for standalone builder
-  loadAppConfig
+  levureLoadAppConfig
 
   # Make sure that macos is processed last
   # tWorkingOutputFolder will be used for mirroring redirect folder after file copy operation
@@ -310,7 +310,7 @@ private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
 end _dispatchPostBuild
 
 
-command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfolder
+command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfolder, pSendCallback
   local tError
   local buildForDistribution, tTempBuildFolder, tSourceFolder, tOutputFolder
 
@@ -520,6 +520,10 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   put there is a stack pStandaloneStackFilename into isReloaded
   go stack pStandaloneStackFilename
   start using stack pStandaloneStackFilename
+
+  if pSendCallback then
+    send "packagerDidFinishBuildingStandalone" to stack pStandaloneStackFilename in 10 milliseconds
+  end if
 
   return tError
 end packagerBuildStandalones
