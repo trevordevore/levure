@@ -96,7 +96,7 @@ command levurePackageApplication pBuildProfile
     if sAppA is not an array then
       start using me
 
-      loadAppConfig
+      levureLoadAppConfig
       put the result into tError
     end if
   end if
@@ -120,6 +120,18 @@ command levurePackageApplication pBuildProfile
 end levurePackageApplication
 
 
+command packagerDidFinishPackagingApplication
+  # Remove from memory after packaging is complete
+  delete stack "Levure Framework Application Packager"
+end packagerDidFinishPackagingApplication
+
+
+command packagerDidFinishBuildingStandalone
+  # Remove from memory after building standalone is complete
+  delete stack "Levure Framework Application Packager"
+end packagerDidFinishBuildingStandalone
+
+
 command levureBuildStandalonesForTesting
   local tError, tStackFilename
 
@@ -128,7 +140,7 @@ command levureBuildStandalonesForTesting
   if sAppA is not an array then
     start using me
 
-    loadAppConfig
+    levureLoadAppConfig
     put the result into tError
   end if
 
@@ -145,7 +157,7 @@ command levureBuildStandalonesForTesting
     put the effective filename of me into tStandaloneStack
     put "test" into tBuildProfile
     # This stack will be removed from memory so send in time
-    send "packagerBuildStandalones tStandaloneStack, tBuildProfile" to stack tStackFilename in 10 milliseconds
+    send "packagerBuildStandalones tStandaloneStack, tBuildProfile,,true" to stack tStackFilename in 10 milliseconds
   end if
 
   return tError for error
@@ -206,7 +218,7 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
-    loadAppConfig
+    levureLoadAppConfig
     put the result into tError
   end if
 
@@ -517,7 +529,7 @@ command levureShutdownApplication
 end levureShutdownApplication
 
 
-command loadAppConfig
+command levureLoadAppConfig
   local tError
   local tSource
 
@@ -662,7 +674,7 @@ command loadAppConfig
   end if
 
   return tError for error
-end loadAppConfig
+end levureLoadAppConfig
 
 
 private command loadAppStack
@@ -935,7 +947,7 @@ command levureBuildExtensions
   if sAppA is not an array then
     start using me
 
-    loadAppConfig
+    levureLoadAppConfig
     put the result into tError
   end if
 
