@@ -410,9 +410,32 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     put the result into tError
   end if
 
+  # Build startup script before unloading framework stack
   if tError is empty then
-    local tStackFiles, tLineNo
+    local tFrameworkPath, tScript, tLineNo, tStackFiles
 
+    set the itemdelimiter to ","
+
+    put item 2 to -1 of line tLineNo of tStackFiles into tFrameworkPath
+    put _resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
+    put _makeRelativePath(tFrameworkPath, tOutputFolder) into tFrameworkPath
+    put levureAppFolder() into tAppPath
+
+    if buildForDistribution then
+      replace tStandaloneFolder with empty in tAppPath
+      if tAppPath begins with "/" then
+        delete char 1 of tAppPath
+      end if
+    else
+      put _makeRelativePath(tAppPath, tOutputFolder) into tAppPath
+    end if
+
+    put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
+
+    log "Build: Startup script:" && tScript
+  end if
+
+  if tError is empty then
     # Unload pStandaloneStackFilename's version of framework (source code version) from memory Temp standalone stack is
     # loaded into memory. When that happens the stackfiles will be processed. Since stackfiles has relative path,
     # another copy of framework stack will be loaded when building for distribution and a copy of framework file exist
@@ -434,28 +457,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
-    local tFrameworkPath, tScript
-
-    set the itemdelimiter to ","
-
-    put item 2 to -1 of line tLineNo of tStackFiles into tFrameworkPath
-    put _resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
-    put _makeRelativePath(tFrameworkPath, tOutputFolder) into tFrameworkPath
-    put levureAppFolder() into tAppPath
-
-    if buildForDistribution then
-      replace tStandaloneFolder with empty in tAppPath
-      if tAppPath begins with "/" then
-        delete char 1 of tAppPath
-      end if
-    else
-      put _makeRelativePath(tAppPath, tOutputFolder) into tAppPath
-    end if
-
-    put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
-
-    log "Build: Startup script:" && tScript
-
     set the script of stack tTempStandaloneStack to tScript
 
     log "Build: Saving temporary stack with IDE call"
@@ -1336,7 +1337,7 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
     set the itemdelimiter to "/"
     put pRelativeAppPath into tAppStackFilename
     put the last item of levureAppStackFilename() into item (the number of items of tAppStackFilename + 1) of tAppStackFilename
-    # _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tAppStackFilename") & cr & \
+
     put "on startup" & cr & \
           _qstr("set the itemDelimiter to `/`") & cr & \
           _qstr("if the platform is `macos` then") & cr & \
@@ -1346,7 +1347,7 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
           "end if" & cr & \
           "put there is a stack tAppStackFilename into tLoaded" & cr & \
           "if not tLoaded then" & cr & \
-          _qstr("answer `Could not locate app stack:` & tAppStackFilename") & cr & \
+          _qstr("answer `Could not locate app stack: ` & tAppStackFilename") & cr & \
           "quit" & cr & \
           "end if" & cr & \
           "end startup" into tScript
