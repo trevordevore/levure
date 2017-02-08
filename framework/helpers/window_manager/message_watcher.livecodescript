@@ -58,8 +58,8 @@ on closeStack
     if tStack is tStackThatIsClosing then next repeat
 
     put the mode of stack tStack into tMode
-    ## TOPLEVEL AND MODELESS STACKS KEEP THE APP OPEN REGARDLESS OF VISIBILITY
-    if tMode > 0 and tMode < 4 or tMode is 12 then
+    ## TOPLEVEL, MODELESS, and MODAL STACKS KEEP THE APP OPEN REGARDLESS OF VISIBILITY
+    if (tMode > 0 and tMode < 4) or tMode is 12 then
       put false into quitTheApp
       exit repeat
     end if
