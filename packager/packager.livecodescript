@@ -232,8 +232,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     end if
   end if
 
-  # TODO: Add auto update url to tAppA
-
   if tError is not empty then
     log "Done packaging application with error:" && tError
     answer error tError
@@ -241,7 +239,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     log "Done packaging application"
   end if
 
-  return tError for error
+  send "packagerDidFinishPackagingApplication" to stack pStandaloneStackFilename in 10 milliseconds
 end packagerPackageApplication
 
 
@@ -415,6 +413,14 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   if tError is empty then
     local tStackFiles, tLineNo
 
+    # Unload pStandaloneStackFilename's version of framework (source code version) from memory Temp standalone stack is
+    # loaded into memory. When that happens the stackfiles will be processed. Since stackfiles has relative path,
+    # another copy of framework stack will be loaded when building for distribution and a copy of framework file exist
+    # relative to tmp standalone.
+    if buildForDistribution then
+      delete stack "levureFramework"
+    end if
+
     put the stackfiles of stack tTempStandaloneStack into tStackFiles
     if not buildForDistribution then
       set the stackfiles of stack tTempStandaloneStack to empty
@@ -468,12 +474,16 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     # Assign defaultBuildFolder so that IDE doesn't ask you to save stack
     set the cRevStandaloneSettings["defaultBuildFolder"] of stack tTempStandaloneStack to tTempBuildFolder
     try
-      delete stack "levureFramework"
-
       log "Build: revSaveAsStandalone"
 
       revSetTestEnvironment true
       set the itemdelimiter to "."
+
+      # This will trigger a "purge stack" error for the levureFramework stack. The stack in question resides
+      # in the tmp stack where LiveCode builds the standalone. My guess is that the
+      # revSaveAsStandalone handler is not unloading the stackfiles stacks that the engine automatically loads
+      # when loading a stack. See _unloadStackStackFiles in packager.livecodescript and look at adding same logic
+      # to the LiveCode revSaveAsStandalone handler.
       dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
       put the result into tError
     catch e
@@ -500,6 +510,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   # reload
+  # framework stack may be the tmp folder version. Just unload as it will be reloaded
+  # when loading the original standalone stack back into memory.
+  if there is a stack "levureFramework" then
+    delete stack "levureFramework"
+  end if
+
   local isReloaded
   put there is a stack pStandaloneStackFilename into isReloaded
   go stack pStandaloneStackFilename
