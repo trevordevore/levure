@@ -754,13 +754,25 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
           end repeat
         end if
 
-        # Move over any folders
+        # Move over any other files and folders
         repeat for each line tFolder in _folderListing(xAppA["helpers"][i]["filename"])
-          if not (tFolder ends with ".bundle") then
+          if not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
             log "  Adding extension helper additional folder:" && tFolder
             log "    to folder:" && tDestFolder & "/" & the last item of tFolder
 
             _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
+            put the result into tError
+          end if
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        repeat for each line tFile in _fileListing(xAppA["helpers"][i]["filename"])
+          if there is not a file (tDestFolder & "/" & the last item of tFile) then
+            log "  Adding extension helper additional file:" && tFile
+            log "    to folder:" && tDestFolder
+
+            _fileCopyFile tFile, tDestFolder
             put the result into tError
           end if
 
