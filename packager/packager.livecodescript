@@ -866,6 +866,8 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
         end if
       end if
 
+      # When loading a stack into memory the stackfiles may be loaded into memory
+      _unloadStackStackFiles tFile
       delete stack tFile
     end if
 
@@ -886,6 +888,20 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
 
   return tError
 end _processStacksInFolder
+
+
+private command _unloadStackStackFiles pStack
+  local tStack
+
+  repeat for each line tStackEntry in the stackfiles of stack pStack
+    put item 1 of tStackEntry into tStack
+    if tStack is not empty AND there is a stack tStack then
+      delete stack tStack
+    end if
+  end repeat
+
+  return empty
+end _unloadStackStackFiles
 
 
 private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
