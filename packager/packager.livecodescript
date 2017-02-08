@@ -870,7 +870,8 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
         save stack tFile as tFile with newest format
         put the result into tError
       else
-        if pPassword is not empty AND tFile is not among the lines of pExclusions then
+        if pPassword is not empty AND tFile is not among the lines of pExclusions \
+              AND the password of stack tFile is empty then
           set the password of stack tFile to pPassword
           log "  Encrypting stack" && tFile
           save stack tFile as tFile with newest format
