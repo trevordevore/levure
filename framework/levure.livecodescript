@@ -836,12 +836,12 @@ private command loadAppAssets
 
   # behaviors, libraries, frontscripts, backscripts
   if tError is empty then
-    loadMessagePathAssets sAppA
-
     repeat with i = 1 to the number of elements of sAppA["helpers"]
       if sAppA["helpers"][i]["preload"] then next repeat
       loadMessagePathAssets sAppA["helpers"][i]
     end repeat
+
+    loadMessagePathAssets sAppA
 
     if tRenameAnswerDialog then
       if the environment is "development" then
