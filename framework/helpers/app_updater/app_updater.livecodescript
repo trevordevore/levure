@@ -104,6 +104,7 @@ command appPromptUserToUpdate pParamsA
 
         put pParamsA into tDialogA
         put sAppUpdateStructure["change log"] into tDialogA["change log"]
+        put sAppUpdateStructure["application version"] into tDialogA["application version"]
         set the dialogData to tDialogA
 
         ## This doesn't throw an error if there is no stack
