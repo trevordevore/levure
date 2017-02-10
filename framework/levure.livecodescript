@@ -82,6 +82,11 @@ on errorDialog pError
 end errorDialog
 
 
+function levureVersion
+  return kVersion
+end levureVersion
+
+
 function levureAppStackFilename
   return appStackFilename()
 end levureAppStackFilename
