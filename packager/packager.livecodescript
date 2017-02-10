@@ -157,6 +157,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     # Prune and move in app stack
     if tError is empty then
       local tSourceStackFilename, tAppStackFilename, isReloaded
+      local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
+
+      # This is for Windows
+      _autoUpdateURLs pBuildProfile, tAppA, tURLsA
+      put tURLsA["build profile"] & "/update.txt" into tAppA["auto update url"]
 
       _pruneAppArray tAppA, tPlatform
 
@@ -547,25 +552,39 @@ private function _postBuildScriptStackFile pAppA, pBuildProfile
 end _postBuildScriptStackFile
 
 
+private command _autoUpdateURLs pBuildProfile, pAppA, @rURLsA
+  put tolower(pBuildProfile) into pBuildProfile
+
+  # Auto Update URLs
+  put pAppA["build profiles"][pBuildProfile]["root auto update url"] into rURLsA["root"]
+  if rURLsA["root"] is empty then
+    put pAppA["build profiles"]["default"]["root auto update url"] into rURLsA["root"]
+  end if
+  if rURLsA["root"] is not empty then
+    set the itemdelimiter to "/"
+
+    put rURLsA["root"] & "/" & pBuildProfile into rURLsA["build profile"]
+    put rURLsA["build profile"] & "/" & _versionStringForFilenames() into rURLsA["version"]
+    put rURLsA["version"] & "/" & the last item of levureStandaloneFilename() & ".zip" into rURLsA["osx"]
+  end if
+
+  return empty
+end _autoUpdateURLs
+
+
 private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
-  local tRootAutoUpdateURL, tBuildProfileAutoUpdateURL, tAutoUpdateURL
+  local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
 
   put tolower(pBuildProfile) into pBuildProfile
   set the itemdelimiter to "/"
 
-  # Auto Update URLs
-  put pAppA["build profiles"][pBuildProfile]["root auto update url"] into tRootAutoUpdateURL
-  if tRootAutoUpdateURL is empty then
-    put pAppA["build profiles"]["default"]["root auto update url"] into tRootAutoUpdateURL
-  end if
-  if tRootAutoUpdateURL is not empty then
-    put tRootAutoUpdateURL & "/" & pBuildProfile into tBuildProfileAutoUpdateURL
-    put tBuildProfileAutoUpdateURL & "/" & _versionStringForFilenames() into tAutoUpdateURL
-  end if
+  _autoUpdateURLs pBuildProfile, pAppA, tURLsA
 
-  log "Auto update url:" && tAutoUpdateURL
+  log "ROOT_AUTOUPDATE_URL:" && tURLsA["root"]
+  log "BUILDPROFILE_AUTOUPDATE_URL:" && tURLsA["build profile"]
+  log "BUILD_AUTOUPDATE_URL:" && tURLsA["version"]
 
   # Copy files and replace variables
   local tRootFoldersA
@@ -620,10 +639,11 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
             replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
             replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
             replace textEncode("[[ENGINE_VERSION]]", "utf8") with the version & "." & the buildNumber in tFiledata
+            replace textEncode("[[BUILD_PROFILE]]", "utf8") with pBuildProfile in tFiledata
             replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/MacOS/" & the last item of levureStandaloneFilename() in tFiledata
-            replace textEncode("[[ROOT_AUTOUPDATE_URL]]", "utf8") with tRootAutoUpdateURL in tFiledata
-            replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tBuildProfileAutoUpdateURL in tFiledata
-            replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tAutoUpdateURL in tFiledata
+            replace textEncode("[[ROOT_AUTOUPDATE_URL]]", "utf8") with tURLsA["root"] in tFiledata
+            replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tURLsA["build profile"] in tFiledata
+            replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tURLsA["version"] in tFiledata
 
             replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
 
