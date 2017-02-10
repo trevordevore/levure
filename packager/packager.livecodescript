@@ -342,6 +342,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   put levureAppFolder() into tAppPath
   put levureStandaloneFolder() into tStandaloneFolder
 
+  # tFrameworkFilename is to work around issue where framework isn't being hooked
+  # up as the behavior at the end of handler when reloading standalone stack and putting
+  # it in use. See code at end of handler that uses tFrameworkFilename.
+  local tFrameworkFilename
+  put the filename of stack "levureFramework" into tFrameworkFilename
+
   put the effective filename of stack pStandaloneStackFilename into tSourceFolder
   delete the last item of tSourceFolder
 
@@ -401,20 +407,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     put the result into tError
   end if
 
-  # Create new stack to build standalone with
-  if tError is empty then
-    local tTempStandaloneStack
-
-    put tSourceFolder & "/levureBuildStandaloneTemp_" & the milliseconds & ".livecode" into tTempStandaloneStack
-
-    log "Build: Temp stack:" && tTempStandaloneStack
-
-    delete stack pStandaloneStackFilename
-
-    _fileCopyFile pStandaloneStackFilename, tTempStandaloneStack
-    put the result into tError
-  end if
-
   # Build startup script before unloading framework stack
   if tError is empty then
     local tFrameworkPath, tScript, tLineNo, tStackFiles
@@ -440,15 +432,23 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     log "Build: Startup script:" && tScript
   end if
 
+  # Create new stack to build standalone with
   if tError is empty then
-    # Unload pStandaloneStackFilename's version of framework (source code version) from memory Temp standalone stack is
-    # loaded into memory. When that happens the stackfiles will be processed. Since stackfiles has relative path,
-    # another copy of framework stack will be loaded when building for distribution and a copy of framework file exist
-    # relative to tmp standalone.
-    if buildForDistribution then
-      delete stack "levureFramework"
-    end if
+    local tTempStandaloneStack
 
+    put tSourceFolder & "/levureBuildStandaloneTemp_" & the milliseconds & ".livecode" into tTempStandaloneStack
+
+    log "Build: Temp stack:" && tTempStandaloneStack
+
+    # Stop using first. See: http://quality.livecode.com/show_bug.cgi?id=19246
+    stop using stack pStandaloneStackFilename
+    _unloadStackAndStackFiles pStandaloneStackFilename
+
+    _fileCopyFile pStandaloneStackFilename, tTempStandaloneStack
+    put the result into tError
+  end if
+
+  if tError is empty then
     put the stackfiles of stack tTempStandaloneStack into tStackFiles
     if not buildForDistribution then
       set the stackfiles of stack tTempStandaloneStack to empty
@@ -488,7 +488,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
       # This will trigger a "purge stack" error for the levureFramework stack. The stack in question resides
       # in the tmp stack where LiveCode builds the standalone. My guess is that the
       # revSaveAsStandalone handler is not unloading the stackfiles stacks that the engine automatically loads
-      # when loading a stack. See _unloadStackStackFiles in packager.livecodescript and look at adding same logic
+      # when loading a stack. See _unloadStackAndStackFiles in packager.livecodescript and look at adding same logic
       # to the LiveCode revSaveAsStandalone handler.
       dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
       put the result into tError
@@ -511,20 +511,27 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     revDeleteFolder tTempBuildFolder
   end if
   if there is a file tTempStandaloneStack then
-    delete stack tTempStandaloneStack
+    stop using stack tTempStandaloneStack
+    _unloadStackAndStackFiles tTempStandaloneStack
     delete file tTempStandaloneStack
   end if
 
   # reload
   # framework stack may be the tmp folder version. Just unload as it will be reloaded
-  # when loading the original standalone stack back into memory.
+  # when loading the original standalone stack back into memory. Once LiveCode uploads
+  # standalone builder with update that unloads stackFiles during standalone builder then
+  # this code can be removed.
   if there is a stack "levureFramework" then
     delete stack "levureFramework"
   end if
 
-  local isReloaded
-  put there is a stack pStandaloneStackFilename into isReloaded
+  # Problem: Reopening this stack isn't loading the behavior of the stack (levureFramework).
+  # back into memory. Why? Outside of this handler the engine always loads the behavior script.
+  # Workaround: Grab the filename of stack at beginning of handler. Specifically reassign the
+  # behavior before putting the standalone stack back in use.
   go stack pStandaloneStackFilename
+  set the behavior of stack pStandaloneStackFilename to empty
+  set the behavior of stack pStandaloneStackFilename to the long id of stack tFrameworkFilename
   start using stack pStandaloneStackFilename
 
   if pSendCallback then
@@ -921,8 +928,7 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
       end if
 
       # When loading a stack into memory the stackfiles may be loaded into memory
-      _unloadStackStackFiles tFile
-      delete stack tFile
+      _unloadStackAndStackFiles tFile
     end if
 
     if tError is not empty then exit repeat
@@ -944,8 +950,8 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
 end _processStacksInFolder
 
 
-private command _unloadStackStackFiles pStack
-  local tStack
+private command _unloadStackAndStackFiles pStack
+  local tStackEntry, tStack
 
   repeat for each line tStackEntry in the stackfiles of stack pStack
     put item 1 of tStackEntry into tStack
@@ -954,8 +960,10 @@ private command _unloadStackStackFiles pStack
     end if
   end repeat
 
+  delete stack pStack
+
   return empty
-end _unloadStackStackFiles
+end _unloadStackAndStackFiles
 
 
 private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
