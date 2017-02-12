@@ -506,7 +506,7 @@ private command _appValidateAndLaunchUpdater
 
   try
     go invisible stack decompress(tStackData)
-    send "RunUpdater" to stack "appUpdater" in 0 milliseconds
+    send "RunUpdater" to stack "appUpdaterDialog" in 0 milliseconds
   catch e
     answer "An error occured while launching the updater (" & char 1 to 20 of tStackData & ")."
   end try
