@@ -409,9 +409,19 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
 
   # Build startup script before unloading framework stack
   if tError is empty then
-    local tFrameworkPath, tScript, tLineNo, tStackFiles
+    local tStackFiles, tLineNo
 
     set the itemdelimiter to ","
+
+    put the stackfiles of stack pStandaloneStackFilename into tStackFiles
+    put lineoffset("levureFramework", tStackFiles) into tLineNo
+    if tLineNo is 0 then
+      put "levureFramework is not assigned to the stackfiles of the standalone stack" into tError
+    end if
+  end if
+
+  if tError is empty then
+    local tFrameworkPath, tScript
 
     put item 2 to -1 of line tLineNo of tStackFiles into tFrameworkPath
     put _resolveRelativeFilenameReference(tFrameworkPath, tSourceFolder) into tFrameworkPath
@@ -428,6 +438,9 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     end if
 
     put _generateStartupScript(tFrameworkPath, tAppPath, buildForDistribution) into tScript
+    if the script of stack pStandaloneStackFilename is not empty then
+      put cr & cr & the script of stack pStandaloneStackFilename after tScript
+    end if
 
     log "Build: Startup script:" && tScript
   end if
@@ -449,15 +462,9 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
-    put the stackfiles of stack tTempStandaloneStack into tStackFiles
     if not buildForDistribution then
       set the stackfiles of stack tTempStandaloneStack to empty
       set the behavior of stack tTempStandaloneStack to empty
-    end if
-
-    put lineoffset("levureFramework", tStackFiles) into tLineNo
-    if tLineNo is 0 then
-      put "levureFramework is not assigned to the stackfiles of the standalone stack" into tError
     end if
   end if
 
