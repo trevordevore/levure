@@ -1,7 +1,26 @@
 script "Window Manager Library"
 local sWindowsA
+local sFrameA
 
 on libraryStack
+  if the target is not me then pass libraryStack
+
+  # workaround for bug #18997 <http://quality.livecode.com/show_bug.cgi?id=18997>
+  lock messages
+  local tStack, tEffectiveRect, tRect
+
+  put "DetermineWindowDecorationDimensions" into tStack
+  create invisible stack tStack
+  put the effective rect of stack tStack into tEffectiveRect
+  put the rect of stack tStack into tRect
+  delete stack tStack
+  unlock messages
+
+  put item 1 of tRect - item 1 of tEffectiveRect into sFrameA["left"]
+  put item 2 of tRect - item 2 of tEffectiveRect into sFrameA["top"]
+  put item 3 of tEffectiveRect - item 3 of tRect into sFrameA["right"]
+  put item 4 of tEffectiveRect - item 4 of tRect into sFrameA["bottom"]
+
   pass libraryStack
 end libraryStack
 
@@ -346,21 +365,21 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
 
   ## PLACE STACK ON SCREEN
   lock screen
-  # http://quality.livecode.com/show_bug.cgi?id=18997
-  local tTempEffectiveRect, tTempRect, tEffectiveRect
-
-  put the effective rect of stack pWindowName into tTempEffectiveRect
-  put the rect of stack pWindowName into tTempRect
-  put tRect into tEffectiveRect
-  subtract (item 1 of tTempRect - item 1 of tTempEffectiveRect) from item 1 of tEffectiveRect
-  subtract (item 2 of tTempRect - item 2 of tTempEffectiveRect) from item 2 of tEffectiveRect
-  add (item 3 of tTempEffectiveRect - item 3 of tTempRect) to item 3 of tEffectiveRect
-  add (item 4 of tTempEffectiveRect - item 4 of tTempRect) to item 4 of tEffectiveRect
-  # end bug workaround
 
   set rect of stack pWindowName to tRect
   set loc of stack pWindowName to tLoc
-  windowMoveWindowOnScreen pWindowName, tEffectiveRect
+
+  get tRect
+
+  # Bug 18997 workaround <http://quality.livecode.com/show_bug.cgi?id=18997>
+  put the rect of stack pWindowName into tRect
+  subtract sFrameA["left"] from item 1 of tRect
+  subtract sFrameA["top"] from item 2 of tRect
+  add sFrameA["right"] to item 3 of tRect
+  add sFrameA["bottom"] to item 4 of tRect
+  # end bug workaround
+
+  windowMoveWindowOnScreen pWindowName, tRect
   unlock screen
 
   return empty
