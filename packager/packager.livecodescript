@@ -469,6 +469,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   end if
 
   if tError is empty then
+    set the uBuildProfile of stack tTempStandaloneStack to pBuildProfile
     set the script of stack tTempStandaloneStack to tScript
 
     log "Build: Saving temporary stack with IDE call"

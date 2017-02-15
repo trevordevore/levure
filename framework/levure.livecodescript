@@ -412,7 +412,7 @@ function levureBuildProfile
   if the environment is "development" then
     return "development"
   else
-    return sAppA["active build profile"] # Created at build time
+    return the uBuildProfile of me # Assigned at build time
   end if
 end levureBuildProfile
 
@@ -1297,6 +1297,11 @@ function levureRelativeAppFolderPath
   if char 1 of tPath is "/" then delete char 1 of tPath
   return tPath
 end levureRelativeAppFolderPath
+
+
+function levureStandaloneStack
+  return the name of me
+end levureStandaloneStack
 
 
 function levureStandaloneFolder
