@@ -183,7 +183,7 @@ end appIsUpdateAvailable
 command _appCheckForUpdateInBackground
   local tError
 
-  if useSparkle() then
+  if _useSparkle() then
     mergSparkleStartup
     put the result into tError
   else
