@@ -1,8 +1,19 @@
-script "appLogging"
+script "appLogger"
+constant kLogTypes = "developer,extensions,network,msg"
+
 local sLogTarget
-local sLogNetworkTraffic = "false"
-local sLogMsgBoxMessages = "false"
+local sLogA
 local sNetworkFilters
+
+
+on libraryStack
+  if the target is not me then pass libraryStack
+
+  put true into sLogA["developer"]
+  put false into sLogA["extensions"]
+  put false into sLogA["network"]
+  put false into sLogA["msg"]
+end libraryStack
 
 
 command appSetLogTarget pTarget
@@ -29,24 +40,51 @@ function appGetLogTarget
 end appGetLogTarget
 
 
-# Only use with LC 9
-command appLogMessageBoxMessages pBoolean, pSetAsTarget
-  if pSetAsTarget then
-    messageBoxRedirect the long id of me
+command appSetLogTypes pTypes
+  if pTypes is "all" then
+    local tType
+    repeat for each item tType in kLogTypes
+      put true into sLogA[tType]
+    end repeat
+  else
+    put "developer" is among the items of pTypes into sLogA["developer"]
+    put "network" is among the items of pTypes into sLogA["network"]
+    put "msg" is among the items of pTypes into sLogA["msg"]
+    put "extensions" is among the items of pTypes into sLogA["extensions"]
   end if
-
-  put pBoolean is true into sLogMsgBoxMessages
-end appLogMessageBoxMessages
-
-
-command appLogNetworkTraffic pBoolean
-  put pBoolean is true into sLogNetworkTraffic
-end appLogNetworkTraffic
+  return empty
+end appSetLogTypes
 
 
-function appGetLogNetworkTraffic
-  return sLogNetworkTraffic
-end appGetLogNetworkTraffic
+command appAddLogType pType
+  if pType is among the items of kLogTypes then
+    put true into sLogA[pType]
+  end if
+  return empty
+end appAddLogType
+
+
+command appRemoveLogType pType
+  if pType is among the items of kLogTypes then
+    put false into sLogA[pType]
+  end if
+  return empty
+end appRemoveLogType
+
+
+function appGetLogTypes
+  local pTypes
+
+  repeat for each key tKey in sLogA
+    if sLogA[tKey] then
+      put tKey & "," after pTypes
+    end if
+  end repeat
+  delete the last char of pTypes
+  sort items of pTypes
+
+  return pTypes
+end appGetLogTypes
 
 
 command appSetNetworkTrafficLogFilters pFilters
@@ -60,7 +98,7 @@ end appGetNetworkTrafficLogFilters
 
 
 command appLogMsg pMsg
-  if sLogTarget is empty then return empty
+  if not sLogA["developer"] OR sLogTarget is empty then return empty
 
   local tError
 
@@ -86,7 +124,7 @@ end appLogMsg
 
 # LCB
 on logChanged pMsg
-  if sLogTarget is not empty then
+  if sLogA["extensions"] AND sLogTarget is not empty then
     appLogMsg pMsg
   else
     pass logChanged
@@ -95,7 +133,7 @@ end logChanged
 
 # libURL
 on ulLogIt pMsg
-  if sLogNetworkTraffic AND sLogTarget is not empty then
+  if sLogA["network"] AND sLogTarget is not empty then
     _logLibURLMessage pMsg
   else
     pass ulLogIt
@@ -104,7 +142,7 @@ end ulLogIt
 
 # Message Box
 on msgChanged
-  if sLogMsgBoxMessages then
+  if sLogA["msg"] then
     appLogMsg "Message box" & cr & "Object:" && messageBoxLastObject() & cr & "Message:" && msg
   end if
   pass msgChanged
