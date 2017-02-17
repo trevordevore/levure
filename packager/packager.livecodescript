@@ -58,7 +58,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     replace tStandaloneFolder with empty in tOutputAppFolder
     if tOutputAppFolder begins with "/" then delete char 1 of tOutputAppFolder
 
-    put levureAppGet("version") & " " & levureAppGet("build") into tSubFolder
+    put levureAppGet("version") & "-" & levureAppGet("build") into tSubFolder
     put levureBuildFolder() & "/" & pBuildProfile & "/" & tSubFolder into tOutputFolder
 
     log "Output folder:" && tOutputFolder
