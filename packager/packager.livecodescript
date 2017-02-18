@@ -2194,7 +2194,7 @@ private command _fileCreateAllFoldersInPath pPath, pRootPath
       if last char of pRootPath is not slash then put slash after pRootPath ## Makes it easier to deal with "/" path
 
       if not _fileIsFolder(pRootPath) then
-        put "root path does not exist" into tError
+        put "root path does not exist [root:" && pRootPath & "]" into tError
       end if
     end if
   end if
@@ -2203,7 +2203,7 @@ private command _fileCreateAllFoldersInPath pPath, pRootPath
   if tError is empty then
     put char 1 to -2 of pRootPath into tCheck ## -2 gets rid of trailing slash
     if char 1 to (number of chars of tCheck) of pPath is not tCheck then
-      put "path is not a child of root path" & cr & "[path:" & pPath & "]" & cr & "[root:" & pRootPath & "]" into tError
+      put "path is not a child of root path" & cr & "[path:" && pPath & "]" & cr & "[root:" && pRootPath & "]" into tError
       put the executioncontexts
     end if
   end if
@@ -2216,7 +2216,7 @@ private command _fileCreateAllFoldersInPath pPath, pRootPath
       if not _fileIsFolder(tPathSegment) then
         create folder tPathSegment
         if the result is not empty then
-          put "error creating folder (" & the result & ")" into tError
+          put "error creating folder (" & the result & ") [folder:" && tPathSegment & "]" into tError
         end if
       end if
 
