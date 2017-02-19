@@ -11,7 +11,7 @@ Levure is an application development framework for LiveCode. The primary goals o
 # Try Out Sample Application
 
 1. Open the `sample_app/standalone.livecode` stack in LiveCode 8+. The `framework/levureFramework.livecodescript` stack is a behavior of this stack.
-2. Switch to the browser tool and click on the `Run Application` button.
+2. Switch to the browser tool and click on the `Open Application` button.
 3. The `MyApp` stack should open up and display some information in a field.
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
@@ -22,7 +22,7 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - Your app is configured using the `app.yml` YAML file. This file can be alongside the `standalone.livecode` stack file or directly within a folder that resides alongside the `standalone.livecode` stack file.
 - Alongside the `app.yml` file is the `app.livecodescript` stack file.
 - Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders.
-- The `components` folder is where you will store the stacks used for your user interface. Each UI stack consistes of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
+- The `components` folder is where you will store the stacks used for your user interface. Each UI stack consists of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
 - The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. Behaviors will be loaded into memory so that the stack is available globally. After the stack is loaded into memory the `LoadBehavior` message will dispatched to it. This enables a script only stack to set its own behavior.
 - The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals or extensions.
 - In the `app.yml` file you can load components, libraries, backscripts, frontscripts, and helpers from any location on your computer, even the LiveCode User Extensions folder. When your application is packaged up all of the necessary resources will be brought together to build the final application.
