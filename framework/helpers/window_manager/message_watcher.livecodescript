@@ -1,13 +1,4 @@
 script "Window Manager Frontscript"
-on shutdown
-  if the environment is not "development" then
-    levureShutdownApplication
-  end if
-
-  pass shutdown
-end shutdown
-
-
 on desktopChanged
   if the platform is "win32" then pass desktopChanged ## Windows appears to resize our stacks for us, Mac doesn't
 
@@ -176,3 +167,18 @@ on resizeStack pWidth, pHeight, pOldWidth, pOldHeight
 
   pass resizeStack
 end resizeStack
+
+
+-- Handle message sent to app stack before shutting down application
+command PreShutdownApplication
+  local tStack
+
+  repeat for each line tStack in the openStacks
+    if tStack is empty then next repeat
+    if windowIsManaged(tStack) then
+      windowSaveWindowPosition tStack
+    end if
+  end repeat
+
+  pass PreShutdownApplication
+end PreShutdownApplication

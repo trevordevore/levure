@@ -29,6 +29,15 @@ after startup
 end startup
 
 
+on shutdown
+  if the environment is not "development" then
+    levureShutdownApplication
+  end if
+
+  pass shutdown
+end shutdown
+
+
 private command _startup
   put "loading" into sRuntimePropertiesA["state"]
   set visible of me to false
@@ -494,13 +503,6 @@ command levureShutdownApplication
   close me
 
   if tCurrentState is "running" then
-    repeat for each line tStack in the openStacks
-      if tStack is empty then next repeat
-      if windowIsManaged(tStack) then
-        windowSaveWindowPosition tStack
-      end if
-    end repeat
-
     dispatch "PreShutdownApplication" to stack kAppStackName
 
     appSavePrefs "user"
