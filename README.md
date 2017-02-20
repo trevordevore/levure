@@ -239,7 +239,7 @@ If you have your extensions installed in your IDE user extensions folder and inc
 
 ## Helpers
 
-Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifics what the other files in the folder should be used for. A helper can be made up of the following:
+Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifies what the other files in the folder should be used for. A helper can be made up of the following:
 
 - stacks
 - libraries
@@ -321,10 +321,10 @@ This stack file must be located directly alongside the `app.yml` file. The stack
 
 The framework logic is located in the `levure.livecodescript` file. The stack must be assigned as the behavior of another stack which is assumed to be the `standalone.livecode` stack. The `levureInitializeAndRunApplication` will initialize and load the framework. Here is what happens during loading:
 
-1. if an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file, searching first alongside the `standalone.livecode` stack file and then directly within any folders that are alongside the `standalone.livecode` stack. If `app.yml` is not found then app cannot be loaded.
+1. If an sAppA script local exists and the stack is running in the development environment  then use values from that. It means the app has been packaged. Otherwise load the `app.yml` file, searching first alongside the `standalone.livecode` stack file and then directly within any folders that are alongside the `standalone.livecode` stack. If `app.yml` is not found then app cannot be loaded.
 2. Process any command line arguments using the `app_files_and_urls` helper.
 3. Load `app.livecodescript` from folder containing the `app.yml` file.
-4. Load helpers. By default any helpers in a folder named `helpers` that sits alongside the `levure.livecodescript` file or the `app.yml` file will be loaded. You can configure additional folders where helpers are located using the `helper source folders` config property. ` All externals, extensions, libraries, backscripts, and frontscripts will be loaded into memory. The ui stacks will be added to the list of stackFiles to be assigned to `app` stack. `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
+4. Load helpers. By default any helpers in a folder named `helpers` that sits alongside the `levure.livecodescript` file or the `app.yml` file will be loaded. You can configure additional folders where helpers are located using the `helper source folders` config property.  All externals, extensions, libraries, backscripts, and frontscripts will be loaded into memory. The ui stacks will be added to the list of stackFiles to be assigned to `app` stack. `PreloadExternals` message is sent to `app` stack so that developer can add or remove from list of externals prior to loading.*
 8. Add list of stacks defined in `components` key in config file to stackFiles list.
 5. Load app libraries and start using.
 6. Load app backscripts and insert.
@@ -333,13 +333,13 @@ The framework logic is located in the `levure.livecodescript` file. The stack mu
 10. Dispatch `InitializeApplication` to `app` stack.
 11. Dispatch `OpenApplication` to `app` stack.
 
-[*] As an alternative the developer could add or remove helpers as needed during packaging. We move the entire folder over to tmp folder, developer can prune it, and that gets packaged up. No need to dispatch message. Currently this message is not being sent.
+[*] As an alternative the developer could add or remove helpers as needed during packaging.  At our firm, we move the entire folder over to the tmp folder, then the developer prunes it, and that gets packaged up, so need to dispatch message. Currently this message is not being sent.
 
 # Relaunching Application
 
 In the `app.yml` file you can configure a `multiple instances` property. Set to true if you want your application to support multiple instances. If `multiple instances` is `false` and you don't want the defaultStack to come forward when the user relaunches the application then set `relaunch in background` to true.
 
-When the `relaunch` message is processed by the levure standalone a `RelaunchApplication` message will be dispatched to the `app` stack. If your application requires any special logic for bringing windows forward then it should be handled here. If any command line parameters are passed in to `relaunch` then the `ProcessCommandLineParameters` message will be dispatched to the `app` stack as well.
+When the `relaunch` message is processed by the levure standalone, a `RelaunchApplication` message will be dispatched to the `app` stack. If your application requires any special logic for bringing windows forward then it should be handled here. If any command line parameters are passed to `relaunch` then the `ProcessCommandLineParameters` message will be dispatched to the `app` stack as well.
 
 # Version information
 
