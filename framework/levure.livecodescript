@@ -309,7 +309,7 @@ private command loadCommandLineArguments
     end repeat
 
     if tParams is not empty then
-      appProcessCommandLineParameters tParams
+      dispatch "appProcessCommandLineParameters" with tParams
     end if
   end if
 end loadCommandLineArguments
