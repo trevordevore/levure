@@ -716,8 +716,6 @@ private command createApplicationDataFolders
   if sAppA["application data"]["folder"] is not empty then
     local tRootFolder
 
-    set the itemdelimiter to "/"
-
     if sAppA["application data"]["user"] then
       put levureApplicationDataFolder("user") into tRootFolder
       replace "/" & sAppA["application data"]["folder"] with empty in tRootFolder
@@ -739,6 +737,8 @@ end createApplicationDataFolders
 
 private command createSubfolders pRootFolder, pSubfolder
   local tError, tTargetFolder
+
+  set the itemdelimiter to "/"
 
   repeat for each item tFolder in pSubfolder
     put pRootFolder & "/" & tFolder into tTargetFolder
