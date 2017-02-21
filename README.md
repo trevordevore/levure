@@ -24,6 +24,11 @@ If you are using git to manage your application then you can include the `levure
 git submodule add https://github.com/trevordevore/levure.git levure
 ```
 
+# Screencasts
+
+- [Thoughts on using script only stacks and levure framework](https://www.youtube.com/watch?v=e1p_FTRi1-Q)
+- [Creating Script Only Behaviors with LiveCode 9](https://www.youtube.com/watch?v=eyggLzIbeSU)
+
 # Organizing a Levure Framework Application
 
 - The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
