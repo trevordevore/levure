@@ -8,6 +8,11 @@ Levure is an application development framework for LiveCode. The primary goals o
 1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via libraries and helpers.
 2. Designed for use with version control systems. Wherever possible configuration and scripts are text based files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be handled via behaviors. Behaviors are stored as script only stacks in a `behaviors` folder alongside the binary stack. Each behavior stack is assigned to the `stackfiles` property of the binary stack so that the engine automatically finds them when the stack is opened. If the LiveCode engine supports a version control friendly version of stacks with UI in the future then the framework will seamlessly support it.
 
+# Screencasts
+
+- [Thoughts on using script only stacks and levure framework](https://www.youtube.com/watch?v=e1p_FTRi1-Q)
+- [Creating Script Only Behaviors with LiveCode 9](https://www.youtube.com/watch?v=eyggLzIbeSU)
+
 # Try Out Sample Application
 
 1. Open the `sample_app/standalone.livecode` stack in LiveCode 8+. The `framework/levureFramework.livecodescript` stack is a behavior of this stack.
@@ -23,11 +28,6 @@ If you are using git to manage your application then you can include the `levure
 ```
 git submodule add https://github.com/trevordevore/levure.git levure
 ```
-
-# Screencasts
-
-- [Thoughts on using script only stacks and levure framework](https://www.youtube.com/watch?v=e1p_FTRi1-Q)
-- [Creating Script Only Behaviors with LiveCode 9](https://www.youtube.com/watch?v=eyggLzIbeSU)
 
 # Organizing a Levure Framework Application
 
