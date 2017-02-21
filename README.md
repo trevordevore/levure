@@ -16,6 +16,14 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 The `MyApp` stack shows how to use behaviors for the stack scripts. The app also loads a library that the stack uses.
 
+# Including levure as a submodule in a git project
+
+If you are using git to manage your application then you can include the `levure` project as a submodule.
+
+```
+git submodule add https://github.com/trevordevore/levure.git levure
+```
+
 # Organizing a Levure Framework Application
 
 - The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
@@ -34,6 +42,16 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - standalone.livecode
 - framework/levure.livecodescript
 - framework/libraries/appFilesAndURLs.livecodescript
+- framework
+  - helpers
+    - logger/
+      - helper.yml
+      - logger.livecodescript
+    - preferences/
+      - helper.yml
+      - preferences.livecodescript
+      - preference.bundle
+    ...
 - components/
   - preferences/
     - preferences.livecode
@@ -56,13 +74,6 @@ The `MyApp` stack shows how to use behaviors for the stack scripts. The app also
 - frontscripts/
   - myfrontscript.livecodescript
 - helpers/
-  - logging/
-    - helper.yml
-    - library.livecodescript
-  - preferences/
-    - helper.yml
-    - library.livecodescript
-    - preference.bundle
   - oauth2
     - helper.yml
     - ui.livecode
@@ -82,8 +93,7 @@ Important note: Make sure you use the same number of spaces for each indentation
 
 ```
 version: x[.x[.x]]
-build: [x|x.x]
-password: ?????
+build: [x]
 multiple instances: true|false
 relaunch in background: true|false
 application data folder: [relative path to app data folder with user or shared data folders on the computer]
@@ -363,17 +373,19 @@ levurePackageApplication pBuildProfile
 - If you are building on OS X and have configured a `certificate name` then the app will be signed.
 - If you are building for a profile named "mas" or "Mac App Store" then the app will be signed, zipped up, and prepared for upload to the Mac App Store.
 
-# Including levure as a submodule in a git project
-
-If you are using git to manage your application then you can include the `levure` project as a submodule.
-
-```
-git submodule add https://github.com/trevordevore/levure.git levure
-```
-
 # Helpers Included with Framework
 
-## ./libraries/filesAndURLs.livecodescript
+The framework ships with a number of helpers that you can use in your application. To load a helper use the {{FRAMEWORK}} variable. Example:
+
+```
+helpers:
+  1:
+    filename: {{FRAMEWORK}}/helpers/preferences
+```
+
+Any helpers included with the framework automatically has its `preload` flag set to true. That means the helper will be loaded before the `PreloadApplication` message is sent.
+
+## ./helpers/files_and_urls
 
 Helps with files associated with your application, managing a recent files list, as well as when the OS asks your application to process a url. Also includes functions for generating file dialog type filter strings.
 
@@ -381,15 +393,15 @@ Helps with files associated with your application, managing a recent files list,
 
 `ProcessURL` message sent to `app` stack. Check `appGetURLsToProcessOnOpen()` when app opens for urls passed on the command line.
 
-## ./libraries/broadcaster
+## ./helpers/broadcaster
 
 API for broadcasting and listening for messages.
 
-## ./libraries/translate.livecodescript
+## ./helpers/translate
 
 API for providing translated versions of strings in your app. When you call translateSetLocale the library looks for a `./locales/[LANG_CODE].yml` file alongside your `app.yml` file.
 
-## ./frontscripts/logging.livecodescript
+## ./helpers/logger
 
 API for setting up a log file. Has option to log internet traffic. Turning it on will intercept the ulLogit message that libURL uses and log those messages to your log file.
 
