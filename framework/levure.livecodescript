@@ -1467,7 +1467,7 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       local tError, tFolder, tEncrypt
       put empty into tEncrypt
       if "encrypt" is among the keys of pFilesA[i] then
-        put pFilesA[i] into tEncrypt
+        put pFilesA[i]["encrypt"] into tEncrypt
       end if
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
