@@ -1464,11 +1464,16 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
       # expand the folder listing. Assume every folder is a component to load.
-      local tError, tFolder, tFiles, tFile, tFileA
+      local tError, tFolder, tEncrypt
+      put empty into tEncrypt
+      if "encrypt" is among the keys of pFilesA[i] then
+        put pFilesA[i] into tEncrypt
+      end if
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
-        addComponentStacksToFilesArray tFolder, tFilesA, pFilesA[i]["encrypt"] is true
+        addComponentStacksToFilesArray tFolder, tFilesA, tEncrypt
       end repeat
+      put the number of elements of tFilesA into j
 
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
@@ -1512,7 +1517,9 @@ private command addComponentStacksToFilesArray pFolder, @xFilesA, pEncrypt
     if tFileA["name"] is not empty then
       add 1 to i
       put tFileA into xFilesA[i]
-      put pEncrypt into xFilesA[i]["encrypt"]
+      if pEncrypt is not empty then
+        put pEncrypt into xFilesA[i]["encrypt"]
+      end if
     end if
   end repeat
 
