@@ -1459,31 +1459,7 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       local tError, tFolder, tFiles, tFile, tFileA
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
-        put empty into tError
-        put empty into tFileA
-
-        put fileListing(tFolder) into tFiles
-        filter tFiles with regex pattern ".*\.livecode$|.*\.livecodescript$"
-
-        if tFiles is not empty then
-          # Has any file in this folder been loaded already?
-          repeat for each line tFile in tFiles
-            if not isFilenameUniqueInFilesArray(tFile, tFilesA) then
-              put "already loaded" into tError
-              exit repeat
-            end if
-          end repeat
-
-          if tError is empty then
-            put line 1 of tFiles into tFileA["filename"]
-            put ensureStackNameIsPresent(tFileA) into tFileA
-
-            if tFileA["name"] is not empty then
-              add 1 to j
-              put tFileA into tFilesA[j]
-            end if
-          end if
-        end if
+        addComponentStacksToFilesArray tFolder, tFilesA, pFilesA[i]["encrypt"] is true
       end repeat
 
     else if pFilesA[i]["filename"] is not empty then
@@ -1507,6 +1483,35 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
 
   return tFilesA
 end expandComponentAssetsFileReferenceArray
+
+
+private command addComponentStacksToFilesArray pFolder, @xFilesA, pEncrypt
+  local tError, tFiles, tFile, tFileA, i
+
+  put the number of elements of xFilesA into i
+
+  put fileListing(pFolder) into tFiles
+  filter tFiles with regex pattern ".*\.livecode$|.*\.livecodescript$"
+
+  repeat for each line tFile in tFiles
+    if not isFilenameUniqueInFilesArray(tFile, xFilesA) then
+      next repeat
+    end if
+
+    put empty into tFileA
+
+    put tFile into tFileA["filename"]
+    put ensureStackNameIsPresent(tFileA) into tFileA
+
+    if tFileA["name"] is not empty then
+      add 1 to i
+      put tFileA into xFilesA[i]
+      put pEncrypt into xFilesA[i]["encrypt"]
+    end if
+  end repeat
+
+  return empty
+end addComponentStacksToFilesArray
 
 
 private command replaceVariablesInPaths @pFilesA

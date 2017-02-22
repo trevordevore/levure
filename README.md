@@ -202,14 +202,14 @@ libraries:
 
 ## components
 
-There are two different ways to load extensions. The first is to target a specific stack that represents the component. The second is to specify a folder containing folders of components.
+There are two different ways to load components. The first way is to specify a folder containing folders of components. The second is to target a specific stack file within the component folder.
 
 ### Example 1
 
 ```
 components:
   1:
-    filename: ./components/main_window/main_window.livecode
+    folder: ./components
 ```
 
 ### Example 2
@@ -217,22 +217,23 @@ components:
 ```
 components:
   1:
-    folder: ./components
+    filename: ./components/templates/templates.livecode
 ```
 
-If you specify a folder containing folders of components (Example 2) then the framework will assume that the first file ending in *.livecode or *.livecodescript is the stack to use for the component. As long as you only have one stack file for each component then you can load components this way.
+If you specify a folder containing folders of components (Example 1) then the framework will add all files ending with *.livecode or *.livecodescript to the list of stack files available to the application.
 
-You can mix targeting specific files to load with bulk loading. For example, let's say you have 10 components and one of the components has two stack files in its folder but the rest only have one stack file.
+The second method (Example 2) is useful if you need to have a differnet encryption setting for a particular stack file. For example, if your application is encrypted with a password but you have a component that shouldn't be password protected then you could do this:
 
 ```
 components:
   1:
-    filename: ./components/complex_component/ui.livecode
+    filename: ./components/templates/templates.livecode
+    encrypt: false
   2:
     folder: ./components
 ```
 
-The component the you target with `filename` will be loaded first and then the folder of components will be loaded. The framework will see that the `complex_component` has already been loaded and will skip it when loading the folder of components.
+The component the you target with `filename` will be added to the list of stack files first along with the encryption setting. Then the folder of components will be loaded. The framework will see that the `components/templates/templates.livecode` stack file has already been analyzed and will skip it when loading the stack files in the `./components` folder.
 
 ## Extensions
 
