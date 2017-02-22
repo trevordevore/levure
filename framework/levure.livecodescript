@@ -1359,6 +1359,8 @@ end levureFrameworkFolder
 private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
 
+  replaceVariablesInPaths pFilesA
+
   repeat with i = 1 to the number of elements of pFilesA
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
@@ -1390,8 +1392,6 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
     end if
   end repeat
 
-  replaceVariablesInPaths tFilesA
-
   return tFilesA
 end expandMessagePathAssetsFileReferenceArray
 
@@ -1419,6 +1419,8 @@ end addFolderToFilesArray
 private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
 
+  replaceVariablesInPaths pFilesA
+
   repeat with i = 1 to the number of elements of pFilesA
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
@@ -1430,6 +1432,9 @@ private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
         if isFilenameUniqueInFilesArray(tFile, tFilesA) then
           add 1 to j
           put tFile into tFilesA[j]["filename"]
+          if "preload" is among the keys of pFilesA[i] then
+            put pFilesA[i]["preload"] into tFilesA[j]["preload"]
+          end if
         end if
       end repeat
     else if pFilesA[i]["filename"] is not empty then
@@ -1438,11 +1443,12 @@ private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
       if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
         put pFilesA[i] into tFilesA[j]
+        if "preload" is among the keys of pFilesA[i] then
+          put pFilesA[i]["preload"] into tFilesA[j]["preload"]
+        end if
       end if
     end if
   end repeat
-
-  replaceVariablesInPaths tFilesA
 
   return tFilesA
 end expandHelperAssetsFileReferenceArray
@@ -1450,6 +1456,8 @@ end expandHelperAssetsFileReferenceArray
 
 private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
+
+  replaceVariablesInPaths pFilesA
 
   repeat with i = 1 to the number of elements of pFilesA
     if pFilesA[i]["folder"] is not empty then
@@ -1478,8 +1486,6 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       end if
     end if
   end repeat
-
-  replaceVariablesInPaths tFilesA
 
   return tFilesA
 end expandComponentAssetsFileReferenceArray
@@ -1518,15 +1524,7 @@ private command replaceVariablesInPaths @pFilesA
   local tUserExtensionsFolder, tFrameworkFolder
   local tKey, i
 
-  if the environment is "development" then
-    put revEnvironmentCustomizationPath() into tUserExtensionsFolder
-  else
-    try
-      put levureTestingRevCustomizationFolder() into tUserExtensionsFolder
-    catch e
-      # This won't be packaged application
-    end try
-  end if
+  put userExtensionsFolder() into tUserExtensionsFolder
   put levureFrameworkFolder() into tFrameworkFolder
 
   repeat with i = 1 to the number of elements of pFilesA
@@ -1544,6 +1542,23 @@ private command replaceVariablesInPaths @pFilesA
 
   return empty for value
 end replaceVariablesInPaths
+
+
+private function userExtensionsFolder
+  local tUserExtensionsFolder
+
+  if the environment is "development" then
+    put revEnvironmentCustomizationPath() into tUserExtensionsFolder
+  else
+    try
+      put levureTestingRevCustomizationFolder() into tUserExtensionsFolder
+    catch e
+      # This won't be packaged application
+    end try
+  end if
+
+  return tUserExtensionsFolder
+end userExtensionsFolder
 
 
 private function isFilenameUniqueInFilesArray pFilename, pFilesA
