@@ -52,6 +52,27 @@ end openCard
 --> API
 
 
+function windowResolveTargetStack
+  local tStack
+
+  if word 1 of the target is "card" then
+    put the long id of the owner of the target into tStack
+  else if word 1 of the target is "stack" then
+    put the long id of the target into tStack
+  else
+    local tOffset
+    put the long id of the target into tStack
+    put offset(" of stack", tStack) into tOffset
+    if tOffset > 0 then
+      delete char 1 to (tOffset + 3) of tStack
+      put the long id of tStack into tStack
+    end if
+  end if
+
+  return tStack
+end windowResolveTargetStack
+
+
 function windowGetProperty pProperty, pStackName
   if pStackName is empty then put the short name of the owner of the target into pStackName
   return the uWindowManager[pProperty] of stack pStackName
