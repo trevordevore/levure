@@ -1456,16 +1456,19 @@ end expandHelperAssetsFileReferenceArray
 
 private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
+  local tEncrypt
 
   replaceVariablesInPaths pFilesA
 
   repeat with i = 1 to the number of elements of pFilesA
+    put empty into tEncrypt
+
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
       # expand the folder listing. Assume every folder is a component to load.
-      local tError, tFolder, tEncrypt
-      put empty into tEncrypt
+      local tFolder
+
       if "encrypt" is among the keys of pFilesA[i] then
         put pFilesA[i]["encrypt"] into tEncrypt
       end if
@@ -1479,14 +1482,25 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
             into pFilesA[i]["filename"]
 
-      put ensureStackNameIsPresent(pFilesA[i]) into pFilesA[i]
-
-      if pFilesA[i]["name"] is not empty AND isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
-        add 1 to j
-        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
-        put pFilesA[i]["name"] into tFilesA[j]["name"]
+      # If filename points to a folder then load up the entire folder
+      # Otherwise the target is a single file within the component folder. Probably using different encryption setting.
+      if there is a folder pFilesA[i]["filename"] then
         if "encrypt" is among the keys of pFilesA[i] then
-          put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
+          put pFilesA[i]["encrypt"] into tEncrypt
+        end if
+        addComponentStacksToFilesArray pFilesA[i]["filename"], tFilesA, tEncrypt
+        put the number of elements of tFilesA into j
+      else
+        # points directly to a stack file
+        put ensureStackNameIsPresent(pFilesA[i]) into pFilesA[i]
+
+        if pFilesA[i]["name"] is not empty AND isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+          add 1 to j
+          put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+          put pFilesA[i]["name"] into tFilesA[j]["name"]
+          if "encrypt" is among the keys of pFilesA[i] then
+            put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
+          end if
         end if
       end if
     end if
