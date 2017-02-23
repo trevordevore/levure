@@ -99,16 +99,22 @@ Important note: Make sure you use the same number of spaces for each indentation
 ```
 version: x[.x[.x]]
 build: [x]
+encrypt stacks: true|false [If true then create an .env file alongside the app.yml file with PASSWORD=YOUR_PASSWORD_HERE in it. Don't commit the .env file to your version control repository.]
 multiple instances: true|false
 relaunch in background: true|false
-application data folder: [relative path to app data folder with user or shared data folders on the computer]
+application data:
+  folder: [relative path to app data folder with user or shared data folders on the computer]
+  user: true|false [Set to true to create an application data folder in the current user location on the computer]
+  shared: true|false [Set to true to create an application data folder in the shared location on the computer]
 creator code: [app creator code registered with Apple]
 shutdown when all windows are closed: true|false
 components:
   1:
-    filename: [relative path to stack file within components folder]
+    filename: [relative path to a specific component folder or a stack file within components folder]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [path to folder containing components]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
 extensions:
   1:
     filename: [relative path to .lcm extension file]
@@ -118,32 +124,42 @@ extensions:
 behaviors:
   1:
     filename: [relative path to stack file within behaviors folder]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [relative path a folder with behavior stack files]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 libraries:
   1:
     filename: [relative path to stack file within libraries folder]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [relative path a folder with library stack files]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 frontscripts:
   1:
     filename: [relative path to stack file within frontscripts folder]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [relative path a folder with frontscript stack files]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 backscripts:
   1:
     filename: [relative path to stack file within backscript folder]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [relative path a folder with backscript stack files]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 helpers:
   1:
     filename: [relative path to folder containing helper]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
     folder: [relative path a folder with helper folders]
+    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 preferences:
   user:
@@ -182,7 +198,7 @@ build profiles:
         ...
       linux:
         ...
-    base auto update url: [URL where updates to your application can be found]
+    root auto update url: [URL where updates to your application can be found]
   development:
   beta:
   release:
@@ -202,7 +218,7 @@ libraries:
 
 ## components
 
-There are two different ways to load components. The first way is to specify a folder containing folders of components. The second is to target a specific stack file within the component folder.
+There are three ways to load components. The first way is to specify a folder containing folders of components. The second is to target a specific folder containing the component. The third is to target a specific stack file within the component folder.
 
 ### Example 1
 
@@ -217,12 +233,22 @@ components:
 ```
 components:
   1:
+    filename: ./components/templates
+```
+
+### Example 3
+
+```
+components:
+  1:
     filename: ./components/templates/templates.livecode
 ```
 
 If you specify a folder containing folders of components (Example 1) then the framework will add all files ending with *.livecode or *.livecodescript to the list of stack files available to the application.
 
-The second method (Example 2) is useful if you need to have a differnet encryption setting for a particular stack file. For example, if your application is encrypted with a password but you have a component that shouldn't be password protected then you could do this:
+The second method (Example 2) allows you to target a single component folder to load.
+
+The third method (Example 3) is useful if you need to have a differnet encryption setting for a particular stack file. For example, if your application is encrypted with a password but you have a component that shouldn't be password protected then you could do this:
 
 ```
 components:
