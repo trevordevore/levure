@@ -745,12 +745,13 @@ private command createSubfolders pRootFolder, pSubfolder
     if there is not a folder tTargetFolder then
       create folder tTargetFolder
       put the result into tError
-      put pRootFolder & "/" & tFolder into pRootFolder
       if tError is not empty then
         put "unable to create folder" && pRootFolder & ":" && tError into tError
         exit repeat
       end if
     end if
+
+    put pRootFolder & "/" & tFolder into pRootFolder
   end repeat
 
   return tError for error
