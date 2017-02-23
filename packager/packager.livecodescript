@@ -574,10 +574,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   set the behavior of stack pStandaloneStackFilename to the long id of stack tFrameworkFilename
   start using stack pStandaloneStackFilename
 
-  if pSendCallback then
-    send "packagerDidFinishBuildingStandalone" to stack pStandaloneStackFilename in 10 milliseconds
-  end if
-
   return tError
 end packagerBuildStandalones
 
@@ -895,51 +891,57 @@ end _packageHelpers
 
 private command _packageUI @xAppA, pOutputFolder
   local tError
-  local tCompsA, i
+  local tComponents, tCompsA, tKey, i
   local tComponentFolder
 
   set the itemdelimiter to "/"
+  put xAppA["registered components"]["ui"] into tComponents
+  replace "," with "/" in tComponents
 
-  if the number of elements of xAppA["ui"] > 0 then
-    log "Packaging ui"
+  repeat for each item tKey in tComponents
+    if the number of elements of xAppA[tKey] > 0 then
+      log "Packaging" && tKey
 
-    create folder (pOutputFolder & "/ui")
-    put the result into tError
+      create folder (pOutputFolder & "/" & tKey)
+      put _errorMsg("creating folder" && pOutputFolder & "/" & tKey, the result) into tError
 
-    if tError is empty then
-      local tDestFolder
+      if tError is empty then
+        local tDestFolder
 
-      repeat with i = 1 to the number of elements of xAppA["ui"]
-        put item 1 to -2 of xAppA["ui"][i]["filename"] into tComponentFolder
+        repeat with i = 1 to the number of elements of xAppA[tKey]
+          if xAppA[tKey][i]["distribute"] is false then next repeat
 
-        log "  Adding component:" && xAppA["ui"][i]["filename"]
+          put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
 
-        put pOutputFolder & "/ui/" & the last item of tComponentFolder into tDestFolder
-        _fileCopyFolder tComponentFolder, tDestFolder
-        put the result into tError
+          log "  Adding component:" && xAppA[tKey][i]["filename"]
 
-        if tError is empty then
-          local tExclusions
+          put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
+          _fileCopyFolder tComponentFolder, tDestFolder
+          put _errorMsg("copying folder" && tComponentFolder && "to" && tDestFolder, the result) into tError
 
-          if xAppA["ui"][i]["encrypt"] is false then
-            put tDestFolder & "/" & the last item of xAppA["ui"][i]["filename"] into tExclusions
+          if tError is empty then
+            local tExclusions
+
+            if xAppA[tKey][i]["encrypt"] is false then
+              put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tExclusions
+            end if
+
+            _processStacksInFolder tDestFolder, sPassword, tExclusions
+            put the result into tError
           end if
 
-          _processStacksInFolder tDestFolder, sPassword, tExclusions
-          put the result into tError
-        end if
+          put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[i]["filename"]
+          put xAppA[tKey][i]["name"] into tCompsA[i]["name"]
 
-        put "ui/" & the last item of tComponentFolder & "/" & the last item of xAppA["ui"][i]["filename"] into tCompsA[i]["filename"]
-        put xAppA["ui"][i]["name"] into tCompsA[i]["name"]
+          if tError is not empty then exit repeat
+        end repeat
+      end if
 
-        if tError is not empty then exit repeat
-      end repeat
+      if tError is empty then
+        put tCompsA into xAppA[tKey]
+      end if
     end if
-
-    if tError is empty then
-      put tCompsA into xAppA["ui"]
-    end if
-  end if
+  end repeat
 
   return tError
 end _packageUI

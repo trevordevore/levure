@@ -766,6 +766,9 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
+  # "ui" is always a registered "ui" component
+  put "ui" into sAppA["registered components"]["ui"]
+
   put normalizeFolderPath(sAppA["application data"]["user"]["folder"]) into sAppA["application data"]["user"]["folder"]
   put normalizeFolderPath(sAppA["application data"]["shared"]["folder"]) into sAppA["application data"]["shared"]["folder"]
   repeat while char 1 of sAppA["application data"]["user"]["folder"] is "/"
@@ -1037,6 +1040,47 @@ command levureLoadAppConfig
         resolveHelperAssets
         put the result into tError
       end if
+
+      ##########
+      # Process keys registered by helpers
+      ##########
+      local tKey, tKeyIndex, k
+
+      repeat with i = 1 to the number of elements of sAppA["helpers"]
+        repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
+          put empty into tFilesA
+          put 0 into j
+
+          put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
+
+          switch sAppA["helpers"][i]["register components"][tKeyIndex]["kind"]
+            case "ui"
+                put tKey into item (the number of items of sAppA["registered components"]["ui"]) + 1 \
+                      of sAppA["registered components"]["ui"]
+              break
+            case "yaml"
+                put tKey into item (the number of items of sAppA["registered components"]["yaml"]) + 1 \
+                      of sAppA["registered components"]["yaml"]
+              break
+          end switch
+
+          repeat with k = 1 to the number of elements of sAppA[tKey]
+            add 1 to j
+            put sAppA[tKey][k] into tFilesA[j]
+          end repeat
+
+          if the number of elements of tFilesA > 0 then
+            switch sAppA["helpers"][i]["register components"][tKeyIndex]["kind"]
+              case "ui"
+                  put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+                break
+              case "yaml"
+                  put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+                break
+            end switch
+          end if
+        end repeat
+      end repeat
     end if
   end if
 
@@ -1163,22 +1207,36 @@ private command loadAppAssets
   local tRenameAskDialog = "false"
   local tStackFiles, i
 
-  # ui
+  # ui and "registered components.ui"
   if tError is empty then
     put the stackFiles of stack kAppStackName into tStackFiles
     if tStackFiles is not empty then put cr after tStackFiles
 
-    repeat with i = 1 to the number of elements of sAppA["ui"]
-      put sAppA["ui"][i]["name"] & "," & \
-            sAppA["ui"][i]["filename"] & cr after tStackFiles
+    local tKey
 
-      # If app uses custom Ask/Answer dialogs then rename LiveCode ones
-      if sAppA["ui"][i]["name"] is "Answer Dialog" then
-        put there is a stack "Answer Dialog" into tRenameAnswerDialog
-      end if
-      if sAppA["ui"][i]["name"] is "Ask Dialog" then
-        put there is a stack "Ask Dialog" into tRenameAskDialog
-      end if
+    repeat for each item tKey in sAppA["registered components"]["ui"]
+      repeat with i = 1 to the number of elements of sAppA[tKey]
+        put sAppA[tKey][i]["name"] & "," & \
+              sAppA[tKey][i]["filename"] & cr after tStackFiles
+
+        # If app uses custom Ask/Answer dialogs then rename LiveCode ones
+        if sAppA[tKey][i]["name"] is "Answer Dialog" then
+          put there is a stack "Answer Dialog" into tRenameAnswerDialog
+        end if
+        if sAppA[tKey][i]["name"] is "Ask Dialog" then
+          put there is a stack "Ask Dialog" into tRenameAskDialog
+        end if
+      end repeat
+    end repeat
+  end if
+
+  # Load registered components.yaml files
+  if tError is empty then
+    repeat for each item tKey in sAppA["registered components"]["yaml"]
+      _loadRegisteredKeyYamlFiles tKey
+      put the result into tError
+
+      if tError is not empty then exit repeat
     end repeat
   end if
 
@@ -1236,6 +1294,34 @@ private command loadAppAssets
 
   return tError
 end loadAppAssets
+
+
+private command _loadRegisteredKeyYamlFiles pKey
+  local tError, i
+
+  repeat with i = 1 to the number of elements of sAppA[pKey]
+    put yamlFileToArray(sAppA[pKey][i]["filename"]) into sAppA[pKey][i]["data"]
+    put the result into tError
+
+    if tError is not empty then exit repeat
+  end repeat
+
+  return tError for error
+end _loadRegisteredKeyYamlFiles
+
+
+command levureReloadRegisteredKey pKey
+  local tError
+
+  set the wholematches to true
+
+  if pKey is among the items of sAppA["registered components"]["yaml"] then
+    _loadRegisteredKeyYamlFiles pKey
+    put the result into tError
+  end if
+
+  return tError for error
+end levureReloadRegisteredKey
 
 
 private command loadMessagePathAssets pArrayA
@@ -1946,12 +2032,12 @@ end expandHelperAssetsFileReferenceArray
 
 private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
-  local tEncrypt
+  local tProp, tPropsA
 
   replaceVariablesInPaths pFilesA
 
   repeat with i = 1 to the number of elements of pFilesA
-    put empty into tEncrypt
+    put empty into tPropsA
 
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
@@ -1959,12 +2045,14 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
       # expand the folder listing. Assume every folder is a ui to load.
       local tFolder
 
-      if "encrypt" is among the keys of pFilesA[i] then
-        put pFilesA[i]["encrypt"] into tEncrypt
-      end if
+      repeat for each item tProp in "distribute,encrypt"
+        if tProp is among the keys of pFilesA[i] then
+          put pFilesA[i][tProp] into tPropsA[tProp]
+        end if
+      end repeat
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
-        addUIStacksToFilesArray tFolder, tFilesA, tEncrypt
+        addUIStacksToFilesArray tFolder, tFilesA, tPropsA
       end repeat
       put the number of elements of tFilesA into j
 
@@ -1975,10 +2063,12 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
       # If filename points to a folder then load up the entire folder
       # Otherwise the target is a single file within the ui folder. Probably using different encryption setting.
       if there is a folder pFilesA[i]["filename"] then
-        if "encrypt" is among the keys of pFilesA[i] then
-          put pFilesA[i]["encrypt"] into tEncrypt
-        end if
-        addUIStacksToFilesArray pFilesA[i]["filename"], tFilesA, tEncrypt
+        repeat for each item tProp in "distribute,encrypt"
+          if tProp is among the keys of pFilesA[i] then
+            put pFilesA[i][tProp] into tPropsA[tProp]
+          end if
+        end repeat
+        addUIStacksToFilesArray pFilesA[i]["filename"], tFilesA, tPropsA
         put the number of elements of tFilesA into j
       else
         # points directly to a stack file
@@ -1988,9 +2078,11 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
           add 1 to j
           put pFilesA[i]["filename"] into tFilesA[j]["filename"]
           put pFilesA[i]["name"] into tFilesA[j]["name"]
-          if "encrypt" is among the keys of pFilesA[i] then
-            put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
-          end if
+          repeat for each item tProp in "distribute,encrypt"
+            if tProp is among the keys of pFilesA[i] then
+              put pFilesA[i][tProp] into tFilesA[j][tProp]
+            end if
+          end repeat
         end if
       end if
     end if
@@ -2000,8 +2092,8 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
 end expandUIAssetsFileReferenceArray
 
 
-private command addUIStacksToFilesArray pFolder, @xFilesA, pEncrypt
-  local tError, tFiles, tFile, tFileA, i
+private command addUIStacksToFilesArray pFolder, @xFilesA, pPropsA
+  local tError, tFiles, tFile, tFileA, tKey, i
 
   put the number of elements of xFilesA into i
 
@@ -2021,9 +2113,9 @@ private command addUIStacksToFilesArray pFolder, @xFilesA, pEncrypt
     if tFileA["name"] is not empty then
       add 1 to i
       put tFileA into xFilesA[i]
-      if pEncrypt is not empty then
-        put pEncrypt into xFilesA[i]["encrypt"]
-      end if
+      repeat for each key tKey in pPropsA
+        put pPropsA[tKey] into xFilesA[i][tKey]
+      end repeat
     end if
   end repeat
 
