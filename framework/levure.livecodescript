@@ -59,6 +59,7 @@ on relaunch
       repeat with i = 1 to the paramcount
         put param(i) & cr after tParams
       end repeat
+      delete the last char of tParams
 
       #
       # If `background` is returned then the engine won't bring any stacks forward.
@@ -302,11 +303,11 @@ private command loadCommandLineArguments
   if the platform is not "macos" then
     local tValue, tParams, i
 
-    set the itemDelimiter to "."
     repeat with i = 1 to ($# - 1)
       put value("$" & i) into tValue
       put tValue & cr after tParams
     end repeat
+    delete the last char of tParams
 
     if tParams is not empty then
       dispatch "appProcessCommandLineParameters" with tParams
