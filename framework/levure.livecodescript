@@ -1325,19 +1325,33 @@ end levureStandaloneFolder
 function levureStandaloneFilename
   local tFilename
 
-  put the cRevStandaloneSettings["name"] of me into tFilename
-  switch the platform
-    case "macos"
-      put ".app" after tFilename
-      break
-    case "win32"
-      put ".exe" after tFilename
-      break
-    case "linux"
-    default
-
-      break
-  end switch
+  if the environment is "development" then
+    put the cRevStandaloneSettings["name"] of me into tFilename
+    switch the platform
+      case "macos"
+        put ".app" after tFilename
+        break
+      case "win32"
+        put ".exe" after tFilename
+        break
+      case "linux"
+      default
+        break
+    end switch
+  else
+    set the itemDelimiter to "/"
+    switch the platform
+      case "macos"
+        put specialFolderPath("engine") into tFilename
+        delete item -2 to -1 of tFilename # /Contents/MacOS
+        break
+      case "win32"
+      case "linux"
+      default
+        put the last item of the address into tFilename
+        break
+    end switch
+  end if
   return levureStandaloneFolder() & "/" & tFilename
 end levureStandaloneFilename
 
