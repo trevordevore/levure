@@ -472,6 +472,15 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     set the uBuildProfile of stack tTempStandaloneStack to pBuildProfile
     set the script of stack tTempStandaloneStack to tScript
 
+    if pBuildProfile is "test" then
+      local tScriptLibraries
+      put the cRevStandaloneSettings["scriptLibraries"] of stack tTempStandaloneStack into tScriptLibraries
+      if "Remote Debugger" is not among the items of tScriptLibraries then
+        put "Remote Debugger" into item (the number of items of tScriptLibraries + 1) of tScriptLibraries
+        set the cRevStandaloneSettings["scriptLibraries"] of stack tTempStandaloneStack to tScriptLibraries
+      end if
+    end if
+
     log "Build: Saving temporary stack with IDE call"
 
     revIDESaveStack the long id of stack tTempStandaloneStack
