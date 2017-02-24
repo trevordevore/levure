@@ -1,12 +1,24 @@
+name: Levure Sample App
+version: 0.0.1
+build: 1
+encrypt stacks: false
 multiple instances: false
 relaunch in background: false
-application data folder: MyApp/1.0
+application data:
+  folder: MyApp/1.0
+  user: true
+  shared: false
 preferences:
   user:
     macos:
       filename: com.my-company.myapp_osx
     windows:
-      filename: MyApp/1.0/MyApp Preferences.dat
+      filename: MyApp/1.0/MyApp Preferences.prefs
+build folder: ../_builds
+build profiles:
+  default:
+  beta:
+  release:
 file extensions:
   Text File: txt
 file extension groups:
