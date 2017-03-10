@@ -1386,7 +1386,7 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
     put "on startup" & cr & \
           _qstr("set the itemDelimiter to `/`") & cr & \
           _qstr("if the platform is `macos` then") & cr & \
-          _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder) into tAppStackFilename") & cr & \
+          _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tAppStackFilename") & cr & \
           "else" & cr & \
           _qstr("put resolvePath(`" & tAppStackFilename & "`, the engine folder) into tAppStackFilename") & cr & \
           "end if" & cr & \
