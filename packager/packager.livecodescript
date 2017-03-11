@@ -137,11 +137,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       put the result into tError
     end if
 
-    # Components
+    # UI
     # Move straight across.
     # Convert script only stacks to regular stacks
     if tError is empty then
-      _packageComponents tAppA, tWorkingOutputFolder
+      _packageUI tAppA, tWorkingOutputFolder
       put the result into tError
     end if
 
@@ -860,56 +860,56 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
 end _packageHelpers
 
 
-private command _packageComponents @xAppA, pOutputFolder
+private command _packageUI @xAppA, pOutputFolder
   local tError
   local tCompsA, i
   local tComponentFolder
 
   set the itemdelimiter to "/"
 
-  if the number of elements of xAppA["components"] > 0 then
-    log "Packaging components"
+  if the number of elements of xAppA["ui"] > 0 then
+    log "Packaging ui"
 
-    create folder (pOutputFolder & "/components")
+    create folder (pOutputFolder & "/ui")
     put the result into tError
 
     if tError is empty then
       local tDestFolder
 
-      repeat with i = 1 to the number of elements of xAppA["components"]
-        put item 1 to -2 of xAppA["components"][i]["filename"] into tComponentFolder
+      repeat with i = 1 to the number of elements of xAppA["ui"]
+        put item 1 to -2 of xAppA["ui"][i]["filename"] into tComponentFolder
 
-        log "  Adding component:" && xAppA["components"][i]["filename"]
+        log "  Adding component:" && xAppA["ui"][i]["filename"]
 
-        put pOutputFolder & "/components/" & the last item of tComponentFolder into tDestFolder
+        put pOutputFolder & "/ui/" & the last item of tComponentFolder into tDestFolder
         _fileCopyFolder tComponentFolder, tDestFolder
         put the result into tError
 
         if tError is empty then
           local tExclusions
 
-          if xAppA["components"][i]["encrypt"] is false then
-            put tDestFolder & "/" & the last item of xAppA["components"][i]["filename"] into tExclusions
+          if xAppA["ui"][i]["encrypt"] is false then
+            put tDestFolder & "/" & the last item of xAppA["ui"][i]["filename"] into tExclusions
           end if
 
           _processStacksInFolder tDestFolder, sPassword, tExclusions
           put the result into tError
         end if
 
-        put "components/" & the last item of tComponentFolder & "/" & the last item of xAppA["components"][i]["filename"] into tCompsA[i]["filename"]
-        put xAppA["components"][i]["name"] into tCompsA[i]["name"]
+        put "ui/" & the last item of tComponentFolder & "/" & the last item of xAppA["ui"][i]["filename"] into tCompsA[i]["filename"]
+        put xAppA["ui"][i]["name"] into tCompsA[i]["name"]
 
         if tError is not empty then exit repeat
       end repeat
     end if
 
     if tError is empty then
-      put tCompsA into xAppA["components"]
+      put tCompsA into xAppA["ui"]
     end if
   end if
 
   return tError
-end _packageComponents
+end _packageUI
 
 
 private command _processStacksInFolder pFolder, pPassword, pExclusions
