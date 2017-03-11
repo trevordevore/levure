@@ -34,11 +34,11 @@ git submodule add https://github.com/trevordevore/levure.git levure
 - The framework is distributed in a `framework` folder that can be stored anywhere on your computer. The `levure.livecodescript` stack file is assigned as a behavior to the mainstack in the `standalone.livecode` stack file.
 - Your app is configured using the `app.yml` YAML file. This file can be alongside the `standalone.livecode` stack file or directly within a folder that resides alongside the `standalone.livecode` stack file.
 - Alongside the `app.yml` file is the `app.livecodescript` stack file.
-- Alongside the `app.yml` file you may have a `components`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders.
-- The `components` folder is where you will store the stacks used for your user interface. Each UI stack consists of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
+- Alongside the `app.yml` file you may have a `ui`, `libraries`, `frontscripts`, `backscripts`, `behaviors`, and `helpers` folders.
+- The `ui` folder is where you will store the stacks used for your user interface. Each UI stack consists of at least one stack file that is the stack for the UI. If you are using version control with your application then it is recommended that you place a `behaviors` folder alongside the stack file. Create a script only stack for each script in your stack and place the scripts in this folder. Assign each script only stack file to the `stackfiles` property of the UI stack so that the behavior stacks will be loaded automatically when the stack is opened.
 - The `libraries`, `frontscripts`, `backscripts`, and `behaviors` folders hold individual stack files that will be used globally. Libraries will be loaded using `start using`. Frontscripts will be loaded using `insert ... into front`. Backscripts will be loaded using `insert ... into back`. Behaviors will be loaded into memory so that the stack is available globally. After the stack is loaded into memory the `LoadBehavior` message will dispatched to it. This enables a script only stack to set its own behavior.
 - The `helpers` folder is for files that work together to add a specific piece of functionality to an application. The folder can contain stack files meant to be used for UI, libraries, frontscripts, or backscripts. It can also contain externals or extensions.
-- In the `app.yml` file you can load components, libraries, backscripts, frontscripts, and helpers from any location on your computer, even the LiveCode User Extensions folder. When your application is packaged up all of the necessary resources will be brought together to build the final application.
+- In the `app.yml` file you can load ui, libraries, backscripts, frontscripts, and helpers from any location on your computer, even the LiveCode User Extensions folder. When your application is packaged up all of the necessary resources will be brought together to build the final application.
 
 ## An example
 
@@ -57,7 +57,7 @@ git submodule add https://github.com/trevordevore/levure.git levure
       - preferences.livecodescript
       - preference.bundle
     ...
-- components/
+- ui/
   - preferences/
     - preferences.livecode
     - behaviors/
@@ -108,12 +108,12 @@ application data:
   shared: true|false [Set to true to create an application data folder in the shared location on the computer]
 creator code: [app creator code registered with Apple]
 shutdown when all windows are closed: true|false
-components:
+ui:
   1:
-    filename: [relative path to a specific component folder or a stack file within components folder]
+    filename: [relative path to a specific component folder or a stack file within ui folder]
     encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
   2:
-    folder: [path to folder containing components]
+    folder: [path to folder containing ui components]
     encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
 extensions:
   1:
@@ -133,25 +133,25 @@ libraries:
   1:
     filename: [relative path to stack file within libraries folder]
     encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
+    autoload: Optional parameter. Set to false if you don't want to `start using` the library when the application loads.
   2:
     folder: [relative path a folder with library stack files]
-    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 frontscripts:
   1:
     filename: [relative path to stack file within frontscripts folder]
     encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
+    autoload: Optional parameter. Set to false if you don't want to `insert` the stack script when the application loads.
   2:
     folder: [relative path a folder with frontscript stack files]
-    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 backscripts:
   1:
     filename: [relative path to stack file within backscript folder]
     encrypt: Optional parameter that can override the `encrypt stacks` setting for this stack.
+    autoload: Optional parameter. Set to false if you don't want to `insert` the stack script when the application loads.
   2:
     folder: [relative path a folder with backscript stack files]
-    encrypt: Optional parameter that can override the `encrypt stacks` setting for all stacks in the folder.
   ...
 helpers:
   1:
@@ -216,50 +216,50 @@ libraries:
     folder: ./libraries
 ```
 
-## components
+## ui
 
-There are three ways to load components. The first way is to specify a folder containing folders of components. The second is to target a specific folder containing the component. The third is to target a specific stack file within the component folder.
+There are three ways to load ui stacks. The first way is to specify a folder containing folders of ui stacks. The second is to target a specific folder containing the component. The third is to target a specific stack file within the component folder.
 
 ### Example 1
 
 ```
-components:
+ui:
   1:
-    folder: ./components
+    folder: ./ui
 ```
 
 ### Example 2
 
 ```
-components:
+ui:
   1:
-    filename: ./components/templates
+    filename: ./ui/about
 ```
 
 ### Example 3
 
 ```
-components:
+ui:
   1:
-    filename: ./components/templates/templates.livecode
+    filename: ./ui/about/about.livecode
 ```
 
-If you specify a folder containing folders of components (Example 1) then the framework will add all files ending with *.livecode or *.livecodescript to the list of stack files available to the application.
+If you specify a folder containing folders of ui components (Example 1) then the framework will add all files ending with *.livecode or *.livecodescript to the list of stack files available to the application.
 
 The second method (Example 2) allows you to target a single component folder to load.
 
 The third method (Example 3) is useful if you need to have a differnet encryption setting for a particular stack file. For example, if your application is encrypted with a password but you have a component that shouldn't be password protected then you could do this:
 
 ```
-components:
+ui:
   1:
-    filename: ./components/templates/templates.livecode
+    filename: ./ui/about/about.livecode
     encrypt: false
   2:
-    folder: ./components
+    folder: ./ui
 ```
 
-The component the you target with `filename` will be added to the list of stack files first along with the encryption setting. Then the folder of components will be loaded. The framework will see that the `components/templates/templates.livecode` stack file has already been analyzed and will skip it when loading the stack files in the `./components` folder.
+The ui component the you target with `filename` will be added to the list of stack files first along with the encryption setting. Then the folder of ui components will be loaded. The framework will see that the `ui/about/about.livecode` stack file has already been analyzed and will skip it when loading the stack files in the `./ui` folder.
 
 ## Extensions
 
@@ -283,7 +283,7 @@ If you have your extensions installed in your IDE user extensions folder and inc
 
 Helpers consist of a folder with a `helper.yml` file in it. The `helper.yml` file specifies what the other files in the folder should be used for. A helper can be made up of the following:
 
-- stacks
+- ui
 - libraries
 - backscripts
 - frontscripts
@@ -466,5 +466,5 @@ Manages windows in your application. Set a flag on a stack and it's position wil
 
 # Known Issues
 
-- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors stored in the `./behaviors` folder as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
+- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors stored in the `./behaviors` folder as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your ui components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
 - Window manager increases height of stacks when they are reopened on OS X.

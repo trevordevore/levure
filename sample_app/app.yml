@@ -26,10 +26,10 @@ file extension groups:
     1:
       name: All Supported Files
       extensions: txt
-components:
+ui:
   1:
     name: MyApp
-    filename: components/myapp/myapp.livecode
+    filename: ui/myapp/myapp.livecode
 libraries:
   1:
     folder: libraries

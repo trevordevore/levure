@@ -1074,7 +1074,7 @@ end _getKindFromExtensionFile
 
 private command _packageAssetStacks @xAppA, pOutputFolder
   local tError, i
-  local tStackLoadOrder
+  local tStacksToLoad
   local tStackName, tFilename
   local tUnprotectedStackName
 
@@ -1140,9 +1140,11 @@ private command _packageAssetStacks @xAppA, pOutputFolder
 
   # libraries, frontscripts, backscript
   if tError is empty then
+    local tProp
+
     repeat for each item tAssetType in "frontscripts,backscripts,libraries"
       put empty into tUnprotectedStackName
-      put empty into tStackLoadOrder
+      put empty into tStacksToLoad
 
       if the number of elements of xAppA[tAssetType] is 0 then next repeat
 
@@ -1170,11 +1172,16 @@ private command _packageAssetStacks @xAppA, pOutputFolder
           set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
         end if
 
-        put the short name of stack xAppA[tAssetType][i]["filename"] & cr after tStackLoadOrder
+        repeat for each key tProp in xAppA[tAssetType][i]
+          if tProp is "filename" then
+            put the short name of stack xAppA[tAssetType][i]["filename"] into tStacksToLoad[i]["name"]
+          else
+            put xAppA[tAssetType][i][tProp] into tStacksToLoad[i][tProp]
+          end if
+        end repeat
       end repeat
-      delete the last char of tStackLoadOrder
 
-      set the uStackLoadOrder of stack tStackName to tStackLoadOrder
+      set the uStacksToLoad of stack tStackName to tStacksToLoad
 
       log "Saving" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & ".livecode"
       save stack tStackName as (pOutputFolder & "/" & tAssetType & ".livecode") with newest format

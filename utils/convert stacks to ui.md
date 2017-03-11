@@ -1,14 +1,14 @@
-# Converting stacks to components
+# Converting stacks to UI components
 
-If you are going to version control your stacks then you should have each stack in its own stack file and all scripts should be in script only stack files. Here are two scripts which can aide you in converting your stacks.
+If you are going to version control your stacks then you should have each stack in its own stack file and all scripts should be in script only stack files. Here are two scripts which can aid you in converting your stacks.
 
 ## Save a stack in memory to a stack file on disk
 
-Run the following script to save a stack in memory to a file on disk. This can be used to place each stack in your application in its own components folder.
+Run the following script to save a stack in memory to a file on disk. This can be used to place each stack in your application in its own **ui** folder.
 
 ```
 put "REPLACE_WITH_YOUR_STACK_NAME" into tStack
-if there is not a stack tStack then 
+if there is not a stack tStack then
   beep
   exit to top
 end if

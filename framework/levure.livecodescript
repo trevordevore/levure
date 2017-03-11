@@ -575,7 +575,7 @@ command levureLoadAppConfig
         put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder) into sAppA[tSource]
       end repeat
 
-      put expandComponentAssetsFileReferenceArray(sAppA["components"], tRootFolder) into sAppA["components"]
+      put expandUIAssetsFileReferenceArray(sAppA["ui"], tRootFolder) into sAppA["ui"]
 
       put expandHelperAssetsFileReferenceArray(sAppA["helpers"], tRootFolder) into sAppA["helpers"]
       resolveHelperAssets
@@ -642,18 +642,18 @@ command levureLoadAppConfig
       end repeat
 
       ##########
-      # Components
+      # ui
       ##########
       put empty into tFilesA
       put 0 into j
 
-      repeat with i = 1 to the number of elements of sAppA["components"]
+      repeat with i = 1 to the number of elements of sAppA["ui"]
         add 1 to j
-        put sAppA["components"][i] into tFilesA[j]
+        put sAppA["ui"][i] into tFilesA[j]
       end repeat
 
       if the number of elements of tFilesA > 0 then
-        put expandComponentAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["components"]
+        put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["ui"]
       end if
 
       ##########
@@ -798,20 +798,20 @@ private command loadAppAssets
   local tRenameAskDialog = "false"
   local tStackFiles, i
 
-  # components
+  # ui
   if tError is empty then
     put the stackFiles of stack kAppStackName into tStackFiles
     if tStackFiles is not empty then put cr after tStackFiles
 
-    repeat with i = 1 to the number of elements of sAppA["components"]
-      put sAppA["components"][i]["name"] & "," & \
-            sAppA["components"][i]["filename"] & cr after tStackFiles
+    repeat with i = 1 to the number of elements of sAppA["ui"]
+      put sAppA["ui"][i]["name"] & "," & \
+            sAppA["ui"][i]["filename"] & cr after tStackFiles
 
       # If app uses custom Ask/Answer dialogs then rename LiveCode ones
-      if sAppA["components"][i]["name"] is "Answer Dialog" then
+      if sAppA["ui"][i]["name"] is "Answer Dialog" then
         put there is a stack "Answer Dialog" into tRenameAnswerDialog
       end if
-      if sAppA["components"][i]["name"] is "Ask Dialog" then
+      if sAppA["ui"][i]["name"] is "Ask Dialog" then
         put there is a stack "Ask Dialog" into tRenameAskDialog
       end if
     end repeat
@@ -874,8 +874,8 @@ end loadAppAssets
 
 
 private command loadMessagePathAssets pArrayA
-  local tFileIsLoaded, i
-  local tStack
+  local tFileIsLoaded, i, j
+  local tStacksA, tStack, tIsLoaded
 
   repeat with i = 1 to the number of elements of pArrayA["behaviors"]
     put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
@@ -893,26 +893,50 @@ private command loadMessagePathAssets pArrayA
   end repeat
 
   repeat with i = 1 to the number of elements of pArrayA["libraries"]
-    start using stack pArrayA["libraries"][i]["filename"]
+    if pArrayA["libraries"][i]["autoload"] is not false then
+      start using stack pArrayA["libraries"][i]["filename"]
+    else
+      # Try to access property so that error is thrown if it can't be found
+      put the name of stack pArrayA["libraries"][i]["filename"] into tIsLoaded
+    end if
     # for packaged apps
-    repeat for each line tStack in the uStackLoadOrder of stack pArrayA["libraries"][i]["filename"]
-      start using stack tStack
+    put the uStacksToLoad of stack pArrayA["libraries"][i]["filename"] into tStacksA
+    repeat with j = 1 to the number of elements of tStacksA
+      if tStacksA[j]["autoload"] is not false then
+        start using stack tStacksA[j]["name"]
+      end if
     end repeat
   end repeat
 
   repeat with i = 1 to the number of elements of pArrayA["backscripts"]
-    insert script of stack pArrayA["backscripts"][i]["filename"] into back
+    if pArrayA["backscripts"][i]["autoload"] is not false then
+      insert script of stack pArrayA["backscripts"][i]["filename"] into back
+    else
+      # Try to access property so that error is thrown if it can't be found
+      put the name of stack pArrayA["backscripts"][i]["filename"] into tIsLoaded
+    end if
     # for packaged apps
-    repeat for each line tStack in the uStackLoadOrder of stack pArrayA["backscripts"][i]["filename"]
-      insert script of stack tStack into back
+    put the uStacksToLoad of stack pArrayA["backscripts"][i]["filename"] into tStacksA
+    repeat with j = 1 to the number of elements of tStacksA
+      if tStacksA[j]["autoload"] is not false then
+        insert script of stack tStacksA[j]["name"] into back
+      end if
     end repeat
   end repeat
 
   repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
-    insert script of stack pArrayA["frontscripts"][i]["filename"] into front
+    if pArrayA["frontscripts"][i]["autoload"] is not false then
+      insert script of stack pArrayA["frontscripts"][i]["filename"] into back
+    else
+      # Try to access property so that error is thrown if it can't be found
+      put the name of stack pArrayA["frontscripts"][i]["filename"] into tIsLoaded
+    end if
     # for packaged apps
-    repeat for each line tStack in the uStackLoadOrder of stack pArrayA["frontscripts"][i]["filename"]
-      insert script of stack tStack into front
+    put the uStacksToLoad of stack pArrayA["frontscripts"][i]["filename"] into tStacksA
+    repeat with j = 1 to the number of elements of tStacksA
+      if tStacksA[j]["autoload"] is not false then
+        insert script of stack tStacksA[j]["name"] into front
+      end if
     end repeat
   end repeat
 
@@ -1373,7 +1397,7 @@ end levureFrameworkFolder
 
 
 private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
-  local tFilesA, i, j
+  local tFilesA, i, j, tProp
 
   replaceVariablesInPaths pFilesA
 
@@ -1398,12 +1422,11 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
           put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
                 into tFilesA[j]["source"]
         end if
-        if "distribute" is among the keys of pFilesA[i] then
-          put pFilesA[i]["distribute"] into tFilesA[j]["distribute"]
-        end if
-        if "encrypt" is among the keys of pFilesA[i] then
-          put pFilesA[i]["encrypt"] into tFilesA[j]["encrypt"]
-        end if
+        repeat for each item tProp in "distribute,encrypt,autoload"
+          if tProp is among the keys of pFilesA[i] then
+            put pFilesA[i][tProp] into tFilesA[j][tProp]
+          end if
+        end repeat
       end if
     end if
   end repeat
@@ -1470,7 +1493,7 @@ private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
 end expandHelperAssetsFileReferenceArray
 
 
-private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
+private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
   local tFilesA, i, j
   local tEncrypt
 
@@ -1482,7 +1505,7 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
-      # expand the folder listing. Assume every folder is a component to load.
+      # expand the folder listing. Assume every folder is a ui to load.
       local tFolder
 
       if "encrypt" is among the keys of pFilesA[i] then
@@ -1490,7 +1513,7 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
       end if
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
-        addComponentStacksToFilesArray tFolder, tFilesA, tEncrypt
+        addUIStacksToFilesArray tFolder, tFilesA, tEncrypt
       end repeat
       put the number of elements of tFilesA into j
 
@@ -1499,12 +1522,12 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
             into pFilesA[i]["filename"]
 
       # If filename points to a folder then load up the entire folder
-      # Otherwise the target is a single file within the component folder. Probably using different encryption setting.
+      # Otherwise the target is a single file within the ui folder. Probably using different encryption setting.
       if there is a folder pFilesA[i]["filename"] then
         if "encrypt" is among the keys of pFilesA[i] then
           put pFilesA[i]["encrypt"] into tEncrypt
         end if
-        addComponentStacksToFilesArray pFilesA[i]["filename"], tFilesA, tEncrypt
+        addUIStacksToFilesArray pFilesA[i]["filename"], tFilesA, tEncrypt
         put the number of elements of tFilesA into j
       else
         # points directly to a stack file
@@ -1523,10 +1546,10 @@ private function expandComponentAssetsFileReferenceArray pFilesA, pRootFolder
   end repeat
 
   return tFilesA
-end expandComponentAssetsFileReferenceArray
+end expandUIAssetsFileReferenceArray
 
 
-private command addComponentStacksToFilesArray pFolder, @xFilesA, pEncrypt
+private command addUIStacksToFilesArray pFolder, @xFilesA, pEncrypt
   local tError, tFiles, tFile, tFileA, i
 
   put the number of elements of xFilesA into i
@@ -1554,7 +1577,7 @@ private command addComponentStacksToFilesArray pFolder, @xFilesA, pEncrypt
   end repeat
 
   return empty
-end addComponentStacksToFilesArray
+end addUIStacksToFilesArray
 
 
 private command replaceVariablesInPaths @pFilesA
