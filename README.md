@@ -15,13 +15,13 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 # Learn How To Use Levure
 
-Visit the [Levure Wiki](./wiki/) to get started.
+Visit the [Levure Wiki](https://github.com/trevordevore/levure/wiki/) to get started.
 
 # How To Help
 
 Want to help this project? There are a number of ways to contribute.
 
-- Review the [wiki](./wiki) and submit improvements.
+- Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
 - Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
 - Create a helper component for the MAS (security-scoped bookmarks and licensing).
 - Help with an auto update helper component
