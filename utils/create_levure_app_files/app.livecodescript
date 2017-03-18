@@ -1,6 +1,9 @@
 script "app"
 command PreloadApplication
-
+  # Uncomment to use Sublime Text external editor in development
+  -- if the environment is "development" then
+  --   levureLoadExternalEditorServer
+  -- end if
 end PreloadApplication
 
 
