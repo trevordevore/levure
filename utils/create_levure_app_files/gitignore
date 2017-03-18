@@ -1,0 +1,5 @@
+# Don't sync build folder
+/builds
+
+# Misc
+.env

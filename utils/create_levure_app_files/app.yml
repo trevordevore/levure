@@ -1,0 +1,41 @@
+name:
+version: 0.0.1
+build: 1
+encrypt stacks: false
+multiple instances: false
+relaunch in background: false
+application data:
+  folder:
+    user: true
+    shared: false
+creator code:
+shutdown when all windows are closed: false
+preferences:
+  user:
+    macos:
+      filename:
+    windows:
+      filename:
+ui:
+  1:
+    folder: ./ui
+libraries:
+  1:
+    folder: ./libraries
+frontscripts:
+  1:
+    folder: ./frontscripts
+backscripts:
+  1:
+    folder: ./backscripts
+behaviors:
+  1:
+    folder: ./behaviors
+build folder: ../_builds
+build profiles:
+  default:
+    post build script:
+    macos:
+      certificate name:
+  release:
+  beta:
