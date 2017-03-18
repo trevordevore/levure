@@ -6,7 +6,7 @@ multiple instances: false
 relaunch in background: false
 application data:
   folder:
-    user: true
+    user: false
     shared: false
 creator code:
 shutdown when all windows are closed: false
@@ -31,7 +31,7 @@ backscripts:
 behaviors:
   1:
     folder: ./behaviors
-build folder: ../_builds
+build folder: ../builds
 build profiles:
   default:
     post build script:
