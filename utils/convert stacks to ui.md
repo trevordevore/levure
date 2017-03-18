@@ -38,6 +38,13 @@ Use this script to convert the card or stack script of a stack to a script only 
 put "card" into tTarget
 
 put the short name of this stack into tStack
+
+put the filename of stack tStack into tFilename
+if tFilename is empty then
+  answer error "You must save the stack before running this script."
+  exit to top
+end if
+
 if tTarget is "stack" then
   put the long id of stack tStack into tObject
   put "stack" into tTargetName
@@ -56,11 +63,26 @@ else
       "Behavior" into tBehaviorStackName
   end if
 end if
-put the script of tObject into tScript
-put the filename of stack tStack into tFilename
+
 set the itemDelimiter to "/"
-put "behaviors/" & tTargetName & ".livecodescript" into the last item of tFilename
+
+put "behaviors" into the last item of tFilename
+if there is not a folder tFilename then
+  create folder tFilename
+  if the result is not empty then
+    answer error "Error creating behaviors folder:" && the result
+    exit to top
+  end if
+end if
+
+put the script of tObject into tScript
+put "/" & tTargetName & ".livecodescript" after tFilename
 put "script " & quote & tBehaviorStackName & quote & cr & cr & tScript into URL("file:" & tFilename)
+if the result is not empty then
+  answer error "Error saving script:" && the result
+  exit to top
+end if
+
 set the script of tObject to empty
 put the stackfiles of stack tStack into tStackFiles
 put tBehaviorStackName & "," & "behaviors/" & item -1 of tFilename into line (the number of lines of tStackFiles + 1) of tStackFiles
