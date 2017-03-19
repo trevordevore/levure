@@ -77,7 +77,7 @@ end if
 
 put the script of tObject into tScript
 put "/" & tTargetName & ".livecodescript" after tFilename
-put "script " & quote & tBehaviorStackName & quote & cr & cr & tScript into URL("file:" & tFilename)
+put textencode("script " & quote & tBehaviorStackName & quote & cr & cr & tScript, "utf8") into URL("binfile:" & tFilename)
 if the result is not empty then
   answer error "Error saving script:" && the result
   exit to top
