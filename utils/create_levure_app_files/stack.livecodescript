@@ -35,6 +35,11 @@ command CreateLevureApp pFolder
     end if
 
     if tError is empty then
+      AddFilesToGit
+      put the result into tError
+    end if
+
+    if tError is empty then
       AppProjectCompleted
     end if
   else
@@ -114,8 +119,8 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
-    put DefaultAppYaml() into url("file:" & tFolder & "/app.yml")
-    put DefaultAppScript() into url("file:" & tFolder & "/app.livecodescript")
+    put DefaultAppYaml() into url("binfile:" & tFolder & "/app.yml")
+    put DefaultAppScript() into url("binfile:" & tFolder & "/app.livecodescript")
   end if
 
   if tError is empty then
@@ -125,7 +130,7 @@ command CreateApplicationFilesAndFolders
     create folder tFolder & "/ui/sample_window/behaviors"
 
     put tFolder & "/ui/sample_window/behaviors/card_behavior.livecodescript" into tBehaviorFile
-    put the uSampleWindowBehavior of me into url ("file:" & tBehaviorFile)
+    put the uSampleWindowBehavior of me into url ("binfile:" & tBehaviorFile)
 
     clone stack "LevureSampleWindowTemplate" as "LevureSampleWindow"
     set the behavior of this card of stack "LevureSampleWindow" to the long id of stack tBehaviorFile
@@ -134,7 +139,7 @@ command CreateApplicationFilesAndFolders
     delete stack tBehaviorFile
   end if
 
-  AnswerError "creating Levure application files and folders", tError
+  return tError
 end CreateApplicationFilesAndFolders
 
 
@@ -151,7 +156,7 @@ command CreateStandaloneStackfile
     delete stack "LevureStandalone"
   end if
 
-  AnswerError "creating standalone stack", tError
+  return tError
 end CreateStandaloneStackfile
 
 
@@ -172,8 +177,20 @@ command SetupGitInFolder
   end if
 
   if tError is empty then
-    put the uGitIgnoreFile of this stack into url("file:" & sSettingsA["target folder"] & "/.gitignore")
+    put the uGitIgnoreFile of this stack into url("binfile:" & sSettingsA["target folder"] & "/.gitignore")
   end if
+
+  set the defaultFolder to tFolder
+
+  return tError
+end SetupGitInFolder
+
+
+command AddFilesToGit
+  local tFolder, tResult, tError
+
+  put the defaultFolder into tFolder
+  set the defaultFolder to sSettingsA["target folder"]
 
   if tError is empty then
     put shell("git add .") into tResult
@@ -182,8 +199,8 @@ command SetupGitInFolder
 
   set the defaultFolder to tFolder
 
-  AnswerError "setting up git", tError
-end SetupGitInFolder
+  return tError
+end AddfilesToGit
 
 
 private function DefaultAppYaml
