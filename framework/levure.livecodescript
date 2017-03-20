@@ -86,6 +86,14 @@ on relaunch
 end relaunch
 
 
+/**
+Summary: Displays errors that occur in a standalone during initialization or cleanup.
+
+Description:
+If an error occurs in a standalone while the framework is loading or shutting down the application
+then the error will be displayed and the application will quit. The assumption is that something
+unexpected happened and you don't want your application lingering around in memory unable to quit.
+*/
 on errorDialog pError
   if the environment is "development" OR sRuntimePropertiesA["state"] is "running" then pass errorDialog
 
@@ -94,16 +102,62 @@ on errorDialog pError
 end errorDialog
 
 
+/**
+Summary: Returns the version of the Levure framework in use.
+
+Returns: The version in format x.x.x.x
+*/
 function levureVersion
   return kVersion
 end levureVersion
 
 
+/**
+Summary: Returns the filename of the `app` stack file.
+
+Example:
+put levureAppStackFilename() into tAppStackFilename
+
+Returns: Path to file
+*/
 function levureAppStackFilename
   return appStackFilename()
 end levureAppStackFilename
 
 
+/**
+Summary: Packages up a levure application for distribution.
+
+pBuildProfile: The profile to build (e.g. `release` or `beta`). The profile must be defined in your `app.yml` file.
+
+Description:
+When you are ready to package up your application for distribution to someone you call this handler.
+The build profile that you pass in is the value that will be returned by `levureBuildProfile()` when
+running the standalones.
+
+When packaging the application stacks will be encrypted if A) the `encrypted stacks` property is true in the `app.yml`
+file and a password can be located. The password can be stored in the `app.yml` file (not advisable if you store your
+project in a version control system) or in the `.env` file that sits alongside the `app.yml` file (add a PASSWORD=VALUE line).
+
+During the packaging process any properties defined in the `build profiles` > `all profiles` and `build profiles` > `pBuildProfile`
+sections of your `app.yml` file will affect how the application is packaged. Below is a description of properties you can define.
+
+The `post build script` property points to a stack that will receive the `finalizePackageForBuildProfile pBildProfile, pSettings`
+and `finishedBuildingPackageForBuildProfile pBuildProfile, pSettingsA` messages. `pSettingsA` has an `output folder` key that
+contains the path to the folder where all of the packaged files are located.
+
+The `macos` > `certificate name` property is the name of the certificate that the packager should use to sign your applications on OS X.
+The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
+and with `3rd Party Mac Developer Application:` for apps being distributed through the Mac App Store. The packager assumes you are
+distributing through the Mac App Store if the name of pBuildProfile is "mas" or "mac app store".
+
+The `copy files` property determines which files will be copied into the output folder.
+
+Example:
+levurePackageApplication "release"
+
+Returns: Error message
+*/
 command levurePackageApplication pBuildProfile
   local tError, tStackFilename
 
@@ -137,18 +191,51 @@ command levurePackageApplication pBuildProfile
 end levurePackageApplication
 
 
+/**
+Summary: Message sent from the packager script.
+
+Description:
+Move along. Nothing to see here.
+*/
 command packagerDidFinishPackagingApplication
   # Remove from memory after packaging is complete
   delete stack "Levure Framework Application Packager"
 end packagerDidFinishPackagingApplication
 
 
+/**
+Summary: Message sent from the packager script.
+
+Description:
+Move along. Nothing to see here.
+*/
 command packagerDidFinishBuildingStandalone
   # Remove from memory after building standalone is complete
   delete stack "Levure Framework Application Packager"
 end packagerDidFinishBuildingStandalone
 
 
+/**
+Summary: Builds a standalone that loads all of your development files when launched.
+
+Description:
+This handler will create standalone engines that can be used for testing on your target platforms.
+A `test` folder will be created in the `builds` folder that is configured in your `app.yml` file.
+The `test` folder will have executables for each desktop platform that you standalone.livecode stack
+has been configured for in Standalone Settings.
+
+None of the actual application stacks are bundled with the executables. When you launch any of
+the executables the executable will load the files from your development folder. This allows you
+to quickly test changes while running from a standalone.
+
+The Levure packager will attempt to include the Remote Debugger
+(available in LiveCode 9 and above for Business licenses) if it is available.
+
+Example:
+levureBuildStandalonesForTesting
+
+Returns: Error message
+*/
 command levureBuildStandalonesForTesting
   local tError, tStackFilename
 
@@ -181,7 +268,32 @@ command levureBuildStandalonesForTesting
 end levureBuildStandalonesForTesting
 
 
-command levureLoadExternalEditorServer
+/**
+Summary: Starts the server that listens for changes to application stack scripts.
+
+[pPort]: Pass in a port if you plan on having two different Levure applications open in two different instances of the IDE. Otherwise the default port should suffice.
+
+Description:
+This handler allows you to work on a Levure application in the IDE and edit all of your script only stacks using
+an external editor. The handler loads a stack into the IDE that starts a server on the `localhost`. The server listens
+for requests notifying the server that a script only stack has been updated. The server will then update the script
+of the matching stack in memory.
+
+This handler is typically called in the `PreloadApplication` message that is sent to the `app` stack.
+
+Currently Sublime Text is the only editor that will work using this setup. If you have the LiveCode language module
+installed for LiveCode then each time you save a LiveCode file in Sublime Text a request is sent to the server.
+
+Example:
+command PreloadApplication
+  if the environment is "development" then
+    levureLoadExternalEditorServer
+  end if
+end PreloadApplication
+
+Returns: Empty
+*/
+command levureLoadExternalEditorServer pPort
   local tStackFilename, tStackPath
 
   set the itemdelimiter to "/"
@@ -190,21 +302,52 @@ command levureLoadExternalEditorServer
   put "utils/external_editor_server/external_editor_server.livecodescript" into tStackPath
   put tStackPath into the last item of tStackFilename
   if there is a stack tStackFilename then
-    # TODO: Send port from .env file
-    dispatch "levureExternalEditorStartServer" to stack tStackFilename
+    if pPort is not an integer then
+      put levureAppGetENV("EXTERNAL_EDITOR_PORT") into pPort
+    end if
+    dispatch "levureExternalEditorStartServer" to stack tStackFilename with pPort
   else
     answer error tStackPath && "was not found"
   end if
 
+  return empty
 end levureLoadExternalEditorServer
 
 
-# So no scripts have to hard code name
+/**
+Summary: Returns the name of the `app` stack.
+
+Description:
+If you ever need to refer to the `app` stack by name you can call this function. It
+saves you from hard coding `app` in your code.
+
+Example:
+dispatch "MyCustomMessage" to stack levureAppStackName()
+
+Returns: "app"
+*/
 function levureAppStackName
   return kAppStackName
 end levureAppStackName
 
 
+/**
+Summary: Initializes and runs the application.
+
+Description:
+This handler is used internally by the framework to initialize and run the application.
+
+Typically you will never need to call this handler as it is called automatically at `startup`
+when your application is running in a standalone or when you click the button in the
+`standalone.livecode` stack.
+
+Example:
+# In this example "MyStandalone" is the name of the standalone.livecode stack
+start using stack "MyStandalone"
+dispatch "levureInitializeAndRunApplication" to stack "MyStandalone"
+
+Returns: Empty
+*/
 command levureInitializeAndRunApplication
   local tError
 
@@ -224,9 +367,32 @@ command levureInitializeAndRunApplication
       quit
     end if
   end if
+
+  return empty
 end levureInitializeAndRunApplication
 
 
+/**
+Summary: Initializes the application without running it.
+
+Description:
+This handler is used internally by the framework to load the configuration information, load
+all helpers, libraries, frontscripts, backscripts, behaviors, and ui assets. The `PreloadApplication`
+message will be dispatched to the `app` stack.
+
+Typically you will never need to call this handler. If you need to troubleshoot something
+without runing your application you can call this handler after opening the `standalone.livecode`
+file in the IDE. See example.
+
+Example:
+# In this example "MyStandalone" is the name of the standalone.livecode stack
+start using stack "MyStandalone"
+dispatch "levureInitializeFramework" to stack "MyStandalone"
+put levureAppGetConfig() into tA
+put tA["version"]
+
+Returns: Error message
+*/
 command levureInitializeFramework pRootFolder
   local tError
 
@@ -268,6 +434,15 @@ command levureInitializeFramework pRootFolder
 end levureInitializeFramework
 
 
+/**
+Summary: Begins running the application during the startup sequence.
+
+Description:
+This handler is called "in time" during the startup sequence. You will not call this handler
+in your code.
+
+Returns: Empty
+*/
 command levureRunApplication
   local tError, tStacksInApp
 
@@ -293,11 +468,12 @@ command levureRunApplication
       ## Slight delay here so that appleEvents can be sent before
       ## Application is loaded. This allows URLs that launched application
       ## to be tucked away in "process url"
-      send "levurefinishLoadingApplication" to me in 10 milliseconds
+      send "levureFinishLoadingApplication" to me in 10 milliseconds
     end if
   end if
 
   -- display tError
+  return empty
 end levureRunApplication
 
 
@@ -315,10 +491,20 @@ private command loadCommandLineArguments
       dispatch "appProcessCommandLineParameters" with tParams
     end if
   end if
+  return empty
 end loadCommandLineArguments
 
 
-command levurefinishLoadingApplication
+/**
+Summary: Finishes loading the application during the startup sequence.
+
+Description:
+This handler is called "in time" during the startup sequence. You will not call this handler
+in your code.
+
+Returns: Empty
+*/
+command levureFinishLoadingApplication
   local msgsAreLocked
 
   dispatch "OpenApplication" to stack kAppStackName
@@ -329,9 +515,24 @@ command levurefinishLoadingApplication
   lock messages
   close me
   set the lockMessages to msgsAreLocked
-end levurefinishLoadingApplication
+  return empty
+end levureFinishLoadingApplication
 
 
+/**
+Summary: Returns the folder where application data is stored for the application.
+
+pUserOrShared: Pass in `shared` for the shared folder path. Pass in `user` for the user folder path. Default is `user`.
+
+Description:
+This handler combines the standard folder where application data is stored
+on the current system with the application data folder defined in the `app.yml` file.
+
+Example:
+put levureApplicationDataFolder("user") into tUserDataFolder
+
+Returns: Path to folder
+*/
 function levureApplicationDataFolder pUserOrShared
   local tFolder
 
@@ -371,16 +572,68 @@ function levureApplicationDataFolder pUserOrShared
 end levureApplicationDataFolder
 
 
+/**
+Summary: Returns the current state of the application.
+
+Description:
+Returns a value of `loading`, `running`, or `shutting down`. These values reflect the
+internal state of the Levure application.
+
+While Levure is loading application files at startup
+the state is `running`.
+
+When Levure has begun to shut down the application (e.g. the user quit the application) then
+the state is `shutting down`.
+
+In all other cases the state is `running`.
+
+Example:
+if levureApplicationState() is "shutting down" then
+  exit to top
+end if
+
+Returns: "loading", "running", "shutting down"
+*/
 function levureApplicationState
   return sRuntimePropertiesA["state"]
 end levureApplicationState
 
 
+/**
+Summary: Returns the internal array that was created when reading the `app.yml` file.
+
+Example:
+put levureAppGetConfig() into tAppA
+put tAppA["name"]
+
+Returns: Array
+*/
 function levureAppGetConfig
   return sAppA
 end levureAppGetConfig
 
 
+/**
+Summary: Returns an environmental variable stored in the `.env` file.
+
+Description:
+During development you can place an `.env` file alongside the `app.yml` file. The format is
+a key=value pair, one per line. This function will return a key value.
+
+Use the `.env` file to store values you don't want stored in a git repository. For example,
+you should store the `password` used to password protect your application in the `.env` file.
+As long as the `.env` file is not stored in your version control repository the password
+will not be stored in the repository.
+
+The Levure application packager will use this function to check for a password when packaging
+your application.
+
+Example:
+# Assumes your .env file has a PASSWORD=VALUE line in it
+put levureAppGetENV("password") into tPassword
+
+Returns: String
+*/
 function levureAppGetENV
   local tError, tEnvA
 
@@ -400,6 +653,25 @@ function levureAppGetENV
 end levureAppGetENV
 
 
+/**
+Summary: Gets an app property.
+
+Description:
+This handler targets the internal array that was created when the app.yml file
+was loaded.
+
+Example:
+put levureAppGet("multiple instances")
+
+# Get a multi-dimensional value
+put "preferences" into tLookupA[1]
+put "shared" into tLookupA[2]
+put "macos" into tLookupA[3]
+put "filename" into tLookupA[4]
+put levureAppGet(tLookupA)
+
+Returns: Mixed as it depends on property value
+*/
 function levureAppGet pProp
   # todo: validate that array index lookup is valid
   if pProp is an array or pProp is among the keys of sAppA then
@@ -410,16 +682,52 @@ function levureAppGet pProp
 end levureAppGet
 
 
-# Sets property for life of session. Doesn't update app.yml file
+/**
+Summary: Sets an app property for the life of the current session.
+
+Description:
+This handler targets the internal array that was created when the app.yml file
+was loaded. The value will only be updated for the current session. The app.yml
+file is not updated.
+
+Example:
+levureAppSet "multiple instances", true
+
+# Set a multi-dimensional property
+put "preferences" into tLookupA[1]
+put "shared" into tLookupA[2]
+put "macos" into tLookupA[3]
+put "filename" into tLookupA[4]
+levureAppSet tLookupA, "com.mycompanyname.myapp-shared"
+
+Returns: Empty
+*/
 command levureAppSet pProp, pValue
   if pProp is an array or pProp is among the keys of sAppA then
     put pValue into sAppA[pProp]
   else
     throw "invalid levure app property:" && pProp
   end if
+  return empty for error
 end levureAppSet
 
 
+/**
+Summary: Returns the name of the build profile used to package the version of the application that is running.
+
+Description:
+When you package an application you package a specific build profile. This handler
+returns the name of the build profile that was used. When running in the IDE "development"
+is returned.
+
+Example:
+put levureAppGet("version") into tVersionString
+if the levureBuildProfile() is "beta" then
+  put " (BETA)" after tVersionString
+end if
+
+Returns: Build profile name
+*/
 function levureBuildProfile
   if the environment is "development" then
     return "development"
@@ -427,11 +735,6 @@ function levureBuildProfile
     return the uBuildProfile of me # Assigned at build time
   end if
 end levureBuildProfile
-
-
-command levureUnloadApplication
-  unloadApp
-end levureUnloadApplication
 
 
 private command normalizeAppArray
@@ -487,16 +790,21 @@ end unloadAssets
 
 
 /**
-* \brief Cleans up and shuts down the application. Dispatches PreShutdownApplication.
-*
-* This command is called by the framework. There is no need for a developer to call this message.
-*
-* \return empty
+Summary: Cleans up and shuts down the application when running in a standalone.
+
+Description:
+You should not need to call this handler in your own code. The framework calls this handler
+when the `shutdown` message is received. An auto updater would call this function as well
+when unloading the application prior to update.
+
+When this handler is called it will dispatch `PreShutdownApplication` to the `app` stack.
+
+Returns: empty
 */
 command levureShutdownApplication
   local tError, tCurrentState
 
-  # 2016-04-18: Don't allow multiple calls to this.
+  # Don't allow multiple calls to this.
   if sRuntimePropertiesA["state"] is "shutting down" then exit levureShutdownApplication
 
   put sRuntimePropertiesA["state"] into tCurrentState
@@ -539,6 +847,23 @@ command levureShutdownApplication
 end levureShutdownApplication
 
 
+/**
+Summary: Loads the app configuration data into memory and resolves all file references in it.
+
+Description:
+When calling this command in the IDE the app.yml file will be read into memory.
+When calling this command in a standalone the configuration information is stored as a
+custom property of the `app` stack.
+
+The app.yml file can contain relative folder and file references. All relative referneces
+will be resolved when calling this handler.
+
+Example:
+levureLoadAppConfig
+answer levureAppGet("name")
+
+Returns: Error message
+*/
 command levureLoadAppConfig
   local tError
   local tSource
@@ -984,6 +1309,21 @@ private command loadExtensions pArrayA
 end loadExtensions
 
 
+/**
+Summary: Builds extensions configured in the app.yml file.
+
+Description:
+If the app.yml file includes references to the source code files (*.lcb) for extensions then
+this command will compile the source code and update the .lcm file for the extension.
+
+This command can be useful if you are running the application for the first time on a system
+that doesn't have compiled versions of the extensions.
+
+Example:
+levureBuildExtensions
+
+Returns: Error message
+*/
 command levureBuildExtensions
   local tError
 
@@ -1323,11 +1663,30 @@ private function normalizeFolderPath pFilename
 end normalizeFolderPath
 
 
+/**
+Summary: Returns path to the folder where the app.yml file is located.
+
+Example:
+put levureAppFolder() into tAppFolder
+
+Returns: Path to file
+*/
 function levureAppFolder
   return sAppFolder for value
 end levureAppFolder
 
 
+/**
+Summary: Returns the path to the folder where the app.yml file is located relative to the location where the standalone stack is located.
+
+Description:
+If standalone.livecode and app.yml are in the same directory then this function returns empty.
+
+Example:
+put levureRelativeAppFolderPath() into tRelativePath
+
+Returns: Relative path to folder
+*/
 function levureRelativeAppFolderPath
   local tPath
 
@@ -1338,11 +1697,33 @@ function levureRelativeAppFolderPath
 end levureRelativeAppFolderPath
 
 
-function levureStandaloneStack
-  return the name of me
-end levureStandaloneStack
+/**
+Summary: Returns the short name of the `standalone.livecode` stack.
+
+Example:
+put levureStandaloneStackName() into tStackName
+
+Returns: Stack short name
+*/
+function levureStandaloneStackName
+  return the short name of me
+end levureStandaloneStackName
 
 
+/**
+Summary: Returns the path to the folder the application standalone is in.
+
+Description:
+On OS X the path points to the folder where the application bundle is located,
+not the actual executable file inside of the application bundle.
+
+If called in the IDE this returns the path where the standalone.livecode stack file is located.
+
+Example:
+put levureStandaloneFolder() into tAppFolder
+
+Returns: Path to folder
+*/
 function levureStandaloneFolder
   local tFolder
 
@@ -1358,6 +1739,14 @@ function levureStandaloneFolder
 end levureStandaloneFolder
 
 
+/**
+Summary: Returns the path of the application standalone.
+
+Example:
+put levureStandaloneFilename() into tAppFilename
+
+Returns: Path to file
+*/
 function levureStandaloneFilename
   local tFilename
 
@@ -1392,11 +1781,28 @@ function levureStandaloneFilename
 end levureStandaloneFilename
 
 
+/**
+Summary: Returns the folder where the packager will place builds.
+
+Example:
+put levureBuildFolder() into tBuildFolder
+launch document tBuildFolder & "/build.log"
+
+Returns: Path to folder
+*/
 function levureBuildFolder
   return resolveFilenameReference(sAppA["build folder"], levureAppFolder())
 end levureBuildFolder
 
 
+/**
+Summary: Returns the path to the folder where the levureFramework.livecodescript file is located.
+
+Example:
+put the levureFrameworkFolder() into tFolder
+
+Returns: Path to folder
+*/
 function levureFrameworkFolder
   local tFolder
 
@@ -1691,10 +2097,10 @@ private function resolveFilenameReference pFilename, pRootFolder
     if pFilename begins with "../" then
       return resolveRelativeFilenameReference(pFilename, pRootFolder) for value
     else
-      return pRootFolder & "/" & pFilename
+      return pRootFolder & "/" & pFilename for value
     end if
   else
-    return pFilename
+    return pFilename for value
   end if
 end resolveFilenameReference
 
@@ -1765,6 +2171,16 @@ private function fileListing pFilename
 end fileListing
 
 
+/**
+Summary: Returns a list of externals that are loaded into memory and availalbe in the message path.
+
+Example:
+set the wholematches to true
+put levureExternalsLoadedInMemory() into tExternals
+put "revXML" among the lines of tExternals
+
+Returns: CR delimited list of external package names
+*/
 function levureExternalsLoadedInMemory
   local tPackage,tPackages,tPackagesA,tStack
   local tStacks,tSubstack,tSubstacks
@@ -1793,6 +2209,26 @@ function levureExternalsLoadedInMemory
 end levureExternalsLoadedInMemory
 
 
+/**
+Summary: Converts a YAML file to an array.
+
+pFilename: Path to YAML file.
+
+Description:
+Converts a YAML file to an array. You must use the same spacing throughout the file for indentation.
+
+Note that there are some limitations with regards to YAML that is supported:
+1. Comments are not supported.
+2. - is not supported
+
+Example:
+put yamlFileToArray(tFilename) into tYamlA
+put the keys of tYamlA
+
+Returns:
+the result: Error message
+it: Array
+*/
 function yamlFileToArray pFilename
   local tError, tYaml
 
@@ -1830,10 +2266,10 @@ private function readFileContents pFilename
 end readFileContents
 
 
-/**********************
+#**********************
 Basic YAML support until an LCB extension is written.
-***********************/
-/**
+#***********************
+/*
 Array-to-Yaml and Yaml-to-Array library
 Mark Wieder 2016
 wtf licenced : have fun

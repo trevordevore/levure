@@ -16,6 +16,20 @@ on libraryStack
 end libraryStack
 
 
+/**
+Summary: Sets the field where log messages will be sent.
+
+pTarget: `console`, <filename>, or field referncee (e.g. <the long id field>).
+
+Description:
+You can target the "console", a file, or a field.
+
+Examples:
+appSetLogTarget "console"
+appSetLogTarget specialFolderPath("desktop") & "/log_file.txt"
+sppSetLogTarget the long id of field "Log" of me
+
+*/
 command appSetLogTarget pTarget
   put pTarget into sLogTarget
 
