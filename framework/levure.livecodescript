@@ -1441,7 +1441,8 @@ private command addFolderToFilesArray pFolder, @xFilesA
   put the number of elements of xFilesA into i
 
   repeat for each line tFile in fileListing(pFolder)
-    if isFilenameUniqueInFilesArray(tFile, xFilesA) then
+    #mikey if isFilenameUniqueInFilesArray(tFile, xFilesA) then
+    if  (tFile ends with ".livecode" OR tFile ends with ".livecodescript") AND (isFilenameUniqueInFilesArray(tFile, xFilesA)) then #mikey - don't try to load a non-stack.
       add 1 to i
       put tFile into xFilesA[i]["filename"]
     end if
