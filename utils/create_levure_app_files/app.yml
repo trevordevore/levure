@@ -28,6 +28,9 @@ frontscripts:
 backscripts:
   1:
     folder: ./backscripts
+helpers:
+  1:
+    folder: ./helpers
 behaviors:
   1:
     folder: ./behaviors
