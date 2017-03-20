@@ -5,6 +5,8 @@ script "levureFramework"
 constant kVersion = "0.0.2.0"
 constant kAppStackName = "app"
 constant kApplicationExternals = "levureAppExternals"
+constant kLiveCodeExtensions = "livecode,livecodescript"
+constant kLiveCodeModule = "lcm"
 
 local sRootFolder             # Folder where standalone resides
 local sAppFolder              # Folder where the `app` stack resides
@@ -571,8 +573,10 @@ command levureLoadAppConfig
     if tError is empty then
       set the itemdelimiter to ","
 
-      repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
-        put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder) into sAppA[tSource]
+      put expandMessagePathAssetsFileReferenceArray(sAppA["extensions"], tRootFolder, kLiveCodeModule) into sAppA["extensions"]
+
+      repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
+        put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder, kLiveCodeExtensions) into sAppA[tSource]
       end repeat
 
       put expandUIAssetsFileReferenceArray(sAppA["ui"], tRootFolder) into sAppA["ui"]
@@ -627,6 +631,8 @@ command levureLoadAppConfig
       ##########
       # Extensions, Libaries, Backscripts, Frontscripts, and Behaviors
       ##########
+      local tExtensions
+
       repeat for each item tSource in "extensions,libraries,backscripts,frontscripts,behaviors"
         put empty into tFilesA
         put 0 into j
@@ -637,7 +643,12 @@ command levureLoadAppConfig
         end repeat
 
         if the number of elements of tFilesA > 0 then
-          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tSource]
+          if tSource is "extensions" then
+            put kLiveCodeModule into tExtensions
+          else
+            put kLiveCodeExtensions into tExtensions
+          end if
+          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder, tExtensions) into sAppA[tSource]
         end if
       end repeat
 
@@ -1396,7 +1407,7 @@ function levureFrameworkFolder
 end levureFrameworkFolder
 
 
-private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
+private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder, pExtensions
   local tFilesA, i, j, tProp
 
   replaceVariablesInPaths pFilesA
@@ -1406,7 +1417,7 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
       # expand the folder listing. Assume every file is a file to load.
-      addFolderToFilesArray pFilesA[i]["folder"], tFilesA
+      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, pExtensions
 
       put the number of elements of tFilesA into j
 
@@ -1435,12 +1446,17 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder
 end expandMessagePathAssetsFileReferenceArray
 
 
-private command addFolderToFilesArray pFolder, @xFilesA
-  local tFolder, tFile, i
+private command addFolderToFilesArray pFolder, @xFilesA, pExtensions
+  local tFolder, tFiles, tFile, i
 
   put the number of elements of xFilesA into i
 
-  repeat for each line tFile in fileListing(pFolder)
+  put fileListing(pFolder) into tFiles
+  if pExtensions is not empty then
+    filter tFiles with regex pattern regExForFileExtensions(pExtensions)
+  end if
+
+  repeat for each line tFile in tFiles
     if isFilenameUniqueInFilesArray(tFile, xFilesA) then
       add 1 to i
       put tFile into xFilesA[i]["filename"]
@@ -1448,7 +1464,7 @@ private command addFolderToFilesArray pFolder, @xFilesA
   end repeat
 
   repeat for each line tFolder in folderListing(pFolder)
-    addFolderToFilesArray tFolder, xFilesA
+    addFolderToFilesArray tFolder, xFilesA, pExtensions
   end repeat
 
   return empty for value
@@ -1555,7 +1571,7 @@ private command addUIStacksToFilesArray pFolder, @xFilesA, pEncrypt
   put the number of elements of xFilesA into i
 
   put fileListing(pFolder) into tFiles
-  filter tFiles with regex pattern ".*\.livecode$|.*\.livecodescript$"
+  filter tFiles with regex pattern regExForFileExtensions(kLiveCodeExtensions)
 
   repeat for each line tFile in tFiles
     if not isFilenameUniqueInFilesArray(tFile, xFilesA) then
@@ -1632,6 +1648,17 @@ private function isFilenameUniqueInFilesArray pFilename, pFilesA
 
   return true
 end isFilenameUniqueInFilesArray
+
+
+private function regExForFileExtensions pExtensions
+  local tFilter, tExt
+
+  repeat for each item tExt in pExtensions
+    put ".*\." & tExt & "$|" after tFilter
+  end repeat
+  delete the last char of tFilter
+  return tFilter
+end regExForFileExtensions
 
 
 private function ensureStackNameIsPresent pFileA
