@@ -1651,10 +1651,10 @@ end isFilenameUniqueInFilesArray
 
 
 private function regExForFileExtensions pExtensions
-  local tFilter, tExt
+  local tFilter, tExtension
 
-  repeat for each item tExt in pExtensions
-    put ".*\." & tExt & "$|" after tFilter
+  repeat for each item tExtension in pExtensions
+    put ".*\." & tExtension & "$|" after tFilter
   end repeat
   delete the last char of tFilter
   return tFilter
