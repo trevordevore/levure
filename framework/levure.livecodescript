@@ -536,7 +536,9 @@ Returns: Path to folder
 function levureApplicationDataFolder pUserOrShared
   local tFolder
 
-  if sAppA["application data"]["folder"] is empty then return empty
+  if pUserOrShared is not "shared" then put "user" into pUserOrShared
+
+  if word 1 to -1 of sAppA["application data"][pUserOrShared]["folder"] is empty then return empty
 
   if pUserOrShared is not "shared" then
     switch the platform
@@ -566,7 +568,7 @@ function levureApplicationDataFolder pUserOrShared
     end switch
   end if
 
-  put sAppA["application data"]["folder"] after tFolder
+  put sAppA["application data"][pUserOrShared]["folder"] after tFolder
 
   return tFolder
 end levureApplicationDataFolder
@@ -741,9 +743,13 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
-  put normalizeFolderPath(sAppA["application data"]["folder"]) into sAppA["application data"]["folder"]
-  repeat while char 1 of sAppA["application data"]["folder"] is "/"
-    delete char 1 of sAppA["application data"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["folder"]) into sAppA["application data"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["shared"]["folder"]) into sAppA["application data"]["shared"]["folder"]
+  repeat while char 1 of sAppA["application data"]["user"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["folder"]
   end repeat
 
   repeat for each item tKey in "password,file extensions,file extension groups"
@@ -1048,24 +1054,20 @@ end appStackFilename
 
 
 private command createApplicationDataFolders
-  local tError
+  local tError, tRootFolder
 
-  if sAppA["application data"]["folder"] is not empty then
-    local tRootFolder
+  if sAppA["application data"]["user"]["folder"] is not empty then
+    put levureApplicationDataFolder("user") into tRootFolder
+    replace "/" & sAppA["application data"]["user"]["folder"] with empty in tRootFolder
+    createSubfolders tRootFolder, sAppA["application data"]["user"]["folder"]
+    put the result into tError
+  end if
 
-    if sAppA["application data"]["user"] then
-      put levureApplicationDataFolder("user") into tRootFolder
-      replace "/" & sAppA["application data"]["folder"] with empty in tRootFolder
-      createSubfolders tRootFolder, sAppA["application data"]["folder"]
-      put the result into tError
-    end if
-
-    if tError is empty and sAppA["application data"]["shared"] then
-      put levureApplicationDataFolder("shared") into tRootFolder
-      replace "/" & sAppA["application data"]["folder"] with empty in tRootFolder
-      createSubfolders tRootFolder, sAppA["application data"]["folder"]
-      put the result into tError
-    end if
+  if tError is empty and sAppA["application data"]["shared"]["folder"] is not empty then
+    put levureApplicationDataFolder("shared") into tRootFolder
+    replace "/" & sAppA["application data"]["shared"]["folder"] with empty in tRootFolder
+    createSubfolders tRootFolder, sAppA["application data"]["shared"]["folder"]
+    put the result into tError
   end if
 
   return tError for error

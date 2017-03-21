@@ -220,7 +220,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   # prepare auto update files for Sparkle
   if tError is empty then
-    if sAppA["build profiles"]["default"]["root auto update url"] is not empty then
+    if sAppA["build profiles"]["all profiles"]["root auto update url"] is not empty then
       _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
       put the result into tError
     end if
@@ -564,7 +564,7 @@ private function _postBuildScriptStackFile pAppA, pBuildProfile
 
   put pAppA["build profiles"][pBuildProfile]["post build script"] into tFilename
   if tFilename is empty then
-    put pAppA["build profiles"]["default"]["post build script"] into tFilename
+    put pAppA["build profiles"]["all profiles"]["post build script"] into tFilename
   end if
 
   if tFilename is not empty then
@@ -582,7 +582,7 @@ private command _autoUpdateURLs pBuildProfile, pAppA, @rURLsA
   # Auto Update URLs
   put pAppA["build profiles"][pBuildProfile]["root auto update url"] into rURLsA["root"]
   if rURLsA["root"] is empty then
-    put pAppA["build profiles"]["default"]["root auto update url"] into rURLsA["root"]
+    put pAppA["build profiles"]["all profiles"]["root auto update url"] into rURLsA["root"]
   end if
   if rURLsA["root"] is not empty then
     set the itemdelimiter to "/"
@@ -621,7 +621,7 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
 
   # Create Update Folder
   if tError is empty then
-    if pAppA["build profiles"]["default"]["root auto update url"] is not empty then
+    if pAppA["build profiles"]["all profiles"]["root auto update url"] is not empty then
       local tUpdaterFolder
 
       put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
@@ -633,8 +633,8 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   if tError is empty then
     local tDestination
 
-    repeat for each item tProfile in "default/" & pBuildProfile
-      repeat for each item tTarget in "base/macos/windows/linux/update"
+    repeat for each item tProfile in "all profiles/" & pBuildProfile
+      repeat for each item tTarget in "all platforms/macos/windows/linux/update"
         repeat with i = 1 to the number of elements of pAppA["build profiles"][tProfile]["copy files"][tTarget]
           put _resolveRelativeFilenameReference(pAppA["build profiles"][tProfile]["copy files"][tTarget][i]["filename"], \
                 pRootFolder) into tFilename
@@ -1719,7 +1719,7 @@ private command _packageForMAS pAppA, pOutputFolder
   put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  put pAppA["build profiles"]["default"]["macos"]["certificate name"] into tCertName
+  put pAppA["build profiles"]["all profiles"]["macos"]["certificate name"] into tCertName
 
   set the itemdelimiter to "."
   put tAppBundle into tPackage
@@ -1743,7 +1743,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
   put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  put pAppA["build profiles"]["default"]["macos"]["certificate name"] into tCertName
+  put pAppA["build profiles"]["all profiles"]["macos"]["certificate name"] into tCertName
 
   if tCertName is not empty then
     local isMAS
