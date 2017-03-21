@@ -62,7 +62,8 @@ private function prefFilenameForPlatform pUserOrShared, pPlatform
   validateKey pUserOrShared
 
   if pPlatform is empty then put the platform into pPlatform
-  if pPlatform is "win32" then put "windows" into pPlatform
+  if pPlatform is "iphone" then put "ios" into pPlatform
+  else if pPlatform is "win32" then put "windows" into pPlatform
   put "preferences" into tA[1]
   put pUserOrShared into tA[2]
   put pPlatform into tA[3]
@@ -306,6 +307,8 @@ private function _systemPreferencesFolder
   switch the platform
     case "macos"
       return specialFolderPath("preferences")
+    case "iphone"
+      return specialFolderPath("library")
     case "win32"
     case "linux"
       return _systemAppDataFolder("user")
