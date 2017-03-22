@@ -21,3 +21,15 @@ end OpenApplication
 command PreShutdownApplication
 
 end PreShutdownApplication
+
+
+command ProcessURL URLsToProcess #URLsToProcess is line-delimited
+	#REQUIREMENTS:  {{FRAMEWORK}}/helpers/files_and_urls helper
+	
+end ProcessURL
+
+
+command ProcessFiles listOfFiles #listOfFiles is line-delimited
+	#REQUIREMENTS:  {{FRAMEWORK}}/helpers/files_and_urls helper
+
+end processFiles
