@@ -34,6 +34,8 @@ backscripts:
 helpers:
   1:
     folder: ./helpers
+  2:
+    filename: {{FRAMEWORK}}/helpers/preferences
 behaviors:
   1:
     folder: ./behaviors
