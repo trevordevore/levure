@@ -1114,8 +1114,8 @@ private command loadEarlyHelpers
       if tError is empty then
         loadMessagePathAssets sAppA["helpers"][i]
 
-        repeat with j = 1 to the number of elements of sAppA["helpers"][i]["stacks"]
-          put sAppA["helpers"][i]["stacks"][j]["name"] & "," & sAppA["helpers"][i]["stacks"][j]["filename"] & cr after tStackFiles
+        repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
+          put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
         end repeat
       end if
 
@@ -1155,14 +1155,14 @@ private command loadAppAssets
     end repeat
   end if
 
-  # helper stacks
+  # helper ui stacks
   if tError is empty then
     local j
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
       if sAppA["helpers"][i]["preload"] then next repeat
-      repeat with j = 1 to the number of elements of sAppA["helpers"][i]["stacks"]
-        put sAppA["helpers"][i]["stacks"][j]["name"] & "," & sAppA["helpers"][i]["stacks"][j]["filename"] & cr after tStackFiles
+      repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
+        put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
       end repeat
     end repeat
 
@@ -1472,7 +1472,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
   # When packaged the array will already be filled in.
   put the keys of xHelperA into tKeys
   set the wholematches to true
-  repeat for each item tKey in "libraries,backscripts,frontscripts,behaviors,stacks,extensions,externals"
+  repeat for each item tKey in "libraries,backscripts,frontscripts,behaviors,ui,extensions,externals"
     if tKey is among the lines of tKeys then
       put true into tAlreadyFilledIn
       exit repeat
@@ -1484,7 +1484,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
       put yamlFileToArray(xHelperA["filename"] & "/helper.yml") into tConfigA
       put the result into tError
     else
-      # Load up any stacks
+      # Load up any ui stacks
       local tFile, tIsAStack, j
 
       put 0 into j
@@ -1496,8 +1496,8 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
         if tIsAStack then
           add 1 to j
 
-          put the short name of stack tFile into tConfigA["stacks"][j]["name"]
-          put the last item of tFile into tConfigA["stacks"][j]["filename"]
+          put the short name of stack tFile into tConfigA["ui"][j]["name"]
+          put the last item of tFile into tConfigA["ui"][j]["filename"]
           delete stack tFile
         end if
       end repeat
@@ -1516,9 +1516,9 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
     put xHelperA["encrypt"] is true into tConfigA["encrypt"]
 
     # stack files
-    repeat with j = 1 to the number of elements of tConfigA["stacks"]
-      put xHelperA["filename"] & "/" & normalizeRelativeFilename(tConfigA["stacks"][j]["filename"]) into tConfigA["stacks"][j]["filename"]
-      put ensureStackNameIsPresent(tConfigA["stacks"][j]) into tConfigA["stacks"][j]
+    repeat with j = 1 to the number of elements of tConfigA["ui"]
+      put xHelperA["filename"] & "/" & normalizeRelativeFilename(tConfigA["ui"][j]["filename"]) into tConfigA["ui"][j]["filename"]
+      put ensureStackNameIsPresent(tConfigA["ui"][j]) into tConfigA["ui"][j]
     end repeat
 
     if the platform is "win32" then put "windows" into tTargetPlatform
