@@ -256,12 +256,11 @@ command levureBuildStandalonesForTesting
   end if
 
   if tError is empty then
-    local tStandaloneStack, tBuildProfile
+    local tStandaloneStack
 
     put the effective filename of me into tStandaloneStack
-    put "test" into tBuildProfile
     # This stack will be removed from memory so send in time
-    send "packagerBuildStandalones tStandaloneStack, tBuildProfile,,true" to stack tStackFilename in 10 milliseconds
+    send "packagerBuildStandaloneForTesting tStandaloneStack, true" to stack tStackFilename in 10 milliseconds
   end if
 
   return tError for error

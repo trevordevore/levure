@@ -315,6 +315,15 @@ private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
 end _dispatchPostBuild
 
 
+command packagerBuildStandaloneForTesting pStandaloneStackFilename, pSendCallback
+  resetLogging
+  log "[" & the system date & "] Packaging app using profile test"
+
+  packagerBuildStandalones pStandaloneStackFilename, "test", empty, pSendCallback
+  return the result for error
+end packagerBuildStandaloneForTesting
+
+
 command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfolder, pSendCallback
   local tError
   local buildForDistribution, tTempBuildFolder, tSourceFolder, tOutputFolder
