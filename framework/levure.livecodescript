@@ -1055,6 +1055,10 @@ end appStackFilename
 private command createApplicationDataFolders
   local tError, tRootFolder
 
+  if the platform is "android" then
+    createSubfolders specialfolderpath("documents"), "Application Support"
+  end if
+
   if sAppA["application data"]["user"]["folder"] is not empty then
     put levureApplicationDataFolder("user") into tRootFolder
     replace "/" & sAppA["application data"]["user"]["folder"] with empty in tRootFolder
