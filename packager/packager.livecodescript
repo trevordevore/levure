@@ -608,6 +608,16 @@ private command _autoUpdateURLs pBuildProfile, pAppA, @rURLsA
 end _autoUpdateURLs
 
 
+private function _errorMsg pPrefix, pError
+  if pError is not empty then
+    if pError is not empty AND pError is not "cancel" AND pError is not "cancelled" then
+        return pPrefix && "(" & pError & ")"
+    end if
+  end if
+  return empty
+end _errorMsg
+
+
 private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
@@ -625,7 +635,7 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
   # Copy files and replace variables
   local tRootFoldersA
 
-  put pDestinationFolder into tFoldersA["base"]
+  put pDestinationFolder into tFoldersA["all platforms"]
   put pDestinationFolder & "/MacOS" into tFoldersA["macos"]
   put pDestinationFolder & "/Windows" into tFoldersA["windows"]
   put pDestinationFolder & "/Linux" into tFoldersA["linux"]
@@ -638,7 +648,7 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
 
       put pDestinationFolder & "/Update/" & _versionStringForFilenames() into tUpdaterFolder
       _fileCreateAllFoldersInPath tUpdaterFolder, pDestinationFolder
-      put the result into tError
+      put _errorMsg("creating folder" && tUpdaterFolder, the result) into tError
     end if
   end if
 
@@ -684,10 +694,10 @@ private command _copyFiles pBuildProfile, pAppA, pRootFolder, pDestinationFolder
             replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
 
             put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
-            put the result into tError
+            put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
           else if there is a folder tFilename then
             _fileCopyFolder tFilename, tDestination & "/" & the last item of tFilename
-            put the result into tError
+            put _errorMsg("copying file" && tFilename && "to" && tDestination & "/" & the last item of tFilename, the result) into tError
           else
             put "unable to locate file [" & tFilename & "]" into tError
           end if
