@@ -1741,7 +1741,7 @@ private command _packageForMAS pAppA, pOutputFolder
   put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  put pAppA["build profiles"]["all profiles"]["macos"]["certificate name"] into tCertName
+  put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
 
   set the itemdelimiter to "."
   put tAppBundle into tPackage
@@ -1765,7 +1765,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
   put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  put pAppA["build profiles"]["all profiles"]["macos"]["certificate name"] into tCertName
+  put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
 
   if tCertName is not empty then
     local isMAS
