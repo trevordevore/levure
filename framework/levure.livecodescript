@@ -209,10 +209,10 @@ Summary: Message sent from the packager script.
 Description:
 Move along. Nothing to see here.
 */
-command packagerDidFinishBuildingStandalone
+command packagerDidFinishBuildingStandaloneForTesting
   # Remove from memory after building standalone is complete
   delete stack "Levure Framework Application Packager"
-end packagerDidFinishBuildingStandalone
+end packagerDidFinishBuildingStandaloneForTesting
 
 
 /**
