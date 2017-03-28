@@ -308,7 +308,9 @@ private function _systemPreferencesFolder
     case "macos"
       return specialFolderPath("preferences")
     case "iphone"
-      return specialFolderPath("library")
+      return specialFolderPath("library") & "/Application Support"
+    case "android"
+      return specialFolderPath("documents") & "/Application Support"
     case "win32"
     case "linux"
       return _systemAppDataFolder("user")
@@ -326,6 +328,10 @@ private function _systemAppDataFolder pUserOrShared
         return specialFolderPath("support")
       case "linux"
         return specialFolderPath("home")
+      case "iphone"
+        return specialFolderPath("library") & "/Application Support"
+      case "android"
+        return specialFolderPath("documents") & "/Application Support"
       default
         return empty
     end switch
@@ -337,6 +343,8 @@ private function _systemAppDataFolder pUserOrShared
         return specialFolderPath("35")
       case "linux"
         return "/opt"
+      case "iphone"
+      case "android"
       default
         return empty
     end switch
