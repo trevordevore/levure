@@ -43,8 +43,9 @@ build folder: ../builds
 build profiles:
   all profiles:
     post build script:
-    macos:
-      certificate name:
+    certificates:
+      macos:
+        name:
     copy files:
       all platforms:
       macos:
