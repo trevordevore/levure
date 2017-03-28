@@ -483,9 +483,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
 
     if pBuildProfile is "test" then
       local tScriptLibraries
+
+      set the wholematches to true
+
       put the cRevStandaloneSettings["scriptLibraries"] of stack tTempStandaloneStack into tScriptLibraries
-      if "Remote Debugger" is not among the items of tScriptLibraries then
-        put "Remote Debugger" into item (the number of items of tScriptLibraries + 1) of tScriptLibraries
+      if "Remote Debugger" is not among the lines of tScriptLibraries then
+        put "Remote Debugger" into line (the number of lines of tScriptLibraries + 1) of tScriptLibraries
         set the cRevStandaloneSettings["scriptLibraries"] of stack tTempStandaloneStack to tScriptLibraries
       end if
     end if
