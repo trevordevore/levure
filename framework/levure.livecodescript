@@ -146,7 +146,7 @@ The `post build script` property points to a stack that will receive the `finali
 and `finishedBuildingPackageForBuildProfile pBuildProfile, pSettingsA` messages. `pSettingsA` has an `output folder` key that
 contains the path to the folder where all of the packaged files are located.
 
-The `macos` > `certificate name` property is the name of the certificate that the packager should use to sign your applications on OS X.
+The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on OS X.
 The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
 and with `3rd Party Mac Developer Application:` for apps being distributed through the Mac App Store. The packager assumes you are
 distributing through the Mac App Store if the name of pBuildProfile is "mas" or "mac app store".
