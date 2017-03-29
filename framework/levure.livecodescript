@@ -537,7 +537,7 @@ function levureApplicationDataFolder pUserOrShared
 
   if pUserOrShared is not "shared" then put "user" into pUserOrShared
 
-  if word 1 to -1 of sAppA["application data"][pUserOrShared]["folder"] is empty then return empty
+  if platformApplicationDataFolder(pUserOrShared) is empty then return empty
 
   if pUserOrShared is not "shared" then
     switch the platform
@@ -571,7 +571,7 @@ function levureApplicationDataFolder pUserOrShared
     end switch
   end if
 
-  put sAppA["application data"][pUserOrShared]["folder"] after tFolder
+  put platformApplicationDataFolder(pUserOrShared) after tFolder
 
   return tFolder
 end levureApplicationDataFolder
