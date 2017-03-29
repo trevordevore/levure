@@ -746,13 +746,52 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
-  put normalizeFolderPath(sAppA["application data"]["user"]["folder"]) into sAppA["application data"]["user"]["folder"]
-  put normalizeFolderPath(sAppA["application data"]["shared"]["folder"]) into sAppA["application data"]["shared"]["folder"]
-  repeat while char 1 of sAppA["application data"]["user"]["folder"] is "/"
-    delete char 1 of sAppA["application data"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["default"]["folder"]) into sAppA["application data"]["default"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["macos"]["folder"]) into sAppA["application data"]["macos"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["windows"]["folder"]) into sAppA["application data"]["windows"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["linux"]["folder"]) into sAppA["application data"]["linux"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["ios"]["folder"]) into sAppA["application data"]["ios"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["user"]["android"]["folder"]) into sAppA["application data"]["android"]["user"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["shared"]["default"]["folder"]) into sAppA["application data"]["default"]["shared"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["shared"]["macos"]["folder"]) into sAppA["application data"]["macos"]["shared"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["shared"]["windows"]["folder"]) into sAppA["application data"]["windows"]["shared"]["folder"]
+  put normalizeFolderPath(sAppA["application data"]["shared"]["linux"]["folder"]) into sAppA["application data"]["linux"]["shared"]["folder"]
+
+  repeat while char 1 of sAppA["application data"]["user"]["default"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["default"]["folder"]
   end repeat
-  repeat while char 1 of sAppA["application data"]["shared"]["folder"] is "/"
-    delete char 1 of sAppA["application data"]["shared"]["folder"]
+  repeat while char 1 of sAppA["application data"]["user"]["macos"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["macos"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["user"]["windows"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["windows"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["user"]["linux"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["linux"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["user"]["ios"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["ios"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["user"]["android"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["user"]["android"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["default"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["default"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["macos"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["macos"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["windows"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["windows"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["linux"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["linux"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["ios"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["ios"]["folder"]
+  end repeat
+  repeat while char 1 of sAppA["application data"]["shared"]["android"]["folder"] is "/"
+    delete char 1 of sAppA["application data"]["shared"]["android"]["folder"]
   end repeat
 
   repeat for each item tKey in "password,file extensions,file extension groups"
