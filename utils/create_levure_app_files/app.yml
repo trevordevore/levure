@@ -6,11 +6,19 @@ multiple instances: false
 relaunch in background: false
 shutdown when all windows are closed: false
 creator code:
-application data:
+application data folder:
   user:
-    folder:
+    default:
+    macos:
+    windows:
+    linux:
+    ios:
+    android:
   shared:
-    folder:
+    default:
+    macos:
+    windows:
+    linux:
 preferences:
   user:
     macos:

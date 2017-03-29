@@ -561,7 +561,7 @@ function levureApplicationDataFolder pUserOrShared
 
   if pUserOrShared is not "shared" then put "user" into pUserOrShared
 
-  if word 1 to -1 of sAppA["application data"][pUserOrShared]["folder"] is empty then return empty
+  if platformApplicationDataFolder(pUserOrShared) is empty then return empty
 
   if pUserOrShared is not "shared" then
     switch the platform
@@ -572,6 +572,10 @@ function levureApplicationDataFolder pUserOrShared
       case "linux"
         put specialFolderPath("home") & "/." into tFolder
         break
+      case "iphone"
+        put specialFolderPath("library") & "/Application Support/" into tFolder
+      case "android"
+        put specialFolderPath("documents") & "/Application Support/" into tFolder
       default
         return empty
     end switch
@@ -591,7 +595,7 @@ function levureApplicationDataFolder pUserOrShared
     end switch
   end if
 
-  put sAppA["application data"][pUserOrShared]["folder"] after tFolder
+  put platformApplicationDataFolder(pUserOrShared) after tFolder
 
   return tFolder
 end levureApplicationDataFolder
@@ -779,13 +783,16 @@ private command normalizeAppArray
   # "ui" is always a registered "ui" component
   put "ui" into sAppA["registered components"]["ui"]
 
-  put normalizeFolderPath(sAppA["application data"]["user"]["folder"]) into sAppA["application data"]["user"]["folder"]
-  put normalizeFolderPath(sAppA["application data"]["shared"]["folder"]) into sAppA["application data"]["shared"]["folder"]
-  repeat while char 1 of sAppA["application data"]["user"]["folder"] is "/"
-    delete char 1 of sAppA["application data"]["user"]["folder"]
-  end repeat
-  repeat while char 1 of sAppA["application data"]["shared"]["folder"] is "/"
-    delete char 1 of sAppA["application data"]["shared"]["folder"]
+  repeat for each item tGroup in "user,shared"
+    repeat for each item tPlatform in "default,macos,windows,linux,ios,android"
+      if tGroup is "shared" and tPlatform is in "ios,android" then exit repeat
+
+      put normalizeFolderPath(sAppA["application data folder"][tGroup][tPlatform]) into sAppA["application data folder"][tGroup][tPlatform]
+
+      repeat while char 1 of sAppA["application data folder"][tGroup][tPlatform] is "/"
+        delete char 1 of sAppA["application data folder"][tGroup][tPlatform]
+      end repeat
+    end repeat
   end repeat
 
   repeat for each item tKey in "password,file extensions,file extension groups"
@@ -1139,22 +1146,56 @@ private command createApplicationDataFolders
     createSubfolders specialFolderPath("documents"), "Application Support"
   end if
 
-  if sAppA["application data"]["user"]["folder"] is not empty then
+  if platformApplicationDataFolder("user") is not empty then
     put levureApplicationDataFolder("user") into tRootFolder
-    replace "/" & sAppA["application data"]["user"]["folder"] with empty in tRootFolder
-    createSubfolders tRootFolder, sAppA["application data"]["user"]["folder"]
+    replace "/" & platformApplicationDataFolder("user") with empty in tRootFolder
+    createSubfolders tRootFolder, platformApplicationDataFolder("user")
     put the result into tError
   end if
 
-  if tError is empty and sAppA["application data"]["shared"]["folder"] is not empty then
+  if tError is empty and platformApplicationDataFolder("shared") is not empty then
     put levureApplicationDataFolder("shared") into tRootFolder
-    replace "/" & sAppA["application data"]["shared"]["folder"] with empty in tRootFolder
-    createSubfolders tRootFolder, sAppA["application data"]["shared"]["folder"]
+    replace "/" & platformApplicationDataFolder("shared") with empty in tRootFolder
+    createSubfolders tRootFolder, platformApplicationDataFolder("shared")
     put the result into tError
   end if
 
   return tError for error
 end createApplicationDataFolders
+
+
+private function platformApplicationDataFolder pUserOrShared
+  local tPlatform, tA, tDefaultFolder, tPlatformFolder
+
+  switch the platform
+    case "win32"
+      put "windows" into tPlatform
+      break
+    case "iphone"
+      put "ios" into tPlatform
+      break
+    default
+      put the platform into tPlatform
+  end switch
+
+  put "application data folder" into tA[1]
+  put pUserOrShared into tA[2]
+  put "default" into tA[3]
+  put levureAppGet(tA) into tDefaultFolder
+
+  put tPlatform into tA[3]
+  put levureAppGet(tA) into tPlatformFolder
+
+  if word 1 to -1 of tPlatformFolder is not empty then
+    return tPlatformFolder
+  else
+    if word 1 to -1 of tDefaultFolder is not empty then
+      return tDefaultFolder
+    else
+      return empty
+    end if
+  end if
+end platformApplicationDataFolder
 
 
 private command createSubfolders pRootFolder, pSubfolder
