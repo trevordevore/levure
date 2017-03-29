@@ -163,7 +163,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       _autoUpdateURLs pBuildProfile, tAppA, tURLsA
       put tURLsA["build profile"] & "/update.txt" into tAppA["auto update url"]
 
-      _pruneAppArray tAppA, tPlatform
+      _pruneAppArray tAppA, pBuildProfile, tPlatform
 
       log "tAppA:" && _printArray(tAppA,,true)
 
@@ -248,8 +248,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 end packagerPackageApplication
 
 
-private command _pruneAppArray @xAppA, pPlatform
+private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   local tKeysToDelete
+  local tFilename
+
+  put _postBuildScriptStackFile(xAppA, pBuildProfile) into tFilename
 
   delete local xAppA["password"]
   delete local xAppA["build folder"]
@@ -271,6 +274,10 @@ private command _pruneAppArray @xAppA, pPlatform
     delete local xAppA["preferences"]["user"][tKey]
     delete local xAppA["preferences"]["shared"][tKey]
   end repeat
+
+  if tFilename is not empty then
+    dispatch "pruneAppArray" to stack tFilename with xAppA, pBuildProfile
+  end if
 
   return empty for error
 end _pruneAppArray
