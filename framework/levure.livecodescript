@@ -1095,6 +1095,41 @@ private function appStackFilename
 end appStackFilename
 
 
+private function platformApplicationDataFolder pUserOrShared
+  local tPlatform, tA, tDefaultFolder, tPlatformFolder
+
+  switch the platform
+    case "win32"
+      put "windows" into tPlatform
+      break
+    case "iphone"
+      put "ios" into tPlatform
+      break
+    default
+      put the platform into tPlatform
+  end switch
+
+  put "application data" into tA[1]
+  put pUserOrShared into tA[2]
+  put "default" into tA[3]
+  put "folder" into tA[4]
+  put levureAppGet(tA) into tDefaultFolder
+
+  put "tPlatform" into tA[3]
+  put levureAppGet(tA) into tPlatformFolder
+
+  if word 1 to -1 of tPlatformFolder is not empty then
+    return tPlatformFolder
+  else
+    if word 1 to -1 of tDefaultFolder is not empty then
+      return tDefaultFolder
+    else
+      return empty
+    end if
+  end if
+end platformApplicationDataFolder
+
+
 private command createApplicationDataFolders
   local tError, tRootFolder
 
