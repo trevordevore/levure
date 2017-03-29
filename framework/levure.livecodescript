@@ -1115,7 +1115,7 @@ private function platformApplicationDataFolder pUserOrShared
   put "folder" into tA[4]
   put levureAppGet(tA) into tDefaultFolder
 
-  put "tPlatform" into tA[3]
+  put tPlatform into tA[3]
   put levureAppGet(tA) into tPlatformFolder
 
   if word 1 to -1 of tPlatformFolder is not empty then
