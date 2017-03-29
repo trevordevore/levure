@@ -1626,7 +1626,7 @@ private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
 
     put xHelperA["filename"] into tConfigA["filename"]
     put xHelperA["preload"] is true into tConfigA["preload"]
-    put xHelperA["encrypt"] is true into tConfigA["encrypt"]
+    put xHelperA["encrypt"] is not false into tConfigA["encrypt"]
 
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["ui"]
