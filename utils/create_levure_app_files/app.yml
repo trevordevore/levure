@@ -8,6 +8,8 @@ shutdown when all windows are closed: false
 creator code:
 application data:
   user:
+    default:
+      folder:
     macos:
       folder:
     windows:
@@ -19,6 +21,8 @@ application data:
     android:
       folder:
   shared:
+    default:
+      folder:
     macos:
       folder:
     windows:
