@@ -1574,6 +1574,11 @@ private command resolveHelperAssets
     if tError is not empty then exit repeat
   end repeat
 
+  # If macos and not in development then need to point to the MacOS folder and not the Resources/_MacOS folder
+  if the platform is "macos" and the environment is not "development" then
+    replace "/Resources/_MacOS/" with "/MacOS/" in sAppA["externals to load"]
+  end if
+
   return tError for error
 end resolveHelperAssets
 
