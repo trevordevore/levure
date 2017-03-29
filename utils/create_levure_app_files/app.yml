@@ -8,9 +8,23 @@ shutdown when all windows are closed: false
 creator code:
 application data:
   user:
-    folder:
+    macos:
+      folder:
+    windows:
+      folder:
+    linux:
+      folder:
+    ios:
+      folder:
+    android:
+      folder:
   shared:
-    folder:
+    macos:
+      folder:
+    windows:
+      folder:
+    linux:
+      folder:
 preferences:
   user:
     macos:
