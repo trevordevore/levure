@@ -899,6 +899,7 @@ Returns: Error message
 command levureLoadAppConfig
   local tError
   local tSource
+  local tKey
 
   put levureStandaloneFolder() into sRootFolder
 
@@ -936,7 +937,13 @@ command levureLoadAppConfig
         put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder, kLiveCodeExtensions) into sAppA[tSource]
       end repeat
 
-      put expandUIAssetsFileReferenceArray(sAppA["ui"], tRootFolder) into sAppA["ui"]
+      repeat for each item tKey in sAppA["registered components"]["ui"]
+        put expandUIAssetsFileReferenceArray(sAppA[tKey], tRootFolder) into sAppA[tKey]
+      end repeat
+
+      repeat for each item tKey in sAppA["registered components"]["yaml"]
+        put expandMessagePathAssetsFileReferenceArray(sAppA[tKey], tRootFolder) into sAppA[tKey]
+      end repeat
 
       put expandHelperAssetsFileReferenceArray(sAppA["helpers"], tRootFolder) into sAppA["helpers"]
       resolveHelperAssets
@@ -1010,21 +1017,6 @@ command levureLoadAppConfig
       end repeat
 
       ##########
-      # ui
-      ##########
-      put empty into tFilesA
-      put 0 into j
-
-      repeat with i = 1 to the number of elements of sAppA["ui"]
-        add 1 to j
-        put sAppA["ui"][i] into tFilesA[j]
-      end repeat
-
-      if the number of elements of tFilesA > 0 then
-        put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["ui"]
-      end if
-
-      ##########
       # Helpers
       ##########
       put empty into tFilesA
@@ -1042,44 +1034,63 @@ command levureLoadAppConfig
       end if
 
       ##########
-      # Process keys registered by helpers
+      # Get keys registered by helpers
       ##########
-      local tKey, tKeyIndex, k
+      local tKeyIndex, k
 
       repeat with i = 1 to the number of elements of sAppA["helpers"]
         repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
-          put empty into tFilesA
-          put 0 into j
-
           put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
 
           switch sAppA["helpers"][i]["register components"][tKeyIndex]["kind"]
             case "ui"
-                put tKey into item (the number of items of sAppA["registered components"]["ui"]) + 1 \
-                      of sAppA["registered components"]["ui"]
+                if itemOffset(tKey, sAppA["registered components"]["ui"]) is 0 then
+                  put tKey into item (the number of items of sAppA["registered components"]["ui"]) + 1 \
+                        of sAppA["registered components"]["ui"]
+                end if
               break
             case "yaml"
-                put tKey into item (the number of items of sAppA["registered components"]["yaml"]) + 1 \
-                      of sAppA["registered components"]["yaml"]
+                if itemOffset(tKey, sAppA["registered components"]["yaml"]) is 0 then
+                  put tKey into item (the number of items of sAppA["registered components"]["yaml"]) + 1 \
+                        of sAppA["registered components"]["yaml"]
+                end if
               break
           end switch
-
-          repeat with k = 1 to the number of elements of sAppA[tKey]
-            add 1 to j
-            put sAppA[tKey][k] into tFilesA[j]
-          end repeat
-
-          if the number of elements of tFilesA > 0 then
-            switch sAppA["helpers"][i]["register components"][tKeyIndex]["kind"]
-              case "ui"
-                  put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
-                break
-              case "yaml"
-                  put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
-                break
-            end switch
-          end if
         end repeat
+      end repeat
+
+      ##########
+      # ui components (includes "ui" key by default)
+      ##########
+      repeat for each item tKey in sAppA["registered components"]["ui"]
+        put empty into tFilesA
+        put 0 into j
+
+        repeat with i = 1 to the number of elements of sAppA[tKey]
+          add 1 to j
+          put sAppA[tKey][i] into tFilesA[j]
+        end repeat
+
+        if the number of elements of tFilesA > 0 then
+          put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+        end if
+      end repeat
+
+      ##########
+      # yaml components
+      ##########
+      repeat for each item tKey in sAppA["registered components"]["yaml"]
+        put empty into tFilesA
+        put 0 into j
+
+        repeat with i = 1 to the number of elements of sAppA[tKey]
+          add 1 to j
+          put sAppA[tKey][i] into tFilesA[j]
+        end repeat
+
+        if the number of elements of tFilesA > 0 then
+          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+        end if
       end repeat
     end if
   end if

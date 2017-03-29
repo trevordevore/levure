@@ -765,8 +765,8 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
 
       if tError is empty then
 
-        # stacks, libraries, frontscripts, backscripts, and behaviors
-        repeat for each item tKey in "stacks/libraries/frontscripts/backscripts/behaviors"
+        # ui, libraries, frontscripts, backscripts, and behaviors
+        repeat for each item tKey in "ui/libraries/frontscripts/backscripts/behaviors"
           repeat with j = 1 to the number of elements of xAppA["helpers"][i][tKey]
             log "  Adding" && tKey && "helper file:" && xAppA["helpers"][i][tKey][j]["filename"]
             log "    to folder:" && tDestFolder
@@ -906,6 +906,8 @@ private command _packageUI @xAppA, pOutputFolder
   replace "," with "/" in tComponents
 
   repeat for each item tKey in tComponents
+    put empty into tCompsA
+
     if the number of elements of xAppA[tKey] > 0 then
       log "Packaging" && tKey
 
