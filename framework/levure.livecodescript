@@ -1095,6 +1095,31 @@ private function appStackFilename
 end appStackFilename
 
 
+private command createApplicationDataFolders
+  local tError, tRootFolder
+
+  if the platform is "android" then
+    createSubfolders specialFolderPath("documents"), "Application Support"
+  end if
+
+  if platformApplicationDataFolder("user") is not empty then
+    put levureApplicationDataFolder("user") into tRootFolder
+    replace "/" & platformApplicationDataFolder("user") with empty in tRootFolder
+    createSubfolders tRootFolder, platformApplicationDataFolder("user")
+    put the result into tError
+  end if
+
+  if tError is empty and platformApplicationDataFolder("shared") is not empty then
+    put levureApplicationDataFolder("shared") into tRootFolder
+    replace "/" & platformApplicationDataFolder("shared") with empty in tRootFolder
+    createSubfolders tRootFolder, platformApplicationDataFolder("shared")
+    put the result into tError
+  end if
+
+  return tError for error
+end createApplicationDataFolders
+
+
 private function platformApplicationDataFolder pUserOrShared
   local tPlatform, tA, tDefaultFolder, tPlatformFolder
 
@@ -1127,31 +1152,6 @@ private function platformApplicationDataFolder pUserOrShared
     end if
   end if
 end platformApplicationDataFolder
-
-
-private command createApplicationDataFolders
-  local tError, tRootFolder
-
-  if the platform is "android" then
-    createSubfolders specialFolderPath("documents"), "Application Support"
-  end if
-
-  if platformApplicationDataFolder("user") is not empty then
-    put levureApplicationDataFolder("user") into tRootFolder
-    replace "/" & platformApplicationDataFolder("user") with empty in tRootFolder
-    createSubfolders tRootFolder, platformApplicationDataFolder("user")
-    put the result into tError
-  end if
-
-  if tError is empty and platformApplicationDataFolder("shared") is not empty then
-    put levureApplicationDataFolder("shared") into tRootFolder
-    replace "/" & platformApplicationDataFolder("shared") with empty in tRootFolder
-    createSubfolders tRootFolder, platformApplicationDataFolder("shared")
-    put the result into tError
-  end if
-
-  return tError for error
-end createApplicationDataFolders
 
 
 private command createSubfolders pRootFolder, pSubfolder
