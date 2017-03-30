@@ -1109,10 +1109,9 @@ private function platformApplicationDataFolder pUserOrShared
       put the platform into tPlatform
   end switch
 
-  put "application data" into tA[1]
+  put "application data folder" into tA[1]
   put pUserOrShared into tA[2]
   put "default" into tA[3]
-  put "folder" into tA[4]
   put levureAppGet(tA) into tDefaultFolder
 
   put tPlatform into tA[3]
