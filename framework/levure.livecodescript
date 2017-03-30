@@ -914,15 +914,6 @@ command levureLoadAppConfig
     delete the last item of sAppFolder
     put sAppFolder into tRootFolder
 
-    # The engine will tell us that app.livecodescript is in the Contents/MacOS folder
-    # It is really in the Contents/Resources/_MacOS folder.
-    # Externals are the only resources actually in Contents/MacOS. Use this folder to load
-    # all resources but use the actual location of the app.livecodescript folder for
-    # sAppFolder. A developer won't be able to find files relative to levureAppFolder() otherwise.
-    if the platform is "macos" then
-      put "Resources/_MacOS" into item -1 of sAppFolder
-    end if
-
     if tError is empty then
       loadAppStack
       put the result into tError
