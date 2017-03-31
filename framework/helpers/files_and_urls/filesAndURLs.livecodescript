@@ -73,9 +73,12 @@ end appleEvent
 
 
 /**
-* This handler handles URLs and files. If '-url' appears in the params then the next param is considered
-* a URL that needs to be processed. Otherwise all params are treated as files and any files with supported
-* extensions are extracted and made available to the application for processing.
+Summary: Process parameters passed to the app on the command line.
+
+Description:
+This handler handles URLs and files. If '-url' appears in the params then the next param is considered
+a URL that needs to be processed. Otherwise all params are treated as files and any files with supported
+extensions are extracted and made available to the application for processing.
 */
 command appProcessCommandLineParameters pParams
   local tLineNo
@@ -140,12 +143,19 @@ end appFileExtensionsForTypes
 
 
 /**
-* Returns a file type filter string suitable for use with 'ask file with type'.
-*
-* 'ask file with type' filters the available files that a user can select in the dialog using a specially \
-      * formatted string. This function will generate that string based on the file extensions that have \
-      * been defined for a File Type Filter object. The \
-      * string will look something similar to this:
+Summary: Returns a file type filter string suitable for use with `ask file with type`.
+
+Description:
+`ask file with type` filters the available files that a user can select in the dialog using a specially
+formatted string. This function will generate that string based on the file extensions that have
+been defined for a File Type Filter object. The string will look something similar to this:
+
+```
+JPEG file|jpg|JPEG
+PNG file|png|PNG
+GIF file|gif|GIF
+```
+
 */
 function appFileDialogTypeFilterFromGroup pFileExtGroupName
   local tFileExtGroupsA, tGroupA
@@ -171,15 +181,16 @@ end appFileDialogTypeFilterFromGroup
 
 
 /**
-* \brief Registers the application to process a particular URL handler on Windows.
-*
-* \param pProtocol The protocol to register (i.e. x-myapplication).
-* \param pDescription Description of the protocol.
-*
-* Calling this handler on platforms other than Windows does nothing.
-* http://msdn.microsoft.com/en-us/library/aa767914(v=vs.85).aspx
-*
-* \return Error
+Summary: Registers the application to process a particular URL handler on Windows.
+
+pProtocol The protocol to register (i.e. x-myapplication).
+pDescription Description of the protocol.
+
+Description:
+Calling this handler on platforms other than Windows does nothing.
+http://msdn.microsoft.com/en-us/library/aa767914(v=vs.85).aspx
+
+Returns:  Error
 */
 command appRegisterURLProtocol pProtocol, pDescription
   local tError
@@ -206,13 +217,16 @@ end appRegisterURLProtocol
 
 
 /**
-* Returns a file type filter string suitable for use with 'ask file with type'.
-*
-* 'ask file with type' filters the available files that a user can select in the dialog using a specially \
-      * formatted string. This function will generate that string based on a file extension that you have defined \
-      * in your application. The string will look something similar to this:
-*
-* <pre>JPEG file|jpg|JPEG</pre>
+Summary: Returns a file type filter string suitable for use with `ask file with type`.
+
+Description:
+`ask file with type` filters the available files that a user can select in the dialog using a specially
+formatted string. This function will generate that string based on a file extension that you have defined
+in your application. The string will look something similar to this:
+
+```
+JPEG file|jpg|JPEG
+```
 */
 function appFileDialogTypeFilterFromExtension pExtensionName
   local tFilter, tExtensionsA
@@ -228,21 +242,20 @@ end appFileDialogTypeFilterFromExtension
 
 
 /**
-* \brief Returns a list of file extensions for a File Type Filter Group.
-* \param pFileFilterName Name of File Type Filter object to locate group in.
-* \param pGroupName Name of group to return extensions for.
-*
-* Example:
-* <pre>put appFileExtensionGroupExtensions("Select Image", "Image Files") into theExtensions
-* jpeg
-* jpg
-* png
-* bmp
-* gif</pre>
-*
-* \package Files
-*
-* \return CR delimited list
+Summary: Returns a list of file extensions for a File Type Filter Group.
+
+pFileFilterName Name of File Type Filter object to locate group in.
+pGroupName Name of group to return extensions for.
+
+Example:
+put appFileExtensionGroupExtensions("Select Image", "Image Files") into theExtensions
+jpeg
+jpg
+png
+bmp
+gif
+
+Returns:  CR delimited list
 */
 function appFileExtensionGroupExtensions pGroupName
   local tExtGroupsA, tExtensions
@@ -295,12 +308,11 @@ end getFileExtensionsGroupsArray
 
 
 /**
-* \brief Given a list of files this function will extract all files that have extensions that are supported by your application.
-* \param pFiles CR delimited list of files to search in.
-*
-* \package Files
-*
-* \return CR delimited list
+Summary: Given a list of files this function will extract all files that have extensions that are supported by your application.
+
+pFiles CR delimited list of files to search in.
+
+Returns:  CR delimited list
 */
 private function extractAppAssociatedFilesFromList pFiles
   local tExtensions, tSupportedFiles
@@ -387,15 +399,17 @@ end appSetMaxRecentFiles
 
 
 /**
-* \brief Adds a file to the list of recently opened files for a specific category.
-* \param pCategory The category to add the file to. This is simply a string that helps you organize multiple lists of recent files.
-* \param pFile The full path to the file to add to the recent file list.
-* \param pTag This will be used as the tag in the menu that is generated by appRecentlyOpenedMenuText. If empty then pFile is used.
-* \param pSecurityBookmark Pass in any security related bookmark data. This will be stored with the entry as it may be needed to open the file.
-*
-* Calling this handler will save preferences.
-*
-* \return Error message
+Summary: Adds a file to the list of recently opened files for a specific category.
+
+pCategory The category to add the file to. This is simply a string that helps you organize multiple lists of recent files.
+pFile The full path to the file to add to the recent file list.
+pTag This will be used as the tag in the menu that is generated by appRecentlyOpenedMenuText. If empty then pFile is used.
+pSecurityBookmark Pass in any security related bookmark data. This will be stored with the entry as it may be needed to open the file.
+
+Description:
+Calling this handler will save preferences.
+
+Returns: Error message
 */
 command appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
   local tError,tFilesA
@@ -445,13 +459,15 @@ end appAddToRecentlyOpened
 
 
 /**
-* \brief Removes a file from the list of recently opened files for a specific category.
-* \param pCategory The category to remove the file from. This is simply a string that helps you organize multiple lists of recent files.
-* \param pFile The full path to the file to remove from the recent file list.
-*
-* Calling this handler will save preferences.
-*
-* \return Error message
+Summary: Removes a file from the list of recently opened files for a specific category.
+
+pCategory The category to remove the file from. This is simply a string that helps you organize multiple lists of recent files.
+pFile The full path to the file to remove from the recent file list.
+
+Description:
+Calling this handler will save preferences.
+
+Returns: Error message
 */
 command appRemoveFromRecentlyOpened pCategory, pFile
   local tError,tFilesA,tLineOffset
@@ -481,11 +497,12 @@ end appRemoveFromRecentlyOpened
 
 
 /**
-* \brief Returns a list of recently opened files for a particular category.
-* \param pCategory The category to retrieve the list of recently opened files for.
-* \param pShortVersion Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path.
-*
-* \return CR delimited list
+Summary: Returns a list of recently opened files for a particular category.
+
+pCategory The category to retrieve the list of recently opened files for.
+pShortVersion Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path.
+
+Returns: CR delimited list
 */
 function appRecentlyOpened pCategory, pShortVersion
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
@@ -523,13 +540,14 @@ end appRecentlyOpened
 
 
 /**
-* \brief Returns a list of recently opened files for a particular category which has been encoded for display in a menu.
-* \param pCategory The category to retrieve the list of recently opened files for.
-*
-* Each line of the returned list will be prefixed with a tab and will have special characters escaped
-* for display in a menu.
-*
-* \return CR delimited list
+Summary: Returns a list of recently opened files for a particular category which has been encoded for display in a menu.
+pCategory The category to retrieve the list of recently opened files for.
+
+Description:
+Each line of the returned list will be prefixed with a tab and will have special characters escaped
+for display in a menu.
+
+Returns: CR delimited list
 */
 function appRecentlyOpenedMenuText pCategory
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
@@ -564,12 +582,12 @@ end appRecentlyOpenedMenuText
 
 
 /**
-* \brief Returns the security scoped bookmark data for a file.
-*
-* \param pCategory The category to retrieve the list of recently opened files for.
-* \param pTag The tag assigned to the recently opened file.
-*
-* \return bookmark data
+Summary: Returns the security scoped bookmark data for a file.
+
+pCategory The category to retrieve the list of recently opened files for.
+pTag The tag assigned to the recently opened file.
+
+Returns: bookmark data
 */
 function appSecurityBookmarkForRecentlyOpenedFile pCategory, pTag
   local tFilesA
