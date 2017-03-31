@@ -23,11 +23,12 @@ Want to help this project? There are a number of ways to contribute.
 
 - Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
 - Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
+- Create module for iOS prefs that uses NSUserDefaults.
+- Move preferences external for OS X into a module.
 - Create a helper component for the MAS (security-scoped bookmarks and licensing).
 - Help with an auto update helper component
   - Needs module wrapped around WinSparkle: https://winsparkle.org
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
-- Move preferences external for OS X into a module.
 
 # Known Issues
 
