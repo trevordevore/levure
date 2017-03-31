@@ -746,52 +746,16 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["default"]) into sAppA["application data folder"]["user"]["default"]
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["macos"]) into sAppA["application data folder"]["user"]["macos"]
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["windows"]) into sAppA["application data folder"]["user"]["windows"]
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["linux"]) into sAppA["application data folder"]["user"]["linux"]
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["ios"]) into sAppA["application data folder"]["user"]["ios"]
-  put normalizeFolderPath(sAppA["application data folder"]["user"]["android"]) into sAppA["application data folder"]["user"]["android"]
-  put normalizeFolderPath(sAppA["application data folder"]["shared"]["default"]) into sAppA["application data folder"]["shared"]["default"]
-  put normalizeFolderPath(sAppA["application data folder"]["shared"]["macos"]) into sAppA["application data folder"]["shared"]["macos"]
-  put normalizeFolderPath(sAppA["application data folder"]["shared"]["windows"]) into sAppA["application data folder"]["shared"]["windows"]
-  put normalizeFolderPath(sAppA["application data folder"]["shared"]["linux"]) into sAppA["application data folder"]["shared"]["linux"]
+  repeat for each item tGroup in "user,shared"
+    repeat for each item tPlatform in "default,macos,windows,linux,ios,android"
+      if tGroup is "shared" and tPlatform is in "ios,android" then exit repeat
 
-  repeat while char 1 of sAppA["application data folder"]["user"]["default"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["default"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["user"]["macos"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["macos"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["user"]["windows"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["windows"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["user"]["linux"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["linux"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["user"]["ios"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["ios"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["user"]["android"] is "/"
-    delete char 1 of sAppA["application data folder"]["user"]["android"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["default"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["default"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["macos"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["macos"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["windows"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["windows"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["linux"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["linux"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["ios"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["ios"]
-  end repeat
-  repeat while char 1 of sAppA["application data folder"]["shared"]["android"] is "/"
-    delete char 1 of sAppA["application data folder"]["shared"]["android"]
+      put normalizeFolderPath(sAppA["application data folder"][tGroup][tPlatform]) into sAppA["application data folder"][tGroup][tPlatform]
+
+      repeat while char 1 of sAppA["application data folder"][tGroup][tPlatform] is "/"
+        delete char 1 of sAppA["application data folder"][tGroup][tPlatform]
+      end repeat
+    end repeat
   end repeat
 
   repeat for each item tKey in "password,file extensions,file extension groups"
