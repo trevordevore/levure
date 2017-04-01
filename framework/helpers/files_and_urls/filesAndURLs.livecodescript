@@ -7,6 +7,17 @@ local sMaxRecentFiles = "15"
 
 
 on libraryStack
+  if the target is me then
+    local tListA, tProtocol
+
+    put levureAppGet("url protocols") into tListA
+    repeat for each key tProtocol in tListA
+      if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
+        appRegisterURLProtocol tProtocol, tListA[tProtocol]
+      end if
+    end repeat
+  end if
+
   # pass so other libraries can check to see if this is being put in use.
   pass libraryStack
 end libraryStack
@@ -118,68 +129,6 @@ command appProcessCommandLineParameters pParams
 end appProcessCommandLineParameters
 
 
-function appFileExtensionsForTypes pTypes
-  local tType, tExtensionsA, tExtensions
-
-  put getFileExtensionsArray() into tExtensionsA
-
-  if pTypes is not empty then
-    repeat for each item tType in pTypes
-      if tExtensionsA[tType] is not empty then
-        put tExtensionsA[tType] & cr after tExtensions
-      end if
-    end repeat
-  else
-    repeat for each key tType in tExtensionsA
-      put tExtensionsA[tType] & cr after tExtensions
-    end repeat
-  end if
-  delete the last char of tExtensions
-  replace comma with cr in tExtensions
-  sort lines of tExtensions ascending
-
-  return tExtensions
-end appFileExtensionsForTypes
-
-
-/**
-Summary: Returns a file type filter string suitable for use with `ask file with type`.
-
-Description:
-`ask file with type` filters the available files that a user can select in the dialog using a specially
-formatted string. This function will generate that string based on the file extensions that have
-been defined for a File Type Filter object. The string will look something similar to this:
-
-```
-JPEG file|jpg|JPEG
-PNG file|png|PNG
-GIF file|gif|GIF
-```
-
-*/
-function appFileDialogTypeFilterFromGroup pFileExtGroupName
-  local tFileExtGroupsA, tGroupA
-  local tFilter
-
-  put getFileExtensionsGroupsArray() into tFileExtGroupsA
-  put tFileExtGroupsA[pFileExtGroupName] into tGroupA
-
-  if tGroupA is an array then
-    local i
-    local tFileTypes # not used
-
-    repeat with i = 1 to the number of elements of tGroupA
-      if tGroupA[i]["extensions"] is not empty then
-        put tGroupA[i]["name"] & "|" & tGroupA[i]["extensions"] & "|" & tFileTypes & cr after tFilter
-      end if
-    end repeat
-    delete the last char of tFilter
-  end if
-
-  return tFilter
-end appFileDialogTypeFilterFromGroup
-
-
 /**
 Summary: Registers the application to process a particular URL handler on Windows.
 
@@ -217,6 +166,59 @@ end appRegisterURLProtocol
 
 
 /**
+Summary: Returns a CR delimited list of extensions associated with a given type.
+
+Returns: CR-delimited list of extensions
+
+Description:
+Assume the following configuration in the `app.yml` file:
+
+```
+file extensions:
+  JPEG File: jpeg,jpg
+  PNG File: png
+  BMP file: bmp
+  GIF file: gif
+```
+
+You can get a list of JPEG extensions using the following code:
+
+```
+put appFileExtensionsForTypes("jpeg file") into tExtensions
+```
+
+`tExtensions` now contains the following value:
+
+```
+jpeg
+jpg
+```
+*/
+function appFileExtensionsForTypes pTypes
+  local tType, tExtensionsA, tExtensions
+
+  put getFileExtensionsArray() into tExtensionsA
+
+  if pTypes is not empty then
+    repeat for each item tType in pTypes
+      if tExtensionsA[tType] is not empty then
+        put tExtensionsA[tType] & cr after tExtensions
+      end if
+    end repeat
+  else
+    repeat for each key tType in tExtensionsA
+      put tExtensionsA[tType] & cr after tExtensions
+    end repeat
+  end if
+  delete the last char of tExtensions
+  replace comma with cr in tExtensions
+  sort lines of tExtensions ascending
+
+  return tExtensions
+end appFileExtensionsForTypes
+
+
+/**
 Summary: Returns a file type filter string suitable for use with `ask file with type`.
 
 Description:
@@ -233,12 +235,74 @@ function appFileDialogTypeFilterFromExtension pExtensionName
 
   put getFileExtensionsArray() into tExtensionsA
 
-  if pExtensionName[pExtensionName] is an array then
-    put pExtensionName & "|" & pExtensionName[pExtensionName] & "|" & empty into tFilter
+  if tExtensionsA[pExtensionName] is not empty then
+    local tExtensions, tFileTypes
+
+    _splitExtensionsIntoTypeFilter tExtensionsA[pExtensionName], tExtensions, tFileTypes
+    put pExtensionName & "|" & tExtensions & "|" & tFileTypes into tFilter
   end if
 
   return tFilter
 end appFileDialogTypeFilterFromExtension
+
+
+private command _splitExtensionsIntoTypeFilter pExtensionStr, @rExtensions, @rFileTypes
+  put empty into rExtensions
+  put empty into rFileTypes
+
+  repeat for each item tStr in pExtensionStr
+    set the itemDelimiter to "|"
+    if item 1 of tStr is not empty then
+      put item 1 of tStr & "," after rExtensions
+    end if
+    if item 2 of tStr is not empty then
+      put item 2 of tStr & "," after rFileTypes
+    end if
+    set the itemDelimiter to ","
+  end repeat
+  delete the last char of rExtensions
+  delete the last char of rFileTypes
+  return empty
+end _splitExtensionsIntoTypeFilter
+
+
+/**
+Summary: Returns a file type filter string suitable for use with `ask file with type`.
+
+Description:
+`ask file with type` filters the available files that a user can select in the dialog using a specially
+formatted string. This function will generate that string based on the file extensions that have
+been defined for a File Type Filter object. The string will look something similar to this:
+
+```
+JPEG file|jpg|JPEG
+PNG file|png|PNG
+GIF file|gif|GIF
+```
+
+*/
+function appFileDialogTypeFilterFromGroup pFileExtGroupName
+  local tFileExtGroupsA, tGroupA
+  local tFilter
+
+  put getFileExtensionsGroupsArray() into tFileExtGroupsA
+  put tFileExtGroupsA[pFileExtGroupName] into tGroupA
+
+  if tGroupA is an array then
+    local i
+    local tExtensions, tFileTypes
+
+    repeat with i = 1 to the number of elements of tGroupA
+      if tGroupA[i]["extensions"] is not empty then
+        _splitExtensionsIntoTypeFilter tGroupA[i]["extensions"], tExtensions, tFileTypes
+        put tGroupA[i]["name"] & "|" & tExtensions & "|" & tFileTypes & cr after tFilter
+      end if
+    end repeat
+    delete the last char of tFilter
+  end if
+
+  return tFilter
+end appFileDialogTypeFilterFromGroup
 
 
 /**
@@ -389,7 +453,14 @@ private function _decodeMenuText pString
   return pString
 end _decodeMenuText
 
+/**
+Summary: Sets the maximum number of files that will be stored in the recent files list.
 
+pMax: The maximum number of files to store in the list.
+
+Description:
+Once the threshold is met the last file in the list will be removed when another file is added.
+*/
 command appSetMaxRecentFiles pMax
   if pMax is an integer AND pMax > 0 then
     put pMax into sMaxRecentFiles
