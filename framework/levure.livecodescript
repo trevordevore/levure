@@ -126,6 +126,30 @@ end levureAppStackFilename
 
 
 /**
+Summary: Returns true if a helper is loaded.
+
+pHelperFolderName: The name of the helper folder.
+
+Example:
+put levureIsHelperLoaded("preferences") into tUsePrefs
+
+Returns: True/False
+*/
+function levureIsHelperLoaded pHelperFolderName
+  local i
+
+  set the itemDelimiter to "/"
+
+  repeat with i = 1 to the number of elements of sAppA["helpers"]
+    if sAppA["helpers"][i]["filename"] ends with pHelperFolderName then
+      return true
+    end if
+  end repeat
+  return false
+end levureIsHelperLoaded
+
+
+/**
 Summary: Packages up a levure application for distribution.
 
 pBuildProfile: The profile to build (e.g. `release` or `beta`). The profile must be defined in your `app.yml` file.

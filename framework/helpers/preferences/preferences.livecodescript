@@ -17,6 +17,8 @@ on libraryStack
     if the result is not empty then
       throw "error loading default preferences:" && the result
     end if
+
+    put levureIsHelperLoaded("broadcaster") into sUseBroadcaster
   end if
 
   pass libraryStack
