@@ -26,6 +26,9 @@ Want to help this project? There are a number of ways to contribute.
 - Create module for iOS prefs that uses NSUserDefaults.
 - Move preferences external for OS X into a module.
 - Create a helper component for the MAS (security-scoped bookmarks and licensing).
+  - secscopGetBookmarkFromURL(pUTF8Filename) to generate bookmark data for a filename
+  - secscopInitializeURLFromBookmarkData(pBookmarkData) to generate security scoped filenames using bookmark data
+  - secscopStopUsingURL(pSecurityScopedFilename) to release a security scoped filename.
 - Help with an auto update helper component
   - Needs module wrapped around WinSparkle: https://winsparkle.org
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
