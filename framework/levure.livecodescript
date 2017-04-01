@@ -679,6 +679,16 @@ end levureAppGetENV
 
 
 /**
+Summary: Use to check if a property is defined in the application configuration array.
+
+Returns: True/False
+*/
+function levurePropExists pProp
+  return pProp is among the keys of sAppA
+end levurePropExists
+
+
+/**
 Summary: Gets an app property.
 
 Description:
