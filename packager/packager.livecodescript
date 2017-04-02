@@ -1303,21 +1303,21 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
     if tError is empty then
       if tWindowsFolder is not empty then
         rename folder tWindowsFolder to pOutputFolder & "/Windows"
-        put the result into tError
+        put _errorMsg("renaming folder [" & tWindowsFolder & "] to [" & pOutputFolder & "/Windows" & "]", the result) into tError
       end if
     end if
 
     if tError is empty then
       if tLinuxFolder is not empty then
         rename folder tLinuxFolder to pOutputFolder & "/Linux"
-        put the result into tError
+        put _errorMsg("renaming folder [" & tLinuxFolder & "] to [" & pOutputFolder & "/Linux" & "]", the result) into tError
       end if
     end if
 
     if tError is empty then
       if tMacOSFolder is not empty then
         rename folder tMacOSFolder to pOutputFolder & "/MacOS/"
-        put the result into tError
+        put _errorMsg("renaming folder [" & tMacOSFolder & "] to [" & pOutputFolder & "/MacOS" & "]", the result) into tError
       end if
     end if
   else
@@ -1329,7 +1329,7 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
 
       if there is a folder (tWindowsFolder & "/Externals") or there is a folder (tLinuxFolder & "/Externals") then
         create folder (pOutputFolder & "/Externals")
-        put the result into tError
+        put _errorMsg("creating folder [" & pOutputFolder & "/Externals" & "]", the result) into tError
       end if
     end if
 
@@ -1341,7 +1341,7 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
           end if
 
           rename file tFile to (pOutputFolder & "/" & the last item of tFile)
-          put the result into tError
+          put _errorMsg("renaming file [" & tFile & "] to [" & pOutputFolder & "/" & the last item of tFile & "]", the result) into tError
 
           if tError is not empty then exit repeat
         end repeat
@@ -1363,7 +1363,7 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
           end if
 
           rename file tFile to (pOutputFolder & "/" & the last item of tFile)
-          put the result into tError
+          put _errorMsg("renaming file [" & tFile & "] to [" & pOutputFolder & "/" & the last item of tFile & "]", the result) into tError
 
           if tError is not empty then exit repeat
         end repeat
@@ -1383,6 +1383,7 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
           revDeleteFolder (pOutputFolder & "/" & the last item of tMacOSBundle)
         end if
         rename folder tMacOSBundle to (pOutputFolder & "/" & the last item of tMacOSBundle)
+        put _errorMsg("renaming folder [" & tMacOSBundle & "] to [" & pOutputFolder & "/" & the last item of tMacOSBundle & "]", the result) into tError
       end if
     end if
   end if
