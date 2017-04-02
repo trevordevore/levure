@@ -119,7 +119,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
     if tError is empty then
       _fileCreateAllFoldersInPath tWorkingOutputFolder, tOutputFolder
-      put the result into tError
+      put _errorMsg("creating working output folder [" & tWorkingOutputFolder & "] [" & tOutputFolder & "]", the result) into tError
     end if
 
     # Behaviors, Libraries, Frontscripts, Backscripts
@@ -175,7 +175,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       log "App stack filename:" && tAppStackFilename
 
       _fileCopyFile tSourceStackFilename, tAppStackFilename
-      put the result into tError
+      put _errorMsg("copying file [" & tSourceStackFilename & "] to [" & tAppStackFilename & "]", the result) into tError
 
       if tError is empty then
         delete stack tSourceStackFilename
@@ -184,6 +184,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         set the uAppA of stack tAppStackFilename to tAppA
         set the password of stack tAppStackFilename to sPassword
         save stack tAppStackFilename with newest format
+        put _errorMsg("saving app stack", the result) into tError
         put the result into tError
 
         delete stack tAppStackFilename
@@ -1043,7 +1044,7 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
           and xAppA["extensions"][i]["distribute"] is not false then
         if there is not a folder (pOutputFolder & "/extensions") then
           create folder (pOutputFolder & "/extensions")
-          put the result into tError
+          put _errorMsg("creating the extensions folder [" & pOutputFolder & "/extensions" & "]", the result) into tError
           if tError is not empty then
             exit repeat
           end if
@@ -1054,7 +1055,7 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
         log "  Adding extension:" && xAppA["extensions"][i]["filename"]
 
         _fileCopyFile xAppA["extensions"][i]["filename"], pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"]
-        put the result into tError
+        put _errorMsg("copying file [" & xAppA["extensions"][i]["filename"] & "] to [" & pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"] & "]", the result) into tError
 
         if tError is empty then
           put "extensions/" & the last item of xAppA["extensions"][i]["filename"] into tExtsA[j]["filename"]
@@ -1166,7 +1167,7 @@ private command _packageAssetStacks @xAppA, pOutputFolder
         log "Saving unprotected behavior stack:" && pOutputFolder & "/behaviors_.livecode"
 
         save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
-        put the result into tError
+        put _errorMsg("saving unprotected behavior stack [" & pOutputFolder & "/behaviors_.livecode" & "]", the result) into tError
 
         delete stack tUnprotectedStackName
       end if
@@ -1229,13 +1230,13 @@ private command _packageAssetStacks @xAppA, pOutputFolder
 
       log "Saving" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & ".livecode"
       save stack tStackName as (pOutputFolder & "/" & tAssetType & ".livecode") with newest format
-      put the result into tError
+      put _errorMsg("saving" && tAssetType && "stack [" & pOutputFolder & "/" & tAssetType & ".livecode" & "]", the result) into tError
       delete stack tStackName
 
       if tError is empty AND tUnprotectedStackName is not empty then
         log "Saving unprotected" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & "_.livecode"
         save stack tUnprotectedStackName as (pOutputFolder & "/" & tAssetType & "_.livecode") with newest format
-        put the result into tError
+        put _errorMsg("saving unprotected" && tAssetType && "stack [" & pOutputFolder & "/" & tAssetType & "_.livecode" & "]", the result) into tError
         delete stack tUnprotectedStackName
       end if
 
