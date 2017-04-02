@@ -5,11 +5,7 @@ local sPrefsA
 
 
 on libraryStack
-  if the target is not me then
-    if sUseBroadcaster is false then
-      put the short name of the target is "appBroadcaster" into sUseBroadcaster
-    end if
-  else
+  if the target is me then
     put null into sPrefsA["user"]
     put null into sPrefsA["shared"]
 
@@ -17,8 +13,6 @@ on libraryStack
     if the result is not empty then
       throw "error loading default preferences:" && the result
     end if
-
-    put levureIsHelperLoaded("broadcaster") into sUseBroadcaster
   end if
 
   pass libraryStack
@@ -40,8 +34,7 @@ end releaseStack
 
 private function useBroadcaster
   if sUseBroadcaster is empty then
-    set the wholematches to true
-    put "appBroadcaster" is among the lines of the stacksinuse into sUseBroadcaster
+    put levureIsHelperLoaded("broadcaster") into sUseBroadcaster
   end if
 
   return sUseBroadcaster
