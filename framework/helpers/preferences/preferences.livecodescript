@@ -124,15 +124,14 @@ end appReloadPrefs
 
 
 /**
-* \brief Sets an application preference.
-* \param pKey Name of preference to set.
-* \param pValue Value to set preference to. This can be a string or an array.
-* \param pUserOrShared Pass in "shared" to set a pref in shared preferences. Leave empty for default behavior.
-* \param pType Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
-*
-* \package Preferences
-*
-* \return error message
+Summary: Sets an application preference.
+
+pKey: Name of preference to set.
+pValue: Value to set preference to. This can be a string or an array.
+pUserOrShared: Pass in "shared" to set a pref in shared preferences. Leave empty for default behavior.
+pType: Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
+
+Returns: error message
 */
 command appSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
@@ -171,12 +170,12 @@ end appSetPref
 
 
 /**
-* \brief Gets an application preference.
-* \param pKey Name of preference to get.
-*
-* \package Preferences
-*
-* \return value
+Summary: Gets an application preference.
+
+pKey: Name of preference to get.
+pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+
+Returns: value
 */
 function appGetPref pKey, pUserOrShared
   local tStack, tValue
@@ -223,10 +222,12 @@ end appGetPref
 
 
 /**
-* \brief Checks if a preference has been set on the computer the application is running on.
-* \param pKey Name of preference to check.
-*
-* \return true/false
+Summary: Checks if a preference has been set on the computer the application is running on.
+
+pKey: Name of preference to check.
+pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+
+Returns: true/false
 */
 function appPrefIsSet pKey, pUserOrShared
   local tStack
@@ -246,13 +247,15 @@ end appPrefIsSet
 
 
 /**
-* \brief Saves preferences to disk.
-* \param pKey Name of preference to check.
-*
-* When setting preferences the preference is updated in memory. To permanently
-* store changes on disk use this command.
-*
-* \return Error message
+Summary: Saves preferences to disk.
+
+pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+
+Description:
+When setting preferences the preference is updated in memory. To permanently
+store changes on disk use this command.
+
+Returns: Error message
 */
 command appSavePrefs pUserOrShared
   local tError, tFile
@@ -279,6 +282,15 @@ command appSavePrefs pUserOrShared
 end appSavePrefs
 
 
+/**
+Summary: Returns the file where preferences are stored.
+
+Description:
+Returns the filename of the preference file. If an external is being used on OS X
+then empty will be returned.
+
+Returns: Filename or empty
+*/
 function appGetPreferenceFile pUserOrShared
   local tFile
 
