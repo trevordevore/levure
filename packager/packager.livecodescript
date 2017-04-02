@@ -1289,13 +1289,12 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForDistribution
   if tWindowsFolder is empty and tMacOSBundle is empty and tLinuxFolder is empty then
     put _fileListing(tFolderContainingPlatformBuilds) into tFiles
     if tFiles is not empty then
-      repeat for each line tFile in tFiles
-        if tFile ends with ".exe" then
-          put tFolderContainingPlatformBuilds into tWindowsFolder
-        else
-          put tFolderContainingPlatformBuilds into tLinuxFolder
-        end if
-      end repeat
+      filter lines of tFiles with "*.exe"
+      if tFiles is not empty then
+        put tFolderContainingPlatformBuilds into tWindowsFolder
+      else
+        put tFolderContainingPlatformBuilds into tLinuxFolder
+      end if
     end if
   end if
 
