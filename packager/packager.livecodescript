@@ -75,127 +75,129 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put the result into tError
   end if
 
-  local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
-  local tMacOSEngineFolder
+  if tError is empty then
+    local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
+    local tMacOSEngineFolder
 
-  # Refresh after having unloaded for standalone builder
-  levureLoadAppConfig
+    # Refresh after having unloaded for standalone builder
+    levureLoadAppConfig
 
-  # Make sure that macos is processed last
-  # tWorkingOutputFolder will be used for mirroring redirect folder after file copy operation
-  repeat for each item tPlatform in "win32,linux,macos"
-    # Is this platform being packaged?
-    if there is not a folder _outputFolderForPlatform(tPlatform, tOutputFolder) then next repeat
+    # Make sure that macos is processed last
+    # tWorkingOutputFolder will be used for mirroring redirect folder after file copy operation
+    repeat for each item tPlatform in "win32,linux,macos"
+      # Is this platform being packaged?
+      if there is not a folder _outputFolderForPlatform(tPlatform, tOutputFolder) then next repeat
 
-    log "----------" & cr & "Packaging for" && tPlatform & cr & "----------"
+      log "----------" & cr & "Packaging for" && tPlatform & cr & "----------"
 
-    # Create version of app array that will be modfiied and stored with package
-    put sAppA into tAppA
+      # Create version of app array that will be modfiied and stored with package
+      put sAppA into tAppA
 
-    # determine output folder
-    if tPlatform is "macos" then
-      if tOutputAppFolder is not empty then
-        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, true) into tWorkingOutputFolder
-        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, false) into tMacOSEngineFolder
+      # determine output folder
+      if tPlatform is "macos" then
+        if tOutputAppFolder is not empty then
+          put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, true) into tWorkingOutputFolder
+          put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder, false) into tMacOSEngineFolder
+        else
+          put _outputFolderForPlatform(tPlatform, tOutputFolder, true) into tWorkingOutputFolder
+          put _outputFolderForPlatform(tPlatform, tOutputFolder, false) into tMacOSEngineFolder
+        end if
+        put tWorkingOutputFolder into tExecutableOutputFolder
+        replace "Resources/_MacOS" with "MacOS" in tExecutableOutputFolder
+
+        log "OS X engine folder:" && tMacOSEngineFolder
       else
-        put _outputFolderForPlatform(tPlatform, tOutputFolder, true) into tWorkingOutputFolder
-        put _outputFolderForPlatform(tPlatform, tOutputFolder, false) into tMacOSEngineFolder
+        if tOutputAppFolder is not empty then
+          put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder) into tWorkingOutputFolder
+        else
+          put _outputFolderForPlatform(tPlatform, tOutputFolder) into tWorkingOutputFolder
+        end if
+        put tWorkingOutputFolder into tExecutableOutputFolder
       end if
-      put tWorkingOutputFolder into tExecutableOutputFolder
-      replace "Resources/_MacOS" with "MacOS" in tExecutableOutputFolder
 
-      log "OS X engine folder:" && tMacOSEngineFolder
-    else
-      if tOutputAppFolder is not empty then
-        put _outputFolderForPlatform(tPlatform, tOutputFolder & "/" & tOutputAppFolder) into tWorkingOutputFolder
-      else
-        put _outputFolderForPlatform(tPlatform, tOutputFolder) into tWorkingOutputFolder
-      end if
-      put tWorkingOutputFolder into tExecutableOutputFolder
-    end if
-
-    log "Working output folder:" && tWorkingOutputFolder
-    log "Executable output folder:" && tExecutableOutputFolder
-
-    if tError is empty then
-      _fileCreateAllFoldersInPath tWorkingOutputFolder, tOutputFolder
-      put _errorMsg("creating working output folder [" & tWorkingOutputFolder & "] [" & tOutputFolder & "]", the result) into tError
-    end if
-
-    # Behaviors, Libraries, Frontscripts, Backscripts
-    # Create single stack for each and move all as substacks of single stack.
-    # For libraries, frontscripts, and backscripts store a custom property with order to load them in.
-    if tError is empty then
-      _packageAssetStacks tAppA, tWorkingOutputFolder
-      put the result into tError
-    end if
-
-    # Extensions
-    # Move straight across
-    if tError is empty then
-      _packageExtensions tAppA, tExecutableOutputFolder, tExtensionsBuiltIntoStandalone
-      put the result into tError
-    end if
-
-    # UI
-    # Move straight across.
-    # Convert script only stacks to regular stacks
-    if tError is empty then
-      _packageUI tAppA, tWorkingOutputFolder
-      put the result into tError
-    end if
-
-    # Helpers
-    # Move straight over
-    # Convert any script only stacks to stacks
-    # Remove helper.yml file.
-    if tError is empty then
-      _packageHelpers tAppA, tPlatform, tWorkingOutputFolder, tExecutableOutputFolder
-      put the result into tError
-    end if
-
-    # Prune and move in app stack
-    if tError is empty then
-      local tSourceStackFilename, tAppStackFilename, isReloaded
-      local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
-
-      # This is for Windows
-      _autoUpdateURLs pBuildProfile, tAppA, tURLsA
-      put tURLsA["build profile"] & "/update.txt" into tAppA["auto update url"]
-
-      _pruneAppArray tAppA, pBuildProfile, tPlatform
-
-      log "tAppA:" && _printArray(tAppA,,true)
-
-      set the itemdelimiter to "/"
-      put levureAppStackFilename() into tSourceStackFilename
-      put tWorkingOutputFolder & "/" & the last item of tSourceStackFilename into tAppStackFilename
-
-      log "Source stack filename:" && tSourceStackFilename
-      log "App stack filename:" && tAppStackFilename
-
-      _fileCopyFile tSourceStackFilename, tAppStackFilename
-      put _errorMsg("copying file [" & tSourceStackFilename & "] to [" & tAppStackFilename & "]", the result) into tError
+      log "Working output folder:" && tWorkingOutputFolder
+      log "Executable output folder:" && tExecutableOutputFolder
 
       if tError is empty then
-        delete stack tSourceStackFilename
-
-        set the scriptonly of stack tAppStackFilename to false
-        set the uAppA of stack tAppStackFilename to tAppA
-        set the password of stack tAppStackFilename to sPassword
-        save stack tAppStackFilename with newest format
-        put _errorMsg("saving app stack", the result) into tError
-        put the result into tError
-
-        delete stack tAppStackFilename
-        put there is a stack tSourceStackFilename into isReloaded
+        _fileCreateAllFoldersInPath tWorkingOutputFolder, tOutputFolder
+        put _errorMsg("creating working output folder [" & tWorkingOutputFolder & "] [" & tOutputFolder & "]", the result) into tError
       end if
 
-      set the itemdelimiter to ","
-    end if
+      # Behaviors, Libraries, Frontscripts, Backscripts
+      # Create single stack for each and move all as substacks of single stack.
+      # For libraries, frontscripts, and backscripts store a custom property with order to load them in.
+      if tError is empty then
+        _packageAssetStacks tAppA, tWorkingOutputFolder
+        put the result into tError
+      end if
 
-    if tError is not empty then exit repeat
-  end repeat
+      # Extensions
+      # Move straight across
+      if tError is empty then
+        _packageExtensions tAppA, tExecutableOutputFolder, tExtensionsBuiltIntoStandalone
+        put the result into tError
+      end if
+
+      # UI
+      # Move straight across.
+      # Convert script only stacks to regular stacks
+      if tError is empty then
+        _packageUI tAppA, tWorkingOutputFolder
+        put the result into tError
+      end if
+
+      # Helpers
+      # Move straight over
+      # Convert any script only stacks to stacks
+      # Remove helper.yml file.
+      if tError is empty then
+        _packageHelpers tAppA, tPlatform, tWorkingOutputFolder, tExecutableOutputFolder
+        put the result into tError
+      end if
+
+      # Prune and move in app stack
+      if tError is empty then
+        local tSourceStackFilename, tAppStackFilename, isReloaded
+        local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
+
+        # This is for Windows
+        _autoUpdateURLs pBuildProfile, tAppA, tURLsA
+        put tURLsA["build profile"] & "/update.txt" into tAppA["auto update url"]
+
+        _pruneAppArray tAppA, pBuildProfile, tPlatform
+
+        log "tAppA:" && _printArray(tAppA,,true)
+
+        set the itemdelimiter to "/"
+        put levureAppStackFilename() into tSourceStackFilename
+        put tWorkingOutputFolder & "/" & the last item of tSourceStackFilename into tAppStackFilename
+
+        log "Source stack filename:" && tSourceStackFilename
+        log "App stack filename:" && tAppStackFilename
+
+        _fileCopyFile tSourceStackFilename, tAppStackFilename
+        put _errorMsg("copying file [" & tSourceStackFilename & "] to [" & tAppStackFilename & "]", the result) into tError
+
+        if tError is empty then
+          delete stack tSourceStackFilename
+
+          set the scriptonly of stack tAppStackFilename to false
+          set the uAppA of stack tAppStackFilename to tAppA
+          set the password of stack tAppStackFilename to sPassword
+          save stack tAppStackFilename with newest format
+          put _errorMsg("saving app stack", the result) into tError
+          put the result into tError
+
+          delete stack tAppStackFilename
+          put there is a stack tSourceStackFilename into isReloaded
+        end if
+
+        set the itemdelimiter to ","
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
 
   # configure file "copy files"
   if tError is empty then
@@ -394,7 +396,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
   if tError is empty then
     if there is not a folder tOutputFolder then
       create folder tOutputFolder
-      put the result into tError
+      put _errorMsg("creating folder [" & tOutputFolder & "]", the result) into tError
     end if
   end if
 
@@ -403,7 +405,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
       put "/" & pBuildProfile after tOutputFolder
       if there is not a folder tOutputFolder then
         create folder tOutputFolder
-        put the result into tError
+        put _errorMsg("creating folder [" & tOutputFolder & "]", the result) into tError
       end if
 
       put "/" & pSubfolder after tOutputFolder
@@ -418,7 +420,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     end if
 
     create folder tOutputFolder
-    put the result into tError
+    put _errorMsg("creating folder [" & tOutputFolder & "]", the result) into tError
   end if
 
   if tError is empty then
@@ -432,7 +434,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildProfile, pSubfo
     log "Build: Saving stack using IDE call"
 
     revIDESaveStack the long id of stack pStandaloneStackFilename
-    put the result into tError
+    put _errorMsg("calling revIDESaveStack [" & pStandaloneStackFilename & "]", the result) into tError
   end if
 
   # Build startup script before unloading framework stack
@@ -1678,13 +1680,16 @@ private command _updateStandaloneVersionInfo pStackFilename
 
       ## Developer is doing this the proper way. Update plist
       put URL("binfile:" & tPlist) into tData
+      put _errorMsg("opening plist file [" & tPlist & "]", the result) into tError
 
-      _updatePlistInfo tData
+      if tError is empty then
+        _updatePlistInfo tData
 
-      put tData into URL("binfile:" & tPlist)
-      put the result into tError
-      if tError is not empty then
-        put "error writing plist info: " & tError into tError
+        put tData into URL("binfile:" & tPlist)
+        put the result into tError
+        if tError is not empty then
+          put "error writing plist info: " & tError into tError
+        end if
       end if
     else
       put "could not find plist file" && quote & tPlist & quote into tError
