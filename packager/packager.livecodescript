@@ -279,7 +279,7 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   end repeat
 
   if tFilename is not empty then
-    dispatch "pruneAppArray" to stack tFilename with xAppA, pBuildProfile
+    dispatch "pruneAppArray" to stack tFilename with pBuildProfile, xAppA
   end if
 
   return empty for error
