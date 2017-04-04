@@ -1430,7 +1430,7 @@ private command loadMessagePathAssets pArrayA
 
   repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
     if pArrayA["frontscripts"][i]["autoload"] is not false then
-      insert script of stack pArrayA["frontscripts"][i]["filename"] into back
+      insert script of stack pArrayA["frontscripts"][i]["filename"] into front
     else
       # Try to access property so that error is thrown if it can't be found
       put the name of stack pArrayA["frontscripts"][i]["filename"] into tIsLoaded
