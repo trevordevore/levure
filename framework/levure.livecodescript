@@ -617,9 +617,13 @@ the state is `shutting down`.
 In all other cases the state is `running`.
 
 Example:
-if levureApplicationState() is "shutting down" then
-  exit to top
-end if
+# In app.livecodescript
+on appleEvent pClass, pId, pSender
+  # don't process events if application isn't running
+  if levureApplicationState() is not "running" then pass appleEvent
+
+  ...
+end appleEvent
 
 Returns: "loading", "running", "shutting down"
 */
