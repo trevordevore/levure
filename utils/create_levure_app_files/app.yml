@@ -63,5 +63,7 @@ build profiles:
       macos:
       windows:
       linux:
+      ios:
+      android:
   release:
   beta:
