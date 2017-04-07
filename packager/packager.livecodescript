@@ -65,6 +65,14 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put kStandaloneBuilderPlatforms into tStandaloneBuilderPlatforms
   end if
 
+  if pBuildProfile is "ios simulator" then
+    put "release" into pBuildProfile
+    put false into tBuildStandalone
+    put "iOS" into tStandaloneBuilderPlatforms
+  else
+    put kStandaloneBuilderPlatforms into tStandaloneBuilderPlatforms
+  end if
+
   _performPackagingPrechecks pStandaloneStackFilename, pBuildProfile
   put the result into tError
 
@@ -189,7 +197,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
 
       # Now build standalone for target platform
-      if tError is empty then
+      if tError is empty and tBuildStandalone then
         local tCopyFiles
         put _createCopyFilesListFromFolder(tCopyFilesTempFolder) into tCopyFiles
 
