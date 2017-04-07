@@ -17,7 +17,7 @@ on mouseUp pBtnNum
   # Load app if user clicks on button in standalone stack
   if sRuntimePropertiesA["state"] is empty then
     if pBtnNum is 1 and word 1 of the target is "button" and the owner of the owner of the target is me then
-      _startup
+      levureInitializeAndRunApplication
       exit mouseUp
     end if
   end if
@@ -27,7 +27,7 @@ end mouseUp
 
 
 after startup
-  _startup
+  levureInitializeAndRunApplication
 end startup
 
 
@@ -38,13 +38,6 @@ on shutdown
 
   pass shutdown
 end shutdown
-
-
-private command _startup
-  set visible of me to false
-  set the loc of me to the screenloc
-  levureInitializeAndRunApplication
-end _startup
 
 
 on relaunch
@@ -374,6 +367,8 @@ command levureInitializeAndRunApplication
 
   put "loading" into sRuntimePropertiesA["state"]
 
+  set visible of me to false
+  set the loc of me to the screenloc
   start using me
 
   levureInitializeFramework
