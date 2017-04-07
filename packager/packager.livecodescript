@@ -70,6 +70,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put false into tBuildStandalone
     put "iOS" into tStandaloneBuilderPlatforms
   else
+    put true into tBuildStandalone
     put kStandaloneBuilderPlatforms into tStandaloneBuilderPlatforms
   end if
 
