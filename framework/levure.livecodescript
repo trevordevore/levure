@@ -41,10 +41,8 @@ end shutdown
 
 
 private command _startup
-  put "loading" into sRuntimePropertiesA["state"]
   set visible of me to false
   set the loc of me to the screenloc
-  start using me
   levureInitializeAndRunApplication
 end _startup
 
@@ -373,6 +371,10 @@ Returns: Empty
 */
 command levureInitializeAndRunApplication
   local tError
+
+  put "loading" into sRuntimePropertiesA["state"]
+
+  start using me
 
   levureInitializeFramework
   put the result into tError
