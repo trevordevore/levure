@@ -1143,7 +1143,9 @@ end appStackFilename
 private command createApplicationDataFolders
   local tError, tRootFolder
 
-  if the platform is "android" then
+  if the platform is "iphone" then
+    createSubfolders specialFolderPath("library"), "Application Support"
+  else if the platform is "android" then
     createSubfolders specialFolderPath("documents"), "Application Support"
   end if
 
