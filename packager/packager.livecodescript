@@ -841,8 +841,17 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
           put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
           put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
         else if there is a folder tFilename then
-          _fileCopyFolder tFilename, tDestination & "/" & the last item of tFilename
-          put _errorMsg("copying file" && tFilename && "to" && tDestination & "/" & the last item of tFilename, the result) into tError
+          local tTargetFolder
+
+          put tDestination & "/" & the last item of tFilename into tTargetFolder
+
+          if there is a folder tTargetFolder then
+            _copyFilesAndFolders tFilename, tTargetFolder
+            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+          else
+            _fileCopyFolder tFilename, tTargetFolder
+            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+          end if
         else
           put "unable to locate file [" & tFilename & "]" into tError
         end if
