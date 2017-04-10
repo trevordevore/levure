@@ -306,6 +306,13 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
     put the result into tError
   end if
 
+  # Files
+  # Move straight over
+  if tError is empty then
+    _packageFiles xAppA, pOutputFolder
+    put the result into tError
+  end if
+
   return tError for error
 end _prepareAppFilesForStandaloneBuilding
 
@@ -1075,6 +1082,51 @@ private command _packageUI @xAppA, pOutputFolder
 
   return tError
 end _packageUI
+
+
+private command _packageFiles @xAppA, pOutputFolder
+  local tError
+  local tCompsA, tKey, tProp, i
+  local tComponentFolder
+
+  repeat for each key tKey in xAppA["registered components"]["files"]
+    put empty into tCompsA
+
+    if xAppA["registered components"]["files"][tKey]["distribute"] is not false and the number of elements of xAppA[tKey] > 0 then
+      log "Packaging" && tKey
+
+      create folder (pOutputFolder & "/" & tKey)
+      put _errorMsg("creating folder" && pOutputFolder & "/" & tKey, the result) into tError
+
+      if tError is empty then
+        local tDestFolder
+
+        repeat with i = 1 to the number of elements of xAppA[tKey]
+          if xAppA[tKey][i]["distribute"] is false then next repeat
+
+          _fileCopyFile xAppA[tKey][i]["filename"], pOutputFolder & "/" & tKey & "/" & the last item of xAppA[tKey][i]["filename"]
+          put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
+                pOutputFolder & "/" & tKey & "/" & the last item of xAppA[tKey][i]["filename"], the result) into tError
+
+          put tKey & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[i]["filename"]
+          repeat for each key tProp in xAppA[tKey][i]
+            if tProp is "filename" then next repeat
+
+            put xAppA[tKey][i][tProp] into tCompsA[i][tProp]
+          end repeat
+
+          if tError is not empty then exit repeat
+        end repeat
+      end if
+
+      if tError is empty then
+        put tCompsA into xAppA[tKey]
+      end if
+    end if
+  end repeat
+
+  return tError
+end _packageFiles
 
 
 private command _processStacksInFolder pFolder, pPassword, pExclusions
