@@ -1283,7 +1283,7 @@ private command loadAppAssets
   local tRenameAskDialog = "false"
   local tStackFiles, i
 
-  # ui and "registered components.ui"
+  # "registered components.ui"
   if tError is empty then
     put the stackFiles of stack kAppStackName into tStackFiles
     if tStackFiles is not empty then put cr after tStackFiles
@@ -1303,16 +1303,6 @@ private command loadAppAssets
           put there is a stack "Ask Dialog" into tRenameAskDialog
         end if
       end repeat
-    end repeat
-  end if
-
-  # Load registered components.files files
-  if tError is empty then
-    repeat for each key tKey in sAppA["registered components"]["files"]
-      _loadRegisteredKeyFiles tKey
-      put the result into tError
-
-      if tError is not empty then exit repeat
     end repeat
   end if
 
@@ -1366,6 +1356,17 @@ private command loadAppAssets
         delete stack "Ask Dialog"
       end if
     end if
+  end if
+
+  # Now that all helper files have been loaded
+  # load registered components.files files
+  if tError is empty then
+    repeat for each key tKey in sAppA["registered components"]["files"]
+      _loadRegisteredKeyFiles tKey
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
   end if
 
   return tError
