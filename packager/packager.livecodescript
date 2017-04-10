@@ -1026,14 +1026,12 @@ end _packageHelpers
 
 private command _packageUI @xAppA, pOutputFolder
   local tError
-  local tComponents, tCompsA, tKey, i
+  local tCompsA, tKey, i
   local tComponentFolder
 
   set the itemdelimiter to "/"
-  put xAppA["registered components"]["ui"] into tComponents
-  replace "," with "/" in tComponents
 
-  repeat for each item tKey in tComponents
+  repeat for each key tKey in xAppA["registered components"]["ui"]
     put empty into tCompsA
 
     if the number of elements of xAppA[tKey] > 0 then
