@@ -2042,16 +2042,24 @@ end levureFrameworkFilename
 
 
 private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder, pExtensions
-  local tFilesA, i, j, tProp
+  local tFilesA, i, j, tPropsA, tProp
 
   replaceVariablesInPaths pFilesA
 
   repeat with i = 1 to the number of elements of pFilesA
+    put empty into tPropsA
+
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
+      repeat for each item tProp in "distribute,encrypt,autoload"
+        if tProp is among the keys of pFilesA[i] then
+          put pFilesA[i][tProp] into tPropsA[tProp]
+        end if
+      end repeat
+
       # expand the folder listing. Assume every file is a file to load.
-      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, pExtensions
+      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, tPropsA, pExtensions
 
       put the number of elements of tFilesA into j
 
@@ -2081,16 +2089,24 @@ end expandMessagePathAssetsFileReferenceArray
 
 
 private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
-  local tFilesA, i, j, tProp
+  local tFilesA, i, j, tPropsA, tProp
 
   replaceVariablesInPaths pFilesA
 
   repeat with i = 1 to the number of elements of pFilesA
+    put empty into tPropsA
+
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
+      repeat for each key tProp in pFilesA[i]
+        if tProp is not "folder" then
+          put pFilesA[i][tProp] into tPropsA[tProp]
+        end if
+      end repeat
+
       # expand the folder listing. Assume every file is a file to load.
-      addFolderToFilesArray pFilesA[i]["folder"], tFilesA
+      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, tPropsA
 
       put the number of elements of tFilesA into j
 
@@ -2100,38 +2116,17 @@ private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
 
       if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
-        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+
+        # Move over all defined keys (filename will be included)
+        repeat for each key tProp in pFilesA[i]
+          put pFilesA[i][tProp] into tFilesA[j][tProp]
+        end repeat
       end if
     end if
   end repeat
 
   return tFilesA
 end expandFileAssetsFileReferenceArray
-
-
-private command addFolderToFilesArray pFolder, @xFilesA, pExtensions
-  local tFolder, tFiles, tFile, i
-
-  put the number of elements of xFilesA into i
-
-  put fileListing(pFolder) into tFiles
-  if pExtensions is not empty then
-    filter tFiles with regex pattern regExForFileExtensions(pExtensions)
-  end if
-
-  repeat for each line tFile in tFiles
-    if isFilenameUniqueInFilesArray(tFile, xFilesA) then
-      add 1 to i
-      put tFile into xFilesA[i]["filename"]
-    end if
-  end repeat
-
-  repeat for each line tFolder in folderListing(pFolder)
-    addFolderToFilesArray tFolder, xFilesA, pExtensions
-  end repeat
-
-  return empty for value
-end addFolderToFilesArray
 
 
 private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
@@ -2232,6 +2227,34 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
 
   return tFilesA
 end expandUIAssetsFileReferenceArray
+
+
+private command addFolderToFilesArray pFolder, @xFilesA, pPropsA, pExtensions
+  local tFolder, tFiles, tFile, tProp, i
+
+  put the number of elements of xFilesA into i
+
+  put fileListing(pFolder) into tFiles
+  if pExtensions is not empty then
+    filter tFiles with regex pattern regExForFileExtensions(pExtensions)
+  end if
+
+  repeat for each line tFile in tFiles
+    if isFilenameUniqueInFilesArray(tFile, xFilesA) then
+      add 1 to i
+      put tFile into xFilesA[i]["filename"]
+      repeat for each key tProp in pPropsA
+        put pPropsA[tProp] into xFilesA[i][tProp]
+      end repeat
+    end if
+  end repeat
+
+  repeat for each line tFolder in folderListing(pFolder)
+    addFolderToFilesArray tFolder, xFilesA, pPropsA, pExtensions
+  end repeat
+
+  return empty for value
+end addFolderToFilesArray
 
 
 private command addUIStacksToFilesArray pFolder, @xFilesA, pPropsA
