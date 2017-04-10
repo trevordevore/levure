@@ -1658,6 +1658,33 @@ private command _moveFilesAndFolders pSourceFolder, pDestinationFolder
 end _moveFilesAndFolders
 
 
+private command _copyFilesAndFolders pSourceFolder, pDestinationFolder
+  local tError, tFile
+
+  set the itemdelimiter to "/"
+
+  if tError is empty then
+    repeat for each line tFile in _fileListing(pSourceFolder)
+      _fileCopyFile tFile, pDestinationFolder & "/" & the last item of tFile
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  if tError is empty then
+    repeat for each line tFile in _folderListing(pSourceFolder)
+      _fileCopyFolder tFile, pDestinationFolder & "/" & the last item of tFile
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  return tError
+end _copyFilesAndFolders
+
+
 private command _updateStandaloneVersionInfo pStackFilename
   local tError
   local tVersion, tMajor, tMinor, tRevision, tBuild
