@@ -1,0 +1,7 @@
+libraries:
+  1:
+    filename: font_loader.livecodescript
+register components:
+  1:
+    key: fonts
+    kind: files
