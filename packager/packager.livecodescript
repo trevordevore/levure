@@ -306,6 +306,13 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
     put the result into tError
   end if
 
+  # Files
+  # Move straight over
+  if tError is empty then
+    _packageFiles xAppA, pOutputFolder
+    put the result into tError
+  end if
+
   return tError for error
 end _prepareAppFilesForStandaloneBuilding
 
@@ -834,8 +841,17 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
           put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
           put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
         else if there is a folder tFilename then
-          _fileCopyFolder tFilename, tDestination & "/" & the last item of tFilename
-          put _errorMsg("copying file" && tFilename && "to" && tDestination & "/" & the last item of tFilename, the result) into tError
+          local tTargetFolder
+
+          put tDestination & "/" & the last item of tFilename into tTargetFolder
+
+          if there is a folder tTargetFolder then
+            _copyFilesAndFolders tFilename, tTargetFolder
+            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+          else
+            _fileCopyFolder tFilename, tTargetFolder
+            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+          end if
         else
           put "unable to locate file [" & tFilename & "]" into tError
         end if
@@ -1019,14 +1035,12 @@ end _packageHelpers
 
 private command _packageUI @xAppA, pOutputFolder
   local tError
-  local tComponents, tCompsA, tKey, i
+  local tCompsA, tKey, i
   local tComponentFolder
 
   set the itemdelimiter to "/"
-  put xAppA["registered components"]["ui"] into tComponents
-  replace "," with "/" in tComponents
 
-  repeat for each item tKey in tComponents
+  repeat for each key tKey in xAppA["registered components"]["ui"]
     put empty into tCompsA
 
     if the number of elements of xAppA[tKey] > 0 then
@@ -1075,6 +1089,60 @@ private command _packageUI @xAppA, pOutputFolder
 
   return tError
 end _packageUI
+
+
+private command _packageFiles @xAppA, pOutputFolder
+  local tError
+  local tCompsA, tKey, tProp, i
+  local tComponentFolder
+
+  set the itemdelimiter to "/"
+
+  repeat for each key tKey in xAppA["registered components"]["files"]
+    put empty into tCompsA
+
+    if xAppA["registered components"]["files"][tKey]["distribute"] is not false and the number of elements of xAppA[tKey] > 0 then
+      log "Packaging" && tKey
+
+      if tError is empty then
+        local tFilename
+
+        repeat with i = 1 to the number of elements of xAppA[tKey]
+          if xAppA[tKey][i]["distribute"] is false then next repeat
+
+          put xAppA[tKey][i]["filename"] into tFilename
+          replace levureAppFolder() with pOutputFolder in tFilename
+
+          _fileCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
+          put _errorMsg("creating folder" && item 1 to -2 of xAppA[tKey][i]["filename"], the result) into tError
+
+          if tError is empty then
+            _fileCopyFile xAppA[tKey][i]["filename"], tFilename
+            put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
+                  tFilename, the result) into tError
+          end if
+
+          if tError is empty then
+            put _makeRelativePath(xAppA[tKey][i]["filename"], levureAppFolder()) into tCompsA[i]["filename"]
+            repeat for each key tProp in xAppA[tKey][i]
+              if tProp is "filename" then next repeat
+
+              put xAppA[tKey][i][tProp] into tCompsA[i][tProp]
+            end repeat
+          end if
+
+          if tError is not empty then exit repeat
+        end repeat
+      end if
+
+      if tError is empty then
+        put tCompsA into xAppA[tKey]
+      end if
+    end if
+  end repeat
+
+  return tError
+end _packageFiles
 
 
 private command _processStacksInFolder pFolder, pPassword, pExclusions
@@ -1597,6 +1665,33 @@ private command _moveFilesAndFolders pSourceFolder, pDestinationFolder
 
   return tError
 end _moveFilesAndFolders
+
+
+private command _copyFilesAndFolders pSourceFolder, pDestinationFolder
+  local tError, tFile
+
+  set the itemdelimiter to "/"
+
+  if tError is empty then
+    repeat for each line tFile in _fileListing(pSourceFolder)
+      _fileCopyFile tFile, pDestinationFolder & "/" & the last item of tFile
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  if tError is empty then
+    repeat for each line tFile in _folderListing(pSourceFolder)
+      _fileCopyFolder tFile, pDestinationFolder & "/" & the last item of tFile
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
+
+  return tError
+end _copyFilesAndFolders
 
 
 private command _updateStandaloneVersionInfo pStackFilename
