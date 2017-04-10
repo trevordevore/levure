@@ -786,7 +786,7 @@ private command normalizeAppArray
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
   # "ui" is always a registered "ui" component
-  put "ui" into sAppA["registered components"]["ui"]
+  put empty into sAppA["registered components"]["ui"]["ui"]
 
   repeat for each item tGroup in "user,shared"
     repeat for each item tPlatform in "default,macos,windows,linux,ios,android"
@@ -936,12 +936,12 @@ command levureLoadAppConfig
       put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], sAppFolder, kLiveCodeExtensions) into sAppA[tSource]
     end repeat
 
-    repeat for each item tKey in sAppA["registered components"]["ui"]
+    repeat for each key tKey in sAppA["registered components"]["ui"]
       put expandUIAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
     end repeat
 
-    repeat for each item tKey in sAppA["registered components"]["yaml"]
-      put expandMessagePathAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
+    repeat for each key tKey in sAppA["registered components"]["files"]
+      put expandFileAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
     end repeat
 
     put expandHelperAssetsFileReferenceArray(sAppA["helpers"], sAppFolder) into sAppA["helpers"]
@@ -1006,24 +1006,23 @@ command levureLoadAppConfig
       ##########
       # Get keys registered by helpers
       ##########
-      local tKeyIndex, k
+      local tKeyIndex, tKind, tCallbackStack, k
 
       repeat with i = 1 to the number of elements of sAppA["helpers"]
         repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
           put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
+          put sAppA["helpers"][i]["register components"][tKeyIndex]["kind"] into tKind
 
-          switch sAppA["helpers"][i]["register components"][tKeyIndex]["kind"]
+          switch tKind
             case "ui"
-                if itemOffset(tKey, sAppA["registered components"]["ui"]) is 0 then
-                  put tKey into item (the number of items of sAppA["registered components"]["ui"]) + 1 \
-                        of sAppA["registered components"]["ui"]
-                end if
-              break
-            case "yaml"
-                if itemOffset(tKey, sAppA["registered components"]["yaml"]) is 0 then
-                  put tKey into item (the number of items of sAppA["registered components"]["yaml"]) + 1 \
-                        of sAppA["registered components"]["yaml"]
-                end if
+              if tKey is not among the keys of sAppA["registered components"][tKind] then
+                put empty into sAppA["registered components"][tKind][tKey]
+              end if
+            case "files"
+              if tKey is not among the keys of sAppA["registered components"][tKind] then
+                put empty into sAppA["registered components"][tKind][tKey]
+                put sAppA["helpers"][i]["register components"][tKeyIndex]["callback stack"] into sAppA["registered components"][tKind][tKey]["callback stack"]
+              end if
               break
           end switch
         end repeat
@@ -1032,7 +1031,7 @@ command levureLoadAppConfig
       ##########
       # ui components (includes "ui" key by default)
       ##########
-      repeat for each item tKey in sAppA["registered components"]["ui"]
+      repeat for each key tKey in sAppA["registered components"]["ui"]
         put empty into tFilesA
         put 0 into j
 
@@ -1047,9 +1046,9 @@ command levureLoadAppConfig
       end repeat
 
       ##########
-      # yaml components
+      # files components
       ##########
-      repeat for each item tKey in sAppA["registered components"]["yaml"]
+      repeat for each key tKey in sAppA["registered components"]["files"]
         put empty into tFilesA
         put 0 into j
 
@@ -1059,7 +1058,7 @@ command levureLoadAppConfig
         end repeat
 
         if the number of elements of tFilesA > 0 then
-          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+          put expandFileAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
         end if
       end repeat
     end if
@@ -1291,7 +1290,7 @@ private command loadAppAssets
 
     local tKey
 
-    repeat for each item tKey in sAppA["registered components"]["ui"]
+    repeat for each key tKey in sAppA["registered components"]["ui"]
       repeat with i = 1 to the number of elements of sAppA[tKey]
         put sAppA[tKey][i]["name"] & "," & \
               sAppA[tKey][i]["filename"] & cr after tStackFiles
@@ -1307,10 +1306,10 @@ private command loadAppAssets
     end repeat
   end if
 
-  # Load registered components.yaml files
+  # Load registered components.files files
   if tError is empty then
-    repeat for each item tKey in sAppA["registered components"]["yaml"]
-      _loadRegisteredKeyYamlFiles tKey
+    repeat for each key tKey in sAppA["registered components"]["files"]
+      _loadRegisteredKeyFiles tKey
       put the result into tError
 
       if tError is not empty then exit repeat
@@ -1373,18 +1372,36 @@ private command loadAppAssets
 end loadAppAssets
 
 
-private command _loadRegisteredKeyYamlFiles pKey
-  local tError, i
+/**
+Summary: Sends message to helpers that need to process a registered key.
 
-  repeat with i = 1 to the number of elements of sAppA[pKey]
-    put yamlFileToArray(sAppA[pKey][i]["filename"]) into sAppA[pKey][i]["data"]
-    put the result into tError
+Description:
+Dispatches the `LoadRegisteredKeyFile` message to the stack specified by the helper
+in the `register component` > `callback stack` setting. The message allows the helper
+to process the file in some way. For example, if the helper works with yaml files
+then the helper can read the yaml files when this message is sent.
 
-    if tError is not empty then exit repeat
-  end repeat
+The helper can add data to the internal array by marking the parameter as being passed
+by reference in the handler definition.
+
+Returns: error
+*/
+private command _loadRegisteredKeyFiles pKey
+  local tError, tCallbackStack, i
+
+  put sAppA["registered components"]["files"][pKey]["callback stack"] into tCallbackStack
+
+  if tCallbackStack is not empty then
+    repeat with i = 1 to the number of elements of sAppA[pKey]
+      dispatch "LoadRegisteredKeyFile" to stack tCallbackStack with sAppA[pKey][i]
+      put the result into tError
+
+      if tError is not empty then exit repeat
+    end repeat
+  end if
 
   return tError for error
-end _loadRegisteredKeyYamlFiles
+end _loadRegisteredKeyFiles
 
 
 command levureReloadRegisteredKey pKey
@@ -1392,8 +1409,8 @@ command levureReloadRegisteredKey pKey
 
   set the wholematches to true
 
-  if pKey is among the items of sAppA["registered components"]["yaml"] then
-    _loadRegisteredKeyYamlFiles pKey
+  if pKey is among the keys of sAppA["registered components"]["files"] then
+    _loadRegisteredKeyFiles pKey
     put the result into tError
   end if
 
@@ -2060,6 +2077,35 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder,
 
   return tFilesA
 end expandMessagePathAssetsFileReferenceArray
+
+
+private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
+  local tFilesA, i, j, tProp
+
+  replaceVariablesInPaths pFilesA
+
+  repeat with i = 1 to the number of elements of pFilesA
+    if pFilesA[i]["folder"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
+
+      # expand the folder listing. Assume every file is a file to load.
+      addFolderToFilesArray pFilesA[i]["folder"], tFilesA
+
+      put the number of elements of tFilesA into j
+
+    else if pFilesA[i]["filename"] is not empty then
+      put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
+            into pFilesA[i]["filename"]
+
+      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        add 1 to j
+        put pFilesA[i]["filename"] into tFilesA[j]["filename"]
+      end if
+    end if
+  end repeat
+
+  return tFilesA
+end expandFileAssetsFileReferenceArray
 
 
 private command addFolderToFilesArray pFolder, @xFilesA, pExtensions
