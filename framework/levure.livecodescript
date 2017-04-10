@@ -8,7 +8,6 @@ constant kApplicationExternals = "levureAppExternals"
 constant kLiveCodeExtensions = "livecode,livecodescript"
 constant kLiveCodeModule = "lcm"
 
-local sRootFolder             # Folder where standalone resides
 local sAppFolder              # Folder where the `app` stack resides
 local sAppA
 local sRuntimePropertiesA
@@ -104,19 +103,6 @@ end levureVersion
 
 
 /**
-Summary: Returns the filename of the `app` stack file.
-
-Example:
-put levureAppStackFilename() into tAppStackFilename
-
-Returns: Path to file
-*/
-function levureAppStackFilename
-  return appStackFilename()
-end levureAppStackFilename
-
-
-/**
 Summary: Returns true if a helper is loaded.
 
 pHelperFolderName: The name of the helper folder.
@@ -179,19 +165,8 @@ command levurePackageApplication pBuildProfile
   if the environment is not "development" then put "can only be run in development environment" into tError
 
   if tError is empty then
-    if sAppA is not an array then
-      start using me
-
-      levureLoadAppConfig
-      put the result into tError
-    end if
-  end if
-
-  if tError is empty then
-    set the itemdelimiter to "/"
-
-    put levureFrameworkFolder() into tStackFilename
-    put "packager/packager.livecodescript" into the last item of tStackFilename
+    _initializePackaging tStackFilename
+    put the result into tError
   end if
 
   if tError is empty then
@@ -212,9 +187,14 @@ Summary: Message sent from the packager script.
 Description:
 Move along. Nothing to see here.
 */
-command packagerDidFinishPackagingApplication
+command packagerDidFinishPackagingApplication pStandaloneStackFilename, pBuildProfile
   # Remove from memory after packaging is complete
   delete stack "Levure Framework Application Packager"
+
+  if pBuildProfile is among the items of "ios simulator,android simulator" then
+    go stack pStandaloneStackFilename
+    dispatch "revIDEDeployAction" to stack "revDeployLibrary"
+  end if
 end packagerDidFinishPackagingApplication
 
 
@@ -256,18 +236,9 @@ command levureBuildStandalonesForTesting
 
   if the environment is not "development" then return "can only be run in development environment"
 
-  if sAppA is not an array then
-    start using me
-
-    levureLoadAppConfig
-    put the result into tError
-  end if
-
   if tError is empty then
-    set the itemdelimiter to "/"
-
-    put levureFrameworkFolder() into tStackFilename
-    put "packager/packager.livecodescript" into the last item of tStackFilename
+    _initializePackaging tStackFilename
+    put the result into tError
   end if
 
   if tError is empty then
@@ -280,6 +251,26 @@ command levureBuildStandalonesForTesting
 
   return tError for error
 end levureBuildStandalonesForTesting
+
+
+private command _initializePackaging @rPackagerFilename
+  local tError
+  if sAppA is not an array then
+    start using me
+
+    levureLoadAppConfig
+    put the result into tError
+  end if
+
+  if tError is empty then
+    set the itemdelimiter to "/"
+
+    put levureFrameworkFolder() into rPackagerFilename
+    put "packager/packager.livecodescript" into the last item of rPackagerFilename
+  end if
+
+  return tError
+end _initializePackaging
 
 
 /**
@@ -343,6 +334,19 @@ Returns: "app"
 function levureAppStackName
   return kAppStackName
 end levureAppStackName
+
+
+/**
+Summary: Returns the filename of the `app` stack file.
+
+Example:
+put levureAppStackFilename() into tAppStackFilename
+
+Returns: Path to file
+*/
+function levureAppStackFilename
+  return the filename of stack kAppStackName
+end levureAppStackFilename
 
 
 /**
@@ -919,82 +923,39 @@ command levureLoadAppConfig
   local tSource
   local tKey
 
-  put levureStandaloneFolder() into sRootFolder
+  # set sAppFolder and load kAppStackName into memory
+  loadApplicationStack
 
-  if (the environment is not "development") and (there is a stack kAppStackName) and (the uAppA of stack kAppStackName is an array) then
-    local tRootFolder
-
-    # packaged application, app stack is already in memory
+  if (the environment is not "development") and (the uAppA of stack kAppStackName is an array) then
+    # Packaged application: app stack is already in memory and all folders have been expanded
     put the uAppA of stack kAppStackName into sAppA
 
-    set the itemdelimiter to "/"
-    put the filename of stack kAppStackName into sAppFolder
-    delete the last item of sAppFolder
-    put sAppFolder into tRootFolder
+    put expandMessagePathAssetsFileReferenceArray(sAppA["extensions"], sAppFolder, kLiveCodeModule) into sAppA["extensions"]
 
-    if tError is empty then
-      loadAppStack
-      put the result into tError
-    end if
+    repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
+      put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], sAppFolder, kLiveCodeExtensions) into sAppA[tSource]
+    end repeat
 
-    if tError is empty then
-      set the itemdelimiter to ","
+    repeat for each item tKey in sAppA["registered components"]["ui"]
+      put expandUIAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
+    end repeat
 
-      put expandMessagePathAssetsFileReferenceArray(sAppA["extensions"], tRootFolder, kLiveCodeModule) into sAppA["extensions"]
+    repeat for each item tKey in sAppA["registered components"]["yaml"]
+      put expandMessagePathAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
+    end repeat
 
-      repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
-        put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], tRootFolder, kLiveCodeExtensions) into sAppA[tSource]
-      end repeat
+    put expandHelperAssetsFileReferenceArray(sAppA["helpers"], sAppFolder) into sAppA["helpers"]
+    resolveHelperAssets
+    put the result into tError
 
-      repeat for each item tKey in sAppA["registered components"]["ui"]
-        put expandUIAssetsFileReferenceArray(sAppA[tKey], tRootFolder) into sAppA[tKey]
-      end repeat
-
-      repeat for each item tKey in sAppA["registered components"]["yaml"]
-        put expandMessagePathAssetsFileReferenceArray(sAppA[tKey], tRootFolder) into sAppA[tKey]
-      end repeat
-
-      put expandHelperAssetsFileReferenceArray(sAppA["helpers"], tRootFolder) into sAppA["helpers"]
-      resolveHelperAssets
-      put the result into tError
-    end if
   else
-    # Development
 
-    # Search order:
-    # 1. root folder which by default is the folder where the standalone resides
-    # 2. Directly inside any folders alongside the root folder.
-
-    # Search folders
-    local tFolders, tFolder
-
-    if the environment is not "development" then
-      put levureTestingStandaloneAppFolder() into sAppFolder
-    else
-      if there is a file (sRootFolder & "/app.yml") then
-        put sRootFolder into sAppFolder
-      else
-        put folderListing(sRootFolder) into tFolders
-
-        repeat for each line tFolder in tFolders
-          if there is a file (tFolder & "/app.yml") then
-            put tFolder into sAppFolder
-            exit repeat
-          end if
-        end repeat
-      end if
-    end if
-
+    # Development: Load config file and expand all folders in config
     put yamlFileToArray(sAppFolder & "/app.yml") into sAppA
     put the result into tError
 
     if tError is empty then
       normalizeAppArray
-    end if
-
-    if tError is empty then
-      loadAppStack
-      put the result into tError
     end if
 
     if tError is empty then
@@ -1114,30 +1075,90 @@ command levureLoadAppConfig
 end levureLoadAppConfig
 
 
-private command loadAppStack
-  # app stack will already be in memory if this is a packaged app
+/**
+Summary: Finds and loads the app stack into memory.
+
+Description:
+If the app stack isn't already in memory then searches for `app.livecodescript`
+or `app.livecode` is in `sAppFolder`.
+
+Returns: empty
+*/
+private command loadAppStackIntoMemory
   if there is not a stack kAppStackName then
-    if there is not a stack appStackFilename() then
-      return "app stack not found" for error
+    if there is not a stack (sAppFolder & "/app.livecodescript") then
+      if there is not a stack (sAppFolder & "/app.livecode") then
+        throw "app stack not found"
+      end if
     end if
   end if
+
+  return empty
+end loadAppStackIntoMemory
+
+
+/**
+Summary: Loads the app stack and sets sAppFolder.
+
+Returns: empty
+*/
+private command loadApplicationStack
+  local tFolders, tFolder, tRootSearchFolder
+
+  set the itemDelimiter to "/"
+
+  # Get folder where `standalone.livecode` resides
+  put the effective filename of me into tRootSearchFolder
+  delete the last item of tRootSearchFolder
+
+  # Find the app stack and set sAppFolder
+  if there is a stack kAppStackName then
+    put the filename of stack kAppStackName into sAppFolder
+    delete the last item of sAppFolder
+  else if doesFolderContainAppFile(tRootSearchFolder) then
+    put tRootSearchFolder into sAppFolder
+  else
+    if the environment is not "development" then
+      # Running "test" standalone which has this function defined.
+      put levureTestingStandaloneAppFolder() into sAppFolder
+    else
+      put folderListing(tRootSearchFolder) into tFolders
+
+      repeat for each line tFolder in tFolders
+        if doesFolderContainAppFile(tFolder) then
+          put tFolder into sAppFolder
+          exit repeat
+        end if
+      end repeat
+    end if
+  end if
+
+  if sAppFolder is empty then throw "app stack not found"
+
+  # Make sure app stack is in memory
+  loadAppStackIntoMemory
 
   # Put in message path so shutdown, shutdownrequest, etc. are handled.
   start using stack kAppStackName
 
-  return empty for value
-end loadAppStack
+  return empty
+end loadApplicationStack
 
 
-private function appStackFilename
-  if there is a file (sAppFolder & "/app.livecodescript") then
-    return sAppFolder & "/app.livecodescript"
-  else if there is a file (sAppFolder & "/app.livecode") then
-    return sAppFolder & "/app.livecode"
-  else
-    return empty
-  end if
-end appStackFilename
+/**
+Summary: Returns true if a folder contains app.yml, app.livecodescript, or app.livecode
+
+Description:
+app.livecodescript and app.livecode only exist if they are actual stacks. This
+means that the `app` stack will be in memory after calling this function.
+
+Returns: true/false
+*/
+private function doesFolderContainAppFile pFolder
+  return there is a file (pFolder & "/app.yml") \
+        OR there is a stack (pFolder & "/app.livecodescript") \
+        OR there is a stack (pFolder & "/app.livecode")
+end doesFolderContainAppFile
 
 
 private command createApplicationDataFolders
@@ -1982,11 +2003,24 @@ Returns: Path to folder
 function levureFrameworkFolder
   local tFolder
 
-  put the filename of (the long id this me) into tFolder
+  put levureFrameworkFilename() into tFolder
   set the itemDelimiter to "/"
   delete the last item of tFolder
   return tFolder for value
 end levureFrameworkFolder
+
+
+/**
+Summary: Returns the path to the levureFramework.livecodescript file.
+
+Example:
+put the levureFrameworkFilename() into tFile
+
+Returns: Path to stack file
+*/
+function levureFrameworkFilename
+  return the filename of (the long id this me)
+end levureFrameworkFilename
 
 
 private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder, pExtensions
