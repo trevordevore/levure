@@ -1086,6 +1086,7 @@ private command _packageFiles @xAppA, pOutputFolder
   local tError
   local tCompsA, tKey, tProp, i
   local tComponentFolder
+  local didOutputAtLeastOneFile = "false"
 
   repeat for each key tKey in xAppA["registered components"]["files"]
     put empty into tCompsA
@@ -1101,6 +1102,8 @@ private command _packageFiles @xAppA, pOutputFolder
 
         repeat with i = 1 to the number of elements of xAppA[tKey]
           if xAppA[tKey][i]["distribute"] is false then next repeat
+
+          put true into didOutputAtLeastOneFile
 
           _fileCopyFile xAppA[tKey][i]["filename"], pOutputFolder & "/" & tKey & "/" & the last item of xAppA[tKey][i]["filename"]
           put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
@@ -1122,6 +1125,12 @@ private command _packageFiles @xAppA, pOutputFolder
       end if
     end if
   end repeat
+
+  if not didOutputAtLeastOneFile then
+    if there is a folder (pOutputFolder & "/" & tKey) then
+      revDeleteFolder pOutputFolder & "/" & tKey
+    end if
+  end if
 
   return tError
 end _packageFiles
