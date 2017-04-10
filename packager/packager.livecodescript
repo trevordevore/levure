@@ -1095,7 +1095,8 @@ private command _packageFiles @xAppA, pOutputFolder
   local tError
   local tCompsA, tKey, tProp, i
   local tComponentFolder
-  local didOutputAtLeastOneFile = "false"
+
+  set the itemdelimiter to "/"
 
   repeat for each key tKey in xAppA["registered components"]["files"]
     put empty into tCompsA
@@ -1103,27 +1104,32 @@ private command _packageFiles @xAppA, pOutputFolder
     if xAppA["registered components"]["files"][tKey]["distribute"] is not false and the number of elements of xAppA[tKey] > 0 then
       log "Packaging" && tKey
 
-      create folder (pOutputFolder & "/" & tKey)
-      put _errorMsg("creating folder" && pOutputFolder & "/" & tKey, the result) into tError
-
       if tError is empty then
-        local tDestFolder
+        local tFilename
 
         repeat with i = 1 to the number of elements of xAppA[tKey]
           if xAppA[tKey][i]["distribute"] is false then next repeat
 
-          put true into didOutputAtLeastOneFile
+          put xAppA[tKey][i]["filename"] into tFilename
+          replace levureAppFolder() with pOutputFolder in tFilename
 
-          _fileCopyFile xAppA[tKey][i]["filename"], pOutputFolder & "/" & tKey & "/" & the last item of xAppA[tKey][i]["filename"]
-          put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
-                pOutputFolder & "/" & tKey & "/" & the last item of xAppA[tKey][i]["filename"], the result) into tError
+          _fileCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
+          put _errorMsg("creating folder" && item 1 to -2 of xAppA[tKey][i]["filename"], the result) into tError
 
-          put tKey & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[i]["filename"]
-          repeat for each key tProp in xAppA[tKey][i]
-            if tProp is "filename" then next repeat
+          if tError is empty then
+            _fileCopyFile xAppA[tKey][i]["filename"], tFilename
+            put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
+                  tFilename, the result) into tError
+          end if
 
-            put xAppA[tKey][i][tProp] into tCompsA[i][tProp]
-          end repeat
+          if tError is empty then
+            put _makeRelativePath(xAppA[tKey][i]["filename"], levureAppFolder()) into tCompsA[i]["filename"]
+            repeat for each key tProp in xAppA[tKey][i]
+              if tProp is "filename" then next repeat
+
+              put xAppA[tKey][i][tProp] into tCompsA[i][tProp]
+            end repeat
+          end if
 
           if tError is not empty then exit repeat
         end repeat
@@ -1134,12 +1140,6 @@ private command _packageFiles @xAppA, pOutputFolder
       end if
     end if
   end repeat
-
-  if not didOutputAtLeastOneFile then
-    if there is a folder (pOutputFolder & "/" & tKey) then
-      revDeleteFolder pOutputFolder & "/" & tKey
-    end if
-  end if
 
   return tError
 end _packageFiles
