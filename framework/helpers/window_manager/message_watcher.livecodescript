@@ -227,6 +227,46 @@ on resizeStack pWidth, pHeight, pOldWidth, pOldHeight
 end resizeStack
 
 
+on moveStack pNewH, pNewV
+  local tStackName
+
+  put the short name of the owner of the target into tStackName
+  if not windowPropertyIsManaged(tStackName, "messages") then pass moveStack
+
+  _cancelMessage "_windowCheckForMoveStackEnd", the long id of me
+  send "_windowCheckForMoveStackEnd tStackName" to me in 100 milliseconds
+end moveStack
+
+
+command _windowCheckForMoveStackEnd pStackName
+  if there is not a stack pStackName then exit _windowCheckForMoveStackEnd
+
+  if mouse(1) is "up" then
+    windowPositionWithinConstraints pStackName
+  else
+    # User might stop moving stack but not release mouse button
+    _cancelMessage "_windowCheckForMoveStackEnd", the long id of me
+    send "_windowCheckForMoveStackEnd pStackName" to me in 100 milliseconds
+  end if
+end _windowCheckForMoveStackEnd
+
+
+private command _cancelMessage pMsg, pTargetObject
+  local tMessage, tMessages, tString
+
+  put "," & pMsg & "," into tString
+  if pTargetObject is not empty then put pTargetObject after tString
+
+  repeat until tString is not in the pendingMessages
+    put the pendingMessages into tMessages
+    filter tMessages with "*" & tString & "*"
+    repeat for each line tMessage in tMessages
+      cancel item 1 of tMessage
+    end REPEAT
+  end repeat
+end _cancelMessage
+
+
 -- Handle message sent to app stack before shutting down application
 command PreShutdownApplication
   local tStack
