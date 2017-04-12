@@ -812,6 +812,9 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
 
     repeat for each item tProfile in "all profiles/" & pBuildProfile
       repeat with i = 1 to the number of elements of pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform]
+        # Don't process an empty entry
+        if pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform][i]["filename"] is empty then next repeat
+
         put _resolveRelativeFilenameReference(pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform][i]["filename"], \
               pRootFolder) into tFilename
 
