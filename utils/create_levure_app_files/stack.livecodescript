@@ -168,12 +168,16 @@ command SetupGitInFolder
 
   if tError is empty then
     put shell("git init") into tResult
-    put the result into tError
+    if the result is not empty then
+      put tResult into tError
+    end if
   end if
 
   if tError is empty then
     put shell("git submodule add https://github.com/trevordevore/levure.git levure") into tResult
-    put the result into tError
+    if the result is not empty then
+      put tResult into tError
+    end if
   end if
 
   if tError is empty then
@@ -194,7 +198,9 @@ command AddFilesToGit
 
   if tError is empty then
     put shell("git add .") into tResult
-    put the result into tError
+    if the result is not empty then
+      put tResult into tError
+    end if
   end if
 
   set the defaultFolder to tFolder
