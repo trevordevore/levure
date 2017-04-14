@@ -909,7 +909,7 @@ When calling this command in the IDE the app.yml file will be read into memory.
 When calling this command in a standalone the configuration information is stored as a
 custom property of the `app` stack.
 
-The app.yml file can contain relative folder and file references. All relative referneces
+The app.yml file can contain relative folder and file references. All relative references
 will be resolved when calling this handler.
 
 Example:
