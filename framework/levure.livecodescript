@@ -708,7 +708,7 @@ Example:
 put levureAppGet("multiple instances")
 
 # Get a multi-dimensional value
-put "preferences" into tLookupA[1]
+put "preferences filename" into tLookupA[1]
 put "shared" into tLookupA[2]
 put "macos" into tLookupA[3]
 put "filename" into tLookupA[4]
@@ -738,7 +738,7 @@ Example:
 levureAppSet "multiple instances", true
 
 # Set a multi-dimensional property
-put "preferences" into tLookupA[1]
+put "preferences filename" into tLookupA[1]
 put "shared" into tLookupA[2]
 put "macos" into tLookupA[3]
 put "filename" into tLookupA[4]

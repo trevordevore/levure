@@ -19,18 +19,19 @@ application data folder:
     macos:
     windows:
     linux:
-preferences:
+preferences filename:
   user:
+    default:
     macos:
-      filename:
     windows:
-      filename:
-    ios:
-      filename:
-    android:
-      filename:
     linux:
-      filename:
+    ios:
+    android:
+  shared:
+    default:
+    macos:
+    windows:
+    linux:
 ui:
   1:
     folder: ./ui

@@ -52,18 +52,32 @@ end useExternal
 
 
 private function prefFilenameForPlatform pUserOrShared, pPlatform
-  local tA
+  local tA, tDefaultPrefName, tPrefName
 
   validateKey pUserOrShared
 
   if pPlatform is empty then put the platform into pPlatform
-  if pPlatform is "iphone" then put "ios" into pPlatform
-  else if pPlatform is "win32" then put "windows" into pPlatform
-  put "preferences" into tA[1]
+
+  switch pPlatform
+    case "win32"
+      put "windows" into pPlatform
+      break
+    case "iphone"
+      put "ios" into pPlatform
+      break
+  end switch
+
+  put "preferences filename" into tA[1]
   put pUserOrShared into tA[2]
+
+  put "default" into tA[3]
+  put levureAppGet(tA) into tDefaultPrefName
+
   put pPlatform into tA[3]
-  put "filename" into tA[4]
-  return levureAppGet(tA)
+  put levureAppGet(tA) into tPrefName
+
+  if tPrefName is empty then put tDefaultPrefName into tPrefName
+  return tPrefName
 end prefFilenameForPlatform
 
 

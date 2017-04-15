@@ -346,17 +346,27 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   delete local xAppA["externals packages to verify"]
   delete local xAppA["externals to load"]
 
-  if pPlatform is "windows" then
-    put "macos,linux" into tKeysToDelete
-  else if pPlatform is "macos" then
-    put "windows,linux" into tKeysToDelete
-  else
-    put "windows,macos" into tKeysToDelete
-  end if
+  switch pPlatform
+    case "windows"
+      put "macos,linux,ios,android" into tKeysToDelete
+      break
+    case "macos"
+      put "windows,linux,ios,android" into tKeysToDelete
+      break
+    case "linux"
+      put "windows,macos,ios,android" into tKeysToDelete
+      break
+    case "android"
+      put "linux,windows,macos,ios" into tKeysToDelete
+      break
+    case "ios"
+      put "linux,windows,macos,android" into tKeysToDelete
+      break
+  end switch
 
   repeat for each item tKey in tKeysToDelete
-    delete local xAppA["preferences"]["user"][tKey]
-    delete local xAppA["preferences"]["shared"][tKey]
+    delete local xAppA["preferences filename"]["user"][tKey]
+    delete local xAppA["preferences filename"]["shared"][tKey]
   end repeat
 
   if tFilename is not empty then
