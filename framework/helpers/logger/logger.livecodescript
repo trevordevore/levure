@@ -24,10 +24,10 @@ end releaseStack
 /**
 Summary: Sets the field where log messages will be sent.
 
-pTarget: `console`, <filename>, or field refernce (e.g. <the long id field>).
+pTarget: `console`, <filename>, or field reference (e.g. <the long id field>).
 
 Description:
-You can target the "console", a file, or a field.
+You can target the "console", a file, or a field. "console" writes the log message to `stdout`.
 
 Examples:
 appSetLogTarget "console"
@@ -103,7 +103,7 @@ Summary: Start logging a specific message type.
 
 pType: `developer`, `network`, `msg`, `extensions`.
 
-Returns: Emtpy
+Returns: Empty
 */
 command appAddLogType pType
   if pType is among the items of kLogTypes then
@@ -118,7 +118,7 @@ Summary: Stop logging a specific message type.
 
 pType: `developer`, `network`, `msg`, `extensions`.
 
-Returns: Emtpy
+Returns: Empty
 */
 command appRemoveLogType pType
   if pType is among the items of kLogTypes then
@@ -167,7 +167,7 @@ end appSetNetworkTrafficLogFilters
 /**
 Summary: Returns the list of filters that are being applied to libURL messages.
 
-Return: Line delimited list of filters.
+Return: CR-delimited list of filters.
 */
 function appGetNetworkTrafficLogFilters
   return sNetworkFilters
@@ -233,6 +233,15 @@ on msgChanged
 end msgChanged
 
 
+/**
+Summary: Filters and logs a libURL message
+
+pMsg: The message to log
+
+Description:
+Replaces CRLF with CR so that extra lines don't appear in the log. Any filters
+set using appSetNetworkTrafficLogFilters will be applied as well.
+*/
 private command _logLibURLMessage pMsg
   local tFilter
 
