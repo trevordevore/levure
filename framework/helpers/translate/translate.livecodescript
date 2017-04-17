@@ -2,13 +2,12 @@ script "Translate Library"
 local sStringsA
 
 on libraryStack
-  # pass so other libraries can check to see if this is being put in use.
-  pass libraryStack
+  if the target is not me then pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  pass releaseStack
+  if the target is not me then pass releaseStack
 end releaseStack
 
 

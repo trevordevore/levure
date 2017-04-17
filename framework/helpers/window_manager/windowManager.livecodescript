@@ -20,8 +20,6 @@ on libraryStack
   put item 2 of tRect - item 2 of tEffectiveRect into sFrameA["top"]
   put item 3 of tEffectiveRect - item 3 of tRect into sFrameA["right"]
   put item 4 of tEffectiveRect - item 4 of tRect into sFrameA["bottom"]
-
-  pass libraryStack
 end libraryStack
 
 
@@ -30,7 +28,6 @@ on releaseStack
 
   ## Purge storage when released
   put empty into sWindowsA
-  pass releaseStack
 end releaseStack
 
 

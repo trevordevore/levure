@@ -16,6 +16,11 @@ on libraryStack
 end libraryStack
 
 
+on releaseStack
+  if the target is not me then pass releaseStack
+end releaseStack
+
+
 /**
 Summary: Sets the field where log messages will be sent.
 

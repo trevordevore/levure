@@ -7,24 +7,21 @@ local sMaxRecentFiles = "15"
 
 
 on libraryStack
-  if the target is me then
-    local tListA, tProtocol
+  if the target is not me then pass libraryStack
 
-    put levurePropExists("url protocols") and levureAppGet("url protocols") into tListA
-    repeat for each key tProtocol in tListA
-      if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
-        appRegisterURLProtocol tProtocol, tListA[tProtocol]
-      end if
-    end repeat
-  end if
+  local tListA, tProtocol
 
-  # pass so other libraries can check to see if this is being put in use.
-  pass libraryStack
+  put levurePropExists("url protocols") and levureAppGet("url protocols") into tListA
+  repeat for each key tProtocol in tListA
+    if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
+      appRegisterURLProtocol tProtocol, tListA[tProtocol]
+    end if
+  end repeat
 end libraryStack
 
 
 on releaseStack
-  pass releaseStack
+  if the target is not me then pass releaseStack
 end releaseStack
 
 

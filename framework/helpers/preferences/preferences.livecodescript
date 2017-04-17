@@ -5,30 +5,20 @@ local sPrefsA
 
 
 on libraryStack
-  if the target is me then
-    put null into sPrefsA["user"]
-    put null into sPrefsA["shared"]
+  if the target is not me then pass libraryStack
 
-    _loadDefaultPreferences
-    if the result is not empty then
-      throw "error loading default preferences:" && the result
-    end if
+  put null into sPrefsA["user"]
+  put null into sPrefsA["shared"]
+
+  _loadDefaultPreferences
+  if the result is not empty then
+    throw "error loading default preferences:" && the result
   end if
-
-  pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  if the target is not me then
-    if sUseBroadcaster then
-      if the short name of the target is "appBroadcaster" then
-        put false into sUseBroadcaster
-      end if
-    end if
-  end if
-
-  pass releaseStack
+  if the target is not me then pass releaseStack
 end releaseStack
 
 
