@@ -1519,18 +1519,29 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
 
   if pBuildForDistribution then
     # load app stack into memory on startup
-    local tAppStackFilename
+    local tFrameworkFilename, tAppStackFilename
 
     set the itemdelimiter to "/"
+    put pRelativeAppPath into tFrameworkFilename # Framework and app stack will be alongside each other when packaged
     put pRelativeAppPath into tAppStackFilename
+    put the last item of levureFrameworkFilename() into item (the number of items of tFrameworkFilename + 1) of tFrameworkFilename
     put the last item of levureAppStackFilename() into item (the number of items of tAppStackFilename + 1) of tAppStackFilename
 
     put "on startup" & cr & \
           _qstr("set the itemDelimiter to `/`") & cr & \
           _qstr("if the platform is `macos` then") & cr & \
           _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tAppStackFilename") & cr & \
+          _qstr("put resolvePath(`" & tFrameworkFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tFrameworkFilename") & cr & \
           "else" & cr & \
           _qstr("put resolvePath(`" & tAppStackFilename & "`, the engine folder) into tAppStackFilename") & cr & \
+          _qstr("put resolvePath(`" & tFrameworkFilename & "`, the engine folder) into tFrameworkFilename") & cr & \
+          "end if" & cr & \
+          "put there is a stack tFrameworkFilename into tLoaded" & cr & \
+          "if tLoaded then" & cr & \
+          _qstr("set the behavior of me to the long id of stack tFrameworkFilename") & cr & \
+          "else" & cr & \
+          _qstr("answer `Could not locate app stack: ` & tFrameworkFilename") & cr & \
+          "quit" & cr & \
           "end if" & cr & \
           "put there is a stack tAppStackFilename into tLoaded" & cr & \
           "if not tLoaded then" & cr & \
