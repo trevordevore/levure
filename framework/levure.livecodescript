@@ -512,7 +512,7 @@ private command loadCommandLineArguments
     delete the last char of tParams
 
     if tParams is not empty then
-      dispatch "appProcessCommandLineParameters" with tParams
+      dispatch "ProcessCommandLineParameters" with tParams
     end if
   end if
   return empty
