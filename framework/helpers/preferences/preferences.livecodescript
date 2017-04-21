@@ -22,6 +22,9 @@ on releaseStack
 end releaseStack
 
 
+/**
+Summary: Returns true if the broadcaster helper is available.
+*/
 private function useBroadcaster
   if sUseBroadcaster is empty then
     put levureIsHelperLoaded("broadcaster") into sUseBroadcaster
@@ -31,6 +34,9 @@ private function useBroadcaster
 end useBroadcaster
 
 
+/**
+Summary: Returns true if an external should be used for interfacing with the OS prefs API.
+*/
 private function useExternal pUserOrShared
   if sUseExternal is empty then
     set the wholematches to true
@@ -41,6 +47,14 @@ private function useExternal pUserOrShared
 end useExternal
 
 
+/**
+Summary: Returns the preference file name for the category and platform.
+
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+pPlatform: macos, ios, windows, android, linux
+
+Returns: Pref file name defined in `app.yml`
+*/
 private function prefFilenameForPlatform pUserOrShared, pPlatform
   local tA, tDefaultPrefName, tPrefName
 
@@ -71,6 +85,16 @@ private function prefFilenameForPlatform pUserOrShared, pPlatform
 end prefFilenameForPlatform
 
 
+/**
+Summary: Loads the `prefs.yml` and `prefs_shared.yml` files if they exist.
+
+Returns: Error
+
+Description:
+Looks for and loads `prefs.yml` and `prefs_shared.yml` files alongside the `app.yml` file.
+`prefs.yml` defines default values for "user" category prefs. `prefs_shared.yml` defines
+default values for "shared" category prefs.
+*/
 private command _loadDefaultPreferences
   local tError, tYamlFile
 
@@ -92,6 +116,13 @@ private command _loadDefaultPreferences
 end _loadDefaultPreferences
 
 
+/**
+Summary: Returns the entire array of default preferences.
+
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+
+Returns: Array representing YAML configuration store in `prefs.yml` and `prefs_shared.yml`
+*/
 function appGetDefaultPrefs pUserOrShared
   if pUserOrShared is "shared" then
     return sDefaultSharedPrefsA
@@ -101,6 +132,19 @@ function appGetDefaultPrefs pUserOrShared
 end appGetDefaultPrefs
 
 
+/**
+Summary: Resets all values in in preferences to empty.
+
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+
+Returns: Empty
+
+Description:
+Use this handler if you would like to reset all preferences to their default values as defined
+in `prefs.yml` and `prefs_shared.yml`.
+
+Note that on OS X this command currently does not work.
+*/
 command appResetPrefs pUserOrShared
   validateKey pUserOrShared
 
@@ -114,16 +158,37 @@ command appResetPrefs pUserOrShared
     put empty into sPrefsA[pUserOrShared]
     appSavePrefs pUserOrShared
 
+    # recreate "user" or "shared" key as an array type
     put empty into sPrefsA[pUserOrShared]["init"]
     delete local sPrefsA[pUserOrShared]["init"]
   end if
+
+  return empty for value
 end appResetPrefs
 
 
+/**
+Summary: Reloads preferences from the file on disk.
+
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+
+Returns: Empty
+
+Description:
+This handler will clear out any values that are stored internally and reloads
+preferences from the file on disk.
+
+Note that this command does nothing on OS X which handles preferences using Cocoa
+APIs.
+*/
 command appReloadPrefs pUserOrShared
   validateKey pUserOrShared
-  put null into sPrefsA[pUserOrShared]
-  _ensurePrefsAreLoaded pUserOrShared
+
+  if not useExternal(pUserOrShared) then
+    put null into sPrefsA[pUserOrShared]
+    _ensurePrefsAreLoaded pUserOrShared
+  end if
+  return empty for value
 end appReloadPrefs
 
 
@@ -132,7 +197,7 @@ Summary: Sets an application preference.
 
 pKey: Name of preference to set.
 pValue: Value to set preference to. This can be a string or an array.
-pUserOrShared: Pass in "shared" to set a pref in shared preferences. Leave empty for default behavior.
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 pType: Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
 
 Returns: error message
@@ -142,7 +207,7 @@ command appSetPref pKey, pValue, pUserOrShared, pType
 
   validateKey pUserOrShared
 
-  ## OS X external behavior
+  # OS X external behavior
   if useExternal(pUserOrShared) then
     if the keys of pValue is empty then
       if pValue contains NULL OR pType is "binary" then
@@ -177,7 +242,7 @@ end appSetPref
 Summary: Gets an application preference.
 
 pKey: Name of preference to get.
-pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 
 Returns: value
 */
@@ -200,12 +265,11 @@ function appGetPref pKey, pUserOrShared
       if the result is empty then
         switch tValueA["type"]
           case "binary"
-            if tValueA["value"] begins with "_LCA" then
-              try ## Assume everything is an array. If it fails then tValue stays the same
-                put arrayDecode(char 5 to -1 of tValueA["value"]) into tValue
+            put tValueA["value"] into tValue
+            if tValue begins with "_LCA" then
+              try # Assume a value with _LCA prefix is an array. If operation fails then tValue stays the same.
+                put arrayDecode(byte 5 to -1 of tValue) into tValue
               end try
-            else
-              put tValueA["value"] into tValue
             end if
             break
           case "string"
@@ -229,7 +293,7 @@ end appGetPref
 Summary: Checks if a preference has been set on the computer the application is running on.
 
 pKey: Name of preference to check.
-pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 
 Returns: true/false
 */
@@ -253,13 +317,13 @@ end appPrefIsSet
 /**
 Summary: Saves preferences to disk.
 
-pUserOrShared: Specifies whether to get "user" or "shared" preferece. Default is "user".
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+
+Returns: Error message
 
 Description:
 When setting preferences the preference is updated in memory. To permanently
 store changes on disk use this command.
-
-Returns: Error message
 */
 command appSavePrefs pUserOrShared
   local tError, tFile
@@ -289,11 +353,13 @@ end appSavePrefs
 /**
 Summary: Returns the file where preferences are stored.
 
+pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+
+Returns: Filename or empty
+
 Description:
 Returns the filename of the preference file. If an external is being used on OS X
 then empty will be returned.
-
-Returns: Filename or empty
 */
 function appGetPreferenceFile pUserOrShared
   local tFile
@@ -396,6 +462,7 @@ private command _ensurePrefsAreLoaded pUserOrShared
         throw "error loading preferences:" && tError
       end if
     else
+      # create "user" or "shared" key as an array type
       put 1 into sPrefsA[pUserOrShared]["init"]
       delete local sPrefsA[pUserOrShared]["init"]
       return true

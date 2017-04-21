@@ -11,12 +11,14 @@ on libraryStack
 
   local tListA, tProtocol
 
-  put levurePropExists("url protocols") and levureAppGet("url protocols") into tListA
-  repeat for each key tProtocol in tListA
-    if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
-      appRegisterURLProtocol tProtocol, tListA[tProtocol]
-    end if
-  end repeat
+  if levurePropExists("url protocols") then
+    put levureAppGet("url protocols") into tListA
+    repeat for each key tProtocol in tListA
+      if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
+        appRegisterURLProtocol tProtocol, tListA[tProtocol]
+      end if
+    end repeat
+  end if
 end libraryStack
 
 
@@ -25,16 +27,40 @@ on releaseStack
 end releaseStack
 
 
+/**
+Summary: Returns a list of URLs that the operating system passed to your application at launch.
+
+Returns: CR-delimited list
+*/
 function appURLsToProcessOnOpen
   return sURLsToProcessOnOpen
 end appURLsToProcessOnOpen
 
 
+/**
+Summary: Returns a list of files that the operating system passed to your application at launch.
+
+Returns: CR-delimited list
+
+Description:
+The helper will look at files passed to the application at launch and create a list of files
+that are supported. A file is supported if the file extension is listed in the `file extensions` key
+in the `app.yml` file.
+*/
 function appFilesToProcessOnOpen
   return sFilesToProcessOnOpen
 end appFilesToProcessOnOpen
 
 
+/**
+Summary: Processes files and urls that are sent to the application via appleEvents on macOS.
+
+Description:
+On macOS appleEvents are sent when an application should open a file or url. URLs and supported files
+will be extracted from the message. If the application is running then `ProcessFiles` or `ProcessURL`
+will be sent to the `app` stack. If the application is still loading then the files and urls will
+be accessible using the `appFilesToProcessOnOpen()` and `appURLsToProcessOnOpen()` functions.
+*/
 on appleEvent pClass, pID, pSender
   ## Don't let user execute random scripts
   if the environment is not "development" and pClass & pID is among the items of "miscDOSC,miscEVAL" then exit appleEvent
@@ -81,14 +107,21 @@ end appleEvent
 
 
 /**
-Summary: Process parameters passed to the app on the command line.
+Summary: Process parameters passed to the application on the command line.
+
+Returns: empty
 
 Description:
-This handler handles URLs and files. If '-url' appears in the params then the next param is considered
+The `ProcessCommandLineParameters` message is sent from the framework when an application is loading up.
+This handler processes URLs and files passed in on the command line. If '-url' appears in the params then the next param is considered
 a URL that needs to be processed. Otherwise all params are treated as files and any files with supported
 extensions are extracted and made available to the application for processing.
+
+If the application is running then `ProcessFiles` or `ProcessURL`
+will be sent to the `app` stack. If the application is still loading then the files and urls will
+be accessible using the `appFilesToProcessOnOpen()` and `appURLsToProcessOnOpen()` functions.
 */
-command appProcessCommandLineParameters pParams
+command ProcessCommandLineParameters pParams
   local tLineNo
 
   set the wholeMatches to true
@@ -123,7 +156,7 @@ command appProcessCommandLineParameters pParams
   end if
 
   return empty
-end appProcessCommandLineParameters
+end ProcessCommandLineParameters
 
 
 /**
@@ -132,11 +165,11 @@ Summary: Registers the application to process a particular URL handler on Window
 pProtocol The protocol to register (i.e. x-myapplication).
 pDescription Description of the protocol.
 
+Returns:  Error
+
 Description:
 Calling this handler on platforms other than Windows does nothing.
 http://msdn.microsoft.com/en-us/library/aa767914(v=vs.85).aspx
-
-Returns:  Error
 */
 command appRegisterURLProtocol pProtocol, pDescription
   local tError
@@ -216,16 +249,29 @@ end appFileExtensionsForTypes
 
 
 /**
-Summary: Returns a file type filter string suitable for use with `ask file with type`.
+Summary: Creates a file type filter string from an extension that is suitable for use with `ask file with type`.
+
+pExtensionName: A file extension name that has been defined in the `file extensions` key of the `app.yml` file.
+
+Returns: filter type string
 
 Description:
 `ask file with type` filters the available files that a user can select in the dialog using a specially
-formatted string. This function will generate that string based on a file extension that you have defined
-in your application. The string will look something similar to this:
+formatted string. This function will generate that string based on file extensions that you have defined
+in your application using the `file extensions` key of the `app.yml` file. The string will look something similar to this:
 
 ```
 JPEG file|jpg|JPEG
 ```
+
+Example:
+# app.yml
+file extensions:
+  JPEG File: jpeg,jpg
+
+#
+put appFileDialogTypeFilterFromExtension("JPEG File") into theTypeFilter
+ask files "Select JPEG Files" with theTypeFilter
 */
 function appFileDialogTypeFilterFromExtension pExtensionName
   local tFilter, tExtensionsA
@@ -264,18 +310,35 @@ end _splitExtensionsIntoTypeFilter
 
 
 /**
-Summary: Returns a file type filter string suitable for use with `ask file with type`.
+Summary: Creates a file type filter string from a file extension group that is suitable for use with `ask file with type`.
+
+pFileExtGroupName: A file extension group name that has been defined in the `file extension groups` key of the `app.yml` file.
+
+Returns: filter type string
 
 Description:
 `ask file with type` filters the available files that a user can select in the dialog using a specially
 formatted string. This function will generate that string based on the file extensions that have
-been defined for a File Type Filter object. The string will look something similar to this:
+been defined in the `file extension groups` key of the `app.yml` file. The string will look something similar to this:
 
 ```
 JPEG file|jpg|JPEG
 PNG file|png|PNG
 GIF file|gif|GIF
 ```
+
+Example:
+
+# app.yml
+file extension groups:
+  Media Files:
+    1:
+      name: All Files
+      extensions: jpg,jpeg,png,bmp,gif
+
+# Code
+put appFileDialogTypeFilterFromGroup("Media Files") into theTypeFilter
+answer files "Select media files:" with type theTypeFilter
 
 */
 function appFileDialogTypeFilterFromGroup pFileExtGroupName
@@ -305,8 +368,9 @@ end appFileDialogTypeFilterFromGroup
 /**
 Summary: Returns a list of file extensions for a File Type Filter Group.
 
-pFileFilterName Name of File Type Filter object to locate group in.
-pGroupName Name of group to return extensions for.
+pFileExtGroupName: A file extension group name that has been defined in the `file extension groups` key of the `app.yml` file.
+
+Returns:  CR-delimited list
 
 Example:
 put appFileExtensionGroupExtensions("Select Image", "Image Files") into theExtensions
@@ -315,20 +379,18 @@ jpg
 png
 bmp
 gif
-
-Returns:  CR delimited list
 */
-function appFileExtensionGroupExtensions pGroupName
+function appFileExtensionGroupExtensions pFileExtGroupName
   local tExtGroupsA, tExtensions
 
   put getFileExtensionsGroupsArray() into tExtGroupsA
 
-  if tExtGroupsA[pGroupName] is an array then
+  if tExtGroupsA[pFileExtGroupName] is an array then
     local i
 
-    repeat with i = 1 to the number of elements of tExtGroupsA[pGroupName]
-      if tExtGroupsA[pGroupName][i]["extensions"] is not empty then
-        put tExtGroupsA[pGroupName][i]["extensions"] & "," after tExtensions
+    repeat with i = 1 to the number of elements of tExtGroupsA[pFileExtGroupName]
+      if tExtGroupsA[pFileExtGroupName][i]["extensions"] is not empty then
+        put tExtGroupsA[pFileExtGroupName][i]["extensions"] & "," after tExtensions
       end if
     end repeat
   end if
@@ -338,17 +400,43 @@ function appFileExtensionGroupExtensions pGroupName
 end appFileExtensionGroupExtensions
 
 
-function appFileExtensionGroupExtensionsForCategory pGroupName, pCategoryName
+/**
+Summary: Returns a list of extensions for a specific category within a file extension group.
+
+pFileExtGroupName: A file extension group name that has been defined in the `file extension groups` key of the `app.yml` file.
+pCategoryName: A category of file extensions within pFileExtGroupName.
+
+Returns: A CR-delimited list of file extensions
+
+Example:
+# app.yml
+file extension groups:
+  Media Files:
+    1:
+      name: All Files
+      extensions: jpg,jpeg,png,bmp,gif,svg,ai
+    2:
+      name: Vector Files
+      extensions: svg,ai
+    3:
+      name: Bitmap Files
+      extensions: jpg,jpeg,png,bmp,gif
+
+# code
+put appFileExtensionGroupExtensionsForCategory("Media Files", "Vector Files") into
+
+*/
+function appFileExtensionGroupExtensionsForCategory pFileExtGroupName, pCategoryName
   local tExtGroupsA, tExtensions
 
   put getFileExtensionsGroupsArray() into tExtGroupsA
 
-  if tExtGroupsA[pGroupName] is an array then
+  if tExtGroupsA[pFileExtGroupName] is an array then
     local i
 
-    repeat with i = 1 to the number of elements of tExtGroupsA[pGroupName]
-      if tExtGroupsA[pGroupName][i]["name"] is pCategoryName then
-        put tExtGroupsA[pGroupName][i]["extensions"] into tExtensions
+    repeat with i = 1 to the number of elements of tExtGroupsA[pFileExtGroupName]
+      if tExtGroupsA[pFileExtGroupName][i]["name"] is pCategoryName then
+        put tExtGroupsA[pFileExtGroupName][i]["extensions"] into tExtensions
         exit repeat
       end if
     end repeat
@@ -369,11 +457,11 @@ end getFileExtensionsGroupsArray
 
 
 /**
-Summary: Given a list of files this function will extract all files that have extensions that are supported by your application.
+Summary: Given a list of files this function will extract all files that have extensions that are supported by an application.
 
-pFiles CR delimited list of files to search in.
+pFiles CR-delimited list of files to search in.
 
-Returns:  CR delimited list
+Returns:  CR-delimited list
 */
 private function extractAppAssociatedFilesFromList pFiles
   local tExtensions, tSupportedFiles
@@ -450,10 +538,13 @@ private function _decodeMenuText pString
   return pString
 end _decodeMenuText
 
+
 /**
 Summary: Sets the maximum number of files that will be stored in the recent files list.
 
 pMax: The maximum number of files to store in the list.
+
+Returns: empty
 
 Description:
 Once the threshold is met the last file in the list will be removed when another file is added.
@@ -469,15 +560,15 @@ end appSetMaxRecentFiles
 /**
 Summary: Adds a file to the list of recently opened files for a specific category.
 
-pCategory The category to add the file to. This is simply a string that helps you organize multiple lists of recent files.
-pFile The full path to the file to add to the recent file list.
-pTag This will be used as the tag in the menu that is generated by appRecentlyOpenedMenuText. If empty then pFile is used. A tag can be useful if you are opening something other than a file. For example, perhaps it is a database record and you want to store the record id.
-pSecurityBookmark Pass in any security related bookmark data. Security bookmarks are required when opening a file in a sandboxed environment on macos. This will be stored with the entry as it may be needed to open the file.
+pCategory: The category to add the file to. This is simply a string that helps you organize multiple lists of recent files.
+pFile: The full path to the file to add to the recent file list.
+pTag: This will be used as the tag in the menu that is generated by appRecentlyOpenedMenuText. If empty then pFile is used. A tag can be useful if you are opening something other than a file. For example, perhaps it is a database record and you want to store the record id.
+pSecurityBookmark: Pass in any security related bookmark data. Security bookmarks are required when opening a file in a sandboxed environment on macos. This will be stored with the entry as it may be needed to open the file.
+
+Returns: Error message
 
 Description:
 Calling this handler will save preferences.
-
-Returns: Error message
 */
 command appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
   local tError,tFilesA
@@ -529,13 +620,13 @@ end appAddToRecentlyOpened
 /**
 Summary: Removes a file from the list of recently opened files for a specific category.
 
-pCategory The category to remove the file from. This is simply a string that helps you organize multiple lists of recent files.
-pFile The full path to the file to remove from the recent file list.
+pCategory: The category to remove the file from. This is simply a string that helps you organize multiple lists of recent files.
+pFile: The full path to the file to remove from the recent file list.
+
+Returns: Error message
 
 Description:
 Calling this handler will save preferences.
-
-Returns: Error message
 */
 command appRemoveFromRecentlyOpened pCategory, pFile
   local tError,tFilesA,tLineOffset
@@ -567,10 +658,10 @@ end appRemoveFromRecentlyOpened
 /**
 Summary: Returns a list of recently opened files for a particular category.
 
-pCategory The category to retrieve the list of recently opened files for.
-pShortVersion Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path.
+pCategory: The category to retrieve the list of recently opened files for.
+pShortVersion: Pass in true if you would like the file paths truncated to their shortest unique length. Default is full file path.
 
-Returns: CR delimited list
+Returns: CR-delimited list
 */
 function appRecentlyOpened pCategory, pShortVersion
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
@@ -610,13 +701,13 @@ end appRecentlyOpened
 /**
 Summary: Returns a list of recently opened files for a particular category which has been encoded for display in a menu.
 
-pCategory The category to retrieve the list of recently opened files for.
+pCategory: The category to retrieve the list of recently opened files for.
+
+Returns: CR-delimited list
 
 Description:
 Each line of the returned list will be prefixed with a tab and will have special characters escaped
 for display in a menu.
-
-Returns: CR-delimited list
 */
 function appRecentlyOpenedMenuText pCategory
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
@@ -653,8 +744,8 @@ end appRecentlyOpenedMenuText
 /**
 Summary: Returns the security scoped bookmark data for a file.
 
-pCategory The category to retrieve the list of recently opened files for.
-pTag The tag assigned to the recently opened file. Unless you explicitly set a tag this will be the filename.
+pCategory: The category to retrieve the list of recently opened files for.
+pTag: The tag assigned to the recently opened file. Unless you explicitly set a tag this will be the filename.
 
 Returns: bookmark data
 */
