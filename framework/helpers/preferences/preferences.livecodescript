@@ -369,64 +369,37 @@ function appGetPreferenceFile pUserOrShared
   put prefFilenameForPlatform(pUserOrShared) into tFile
 
   if tFile is not empty then
-    if pUserOrShared is "user" then
-      return _systemPreferencesFolder() & slash & tFile
-    else
-      return _systemAppDataFolder("shared") & slash & tFile
-    end if
+    return _preferencesFolder(pUserOrShared) & slash & tFile
   else
     return empty
   end if
 end appGetPreferenceFile
 
 
-private function _systemPreferencesFolder
-  switch the platform
-    case "macos"
-      return specialFolderPath("preferences")
-    case "iphone"
-      return specialFolderPath("library") & "/Application Support"
-    case "android"
-      return specialFolderPath("documents") & "/Application Support"
-    case "win32"
-    case "linux"
-      return _systemAppDataFolder("user")
-    default
-      return empty
-  end switch
-end _systemPreferencesFolder
-
-
-private function _systemAppDataFolder pUserOrShared
-  if pUserOrShared is not "shared" then
+private function _preferencesFolder pUserOrShared
+  if pUserOrShared is "user" then
     switch the platform
-      case "win32"
       case "macos"
-        return specialFolderPath("support")
+        return specialFolderPath("preferences")
+      case "win32"
       case "linux"
-        return specialFolderPath("home")
       case "iphone"
-        return specialFolderPath("library") & "/Application Support"
       case "android"
-        return specialFolderPath("documents") & "/Application Support"
+        return levureApplicationDataFolder("user")
       default
         return empty
     end switch
   else
     switch the platform
       case "macos"
-        return specialFolderPath("asup")
       case "win32"
-        return specialFolderPath("35")
       case "linux"
-        return "/opt"
-      case "iphone"
-      case "android"
+        return levureApplicationDataFolder("shared")
       default
         return empty
     end switch
   end if
-end _systemAppDataFolder
+end _preferencesFolder
 
 
 private command _ensurePrefsAreLoaded pUserOrShared
