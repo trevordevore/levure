@@ -575,8 +575,10 @@ function levureApplicationDataFolder pUserOrShared
         break
       case "iphone"
         put specialFolderPath("library") & "/Application Support/" into tFolder
+        break
       case "android"
         put specialFolderPath("documents") & "/Application Support/" into tFolder
+        break
       default
         return empty
     end switch
