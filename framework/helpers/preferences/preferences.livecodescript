@@ -369,7 +369,7 @@ function appGetPreferenceFile pUserOrShared
   put prefFilenameForPlatform(pUserOrShared) into tFile
 
   if tFile is not empty then
-    return _preferencesFolder(pUserOrShared) & slash & tFile
+    return _preferencesFolder(pUserOrShared) & "/" & tFile
   else
     return empty
   end if
