@@ -65,7 +65,7 @@ on relaunch
       # then developer code can handle any special cases.
       if tParams is not empty then
         # This handler is defined in a helper
-        send "appProcessCommandLineParameters tParams" to stack kAppStackName in 0 milliseconds
+        send "ProcessCommandLineParameters tParams" to stack kAppStackName in 0 milliseconds
       end if
 
       if sAppA["relaunch in background"] then
