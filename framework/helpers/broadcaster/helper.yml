@@ -1,3 +1,2 @@
 libraries:
-  1:
-    filename: broadcaster.livecodescript
+  - filename: broadcaster.livecodescript

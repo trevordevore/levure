@@ -1,18 +1,34 @@
-# font_loader Helper
+# font_loader
 
-The **font_loader** helper manages loading, unloading, and packaging of custom fonts that your application uses. Fonts will be loaded and available for use when your application launches. When you package your application the fonts will be included.
+The Font Loader helper manages loading, unloading, and packaging custom fonts that your application uses. Fonts are added to the application in the `app.yml` file.
 
-## Configuration
+## Contents
 
-You configure fonts in the `app.yml` file by adding a `font` key. The `font` key is a list with at `filename` key and an optional `global` key. `global` is true/false (false by default). If `true` then the font will be made available to all applications on the computer.
+* [Activate the font_loader framework helper](#activate-the-font_loader-framework-helper)
+* [Adding a font to your application](#adding-a-font-to-your-application)
 
+## Activate the font_loader framework helper
 
-### Example:
+To add the Font Loader helper to your application add it under the `helpers` section of the `app.yml` file:
+
 ```
+# app.yml
+
+helpers:
+  - folder: ./helpers
+  - filename: "[[FRAMEWORK]]/helpers/font_loader"
+```
+
+## Adding a font to your application
+
+You configure fonts by adding a `fonts` key to the `app.yml` file. The following example loads the PasswordEntry.ttf font when your application is launched. The `global` property is optional and defaults to `false` which means the font will only be available to your application. If true then the font will be available to all applications on the computer.
+
+```
+# app.yml
+
 fonts:
-  1:
-    filename: resources/password.ttf
-  2:
-    filename: resources/MySpecialFont.ttf
-    global: true
+  - filename: resources/PasswordEntry.ttf
+    global: false
 ```
+
+When you package your application the font file will be copied into the application folder.

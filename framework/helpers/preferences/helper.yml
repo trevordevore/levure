@@ -1,8 +1,6 @@
 externals:
   macos:
-    1:
-      filename: preferences.bundle
+    - filename: preferences.bundle
       name: Preferences
 libraries:
-  1:
-    filename: preferences.livecodescript
+  - filename: preferences.livecodescript

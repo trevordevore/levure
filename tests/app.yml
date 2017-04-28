@@ -1,20 +1,22 @@
 multiple instances: false
-relaunch in background: false
-application data:
+relaunch in background: true- # Multiple instances on Windows?
+application data folder:
   user:
-    folder: LevureUnitTestApp/1.0
-  shared:
-    folder:
-preferences:
+    # Set the user application data folder
+    default: LevureUnitTestApp/1.0
+preferences filename:
   user:
-    macos:
-      filename: com.levure-app-framework.unit_test_app
-    windows:
-      filename: LevureUnitTestApp/1.0/UnitTest Prefs.dat
+    default: LevureUnitTestApp/1.0/UnitTest.prefs
+    macos: com.levure-app-framework.unit_test_app
 file extensions:
   Text File: txt
 file extension groups:
   Text Files:
-    1:
-      name: All Supported Files
+    - name: All Supported Files
       extensions: txt
+libraries:
+  - folder: libraries
+# Load helpers
+helpers:
+  - filename: "[[FRAMEWORK]]/helpers/preferences"
+  - folder: helpers

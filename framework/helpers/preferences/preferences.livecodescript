@@ -1,4 +1,4 @@
-script "Application Preferences Library"
+script "Preferences Library"
 local sUseExternal, sUseBroadcaster
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA
@@ -123,13 +123,13 @@ pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 
 Returns: Array representing YAML configuration store in `prefs.yml` and `prefs_shared.yml`
 */
-function appGetDefaultPrefs pUserOrShared
+function prefsGetDefaults pUserOrShared
   if pUserOrShared is "shared" then
     return sDefaultSharedPrefsA
   else
     return sDefaultPrefsA
   end if
-end appGetDefaultPrefs
+end prefsGetDefaults
 
 
 /**
@@ -145,7 +145,7 @@ in `prefs.yml` and `prefs_shared.yml`.
 
 Note that on OS X this command currently does not work.
 */
-command appResetPrefs pUserOrShared
+command prefsReset pUserOrShared
   validateKey pUserOrShared
 
   ## OS X external behavior
@@ -156,7 +156,7 @@ command appResetPrefs pUserOrShared
     */
   else
     put empty into sPrefsA[pUserOrShared]
-    appSavePrefs pUserOrShared
+    prefsSave pUserOrShared
 
     # recreate "user" or "shared" key as an array type
     put empty into sPrefsA[pUserOrShared]["init"]
@@ -164,7 +164,7 @@ command appResetPrefs pUserOrShared
   end if
 
   return empty for value
-end appResetPrefs
+end prefsReset
 
 
 /**
@@ -181,7 +181,7 @@ preferences from the file on disk.
 Note that this command does nothing on OS X which handles preferences using Cocoa
 APIs.
 */
-command appReloadPrefs pUserOrShared
+command prefsReload pUserOrShared
   validateKey pUserOrShared
 
   if not useExternal(pUserOrShared) then
@@ -189,7 +189,7 @@ command appReloadPrefs pUserOrShared
     _ensurePrefsAreLoaded pUserOrShared
   end if
   return empty for value
-end appReloadPrefs
+end prefsReload
 
 
 /**
@@ -202,7 +202,7 @@ pType: Pass in "binary" to force pref to be stored as binary (OS X). By default 
 
 Returns: error message
 */
-command appSetPref pKey, pValue, pUserOrShared, pType
+command prefsSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
 
   validateKey pUserOrShared
@@ -230,12 +230,12 @@ command appSetPref pKey, pValue, pUserOrShared, pType
   # Broadcasting is one of framework helpers
   if tError is empty then
     if useBroadcaster() then
-      appBroadcast "prefs", pKey, empty
+      broadcasterBroadcast "prefs", pKey, pKey
     end if
   end if
 
   return tError for error
-end appSetPref
+end prefsSetPref
 
 
 /**
@@ -246,12 +246,12 @@ pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 
 Returns: value
 */
-function appGetPref pKey, pUserOrShared
+function prefsGetPref pKey, pUserOrShared
   local tStack, tValue
 
   validateKey pUserOrShared
 
-  if not appPrefIsSet(pKey, pUserOrShared) then
+  if not prefsIsPrefSet(pKey, pUserOrShared) then
     if pUserOrShared is "shared" then
       put sDefaultSharedPrefsA[pKey] into tValue
     else
@@ -286,7 +286,7 @@ function appGetPref pKey, pUserOrShared
   end if
 
   return tValue for value
-end appGetPref
+end prefsGetPref
 
 
 /**
@@ -297,7 +297,7 @@ pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 
 Returns: true/false
 */
-function appPrefIsSet pKey, pUserOrShared
+function prefsIsPrefSet pKey, pUserOrShared
   local tStack
 
   validateKey pUserOrShared
@@ -311,7 +311,7 @@ function appPrefIsSet pKey, pUserOrShared
     _ensurePrefsAreLoaded pUserOrShared
     return pKey is among the keys of sPrefsA[pUserOrShared]
   end if
-end appPrefIsSet
+end prefsIsPrefSet
 
 
 /**
@@ -325,12 +325,12 @@ Description:
 When setting preferences the preference is updated in memory. To permanently
 store changes on disk use this command.
 */
-command appSavePrefs pUserOrShared
+command prefsSave pUserOrShared
   local tError, tFile
 
   validateKey pUserOrShared
 
-  put appGetPreferenceFile(pUserOrShared) into tFile
+  put prefsGetPreferenceFile(pUserOrShared) into tFile
 
   if tFile is not empty then
     if useExternal(pUserOrShared) then
@@ -347,7 +347,7 @@ command appSavePrefs pUserOrShared
   end if
 
   return tError
-end appSavePrefs
+end prefsSave
 
 
 /**
@@ -361,7 +361,7 @@ Description:
 Returns the filename of the preference file. If an external is being used on OS X
 then empty will be returned.
 */
-function appGetPreferenceFile pUserOrShared
+function prefsGetPreferenceFile pUserOrShared
   local tFile
 
   validateKey pUserOrShared
@@ -373,7 +373,7 @@ function appGetPreferenceFile pUserOrShared
   else
     return empty
   end if
-end appGetPreferenceFile
+end prefsGetPreferenceFile
 
 
 private function _preferencesFolder pUserOrShared
@@ -409,9 +409,9 @@ private command _ensurePrefsAreLoaded pUserOrShared
     local tFile
 
     if pUserOrShared is "shared" then
-      put appGetPreferenceFile("shared") into tFile
+      put prefsGetPreferenceFile("shared") into tFile
     else
-      put appGetPreferenceFile("user") into tFile
+      put prefsGetPreferenceFile("user") into tFile
     end if
 
     if there is a file tFile then

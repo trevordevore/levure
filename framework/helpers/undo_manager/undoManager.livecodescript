@@ -6,6 +6,11 @@ local sMaxUndo = 30
 on libraryStack
   if the target is not me then pass libraryStack
 
+  # Register default types
+  undoRegisterType "create", "delete"
+  undoRegisterType "delete", "create"
+  undoRegisterType "update", "update"
+
   undoReset "default"
 end libraryStack
 
@@ -17,13 +22,16 @@ on releaseStack
 end releaseStack
 
 
---> API
-
-
 /**
-*\brief Registers an undo stack for use when user is editing field contents.
-*
-* \return empty
+Summary: Registers the "edit field" undo stack for use while a user is editing text in a field.
+
+Description:
+Thie handler registers the "edit field" undo stack and inserts a frontscript into the message path.
+The frontscript monitors edits made in a field while it has focus. Undo/redo affects typing done before focus
+is removed from the field.
+
+
+Returns: empty
 */
 command undoRegisterEditFieldType
   undoReset "edit field"
@@ -35,11 +43,11 @@ end undoRegisterEditFieldType
 
 
 /**
-* \brief Sets the maximum number of undo actions that will be saved in an undo stack.
-*
-* \param pMax The maximum number of entries to store.
-*
-* \return empty
+Summary: Sets the maximum number of undo actions that will be saved in an undo stack.
+
+pMax: The maximum number of undo entries to store.
+
+Returns: empty
 */
 command undoSetMaxUndos pMax
   if pMax is not an integer then put 1 into pMax
@@ -49,9 +57,9 @@ end undoSetMaxUndos
 
 
 /**
-* \brief Returns the maximum number of undo actions that are stored in an undo stack.
-*
-* \return Integer
+Summary: Returns the maximum number of undo actions that are stored in an undo stack.
+
+Returns: Number of undo entries to store
 */
 function undoGetMaxUndos
   return sMaxUndo
@@ -59,26 +67,28 @@ end undoGetMaxUndos
 
 
 /**
-* \brief Registers an undo type with the Undo Manager.
-*
-* \param pType The name of the type.
-* \param pStoreUndoOnStackCallback The handler to call when storing an undo action in the undo stack by a call to undoAddActionToUndoStack.
-* \param pUndoCallback The callback that will be sent when calling undoUndo/undoRedo for this undo action type.
-* \param pRemoveFromStackCallback The callback that will be sent when an undo action of this type is removed from the undo stack. Pass in empty if you have no cleanup requirements.
-* \param pCallbackTarget Where to send the callback messages to. This is optional. See undoSetTargetForStackCallbacks if you need to target callbacks based on a specific undo stack.
-* \param pInverseType When calling undoUndo the type of the undo action will be set to this value. For example, if pType is "add object" then this might be "delete object". Leave empty  if there is no inverse type. If this value is different then pType then make sure you register this type as well.
-*
-* \return empty
+Summary: Registers an undo type with the Undo Manager.
+
+pType: The type to register.
+pInverseType: When calling undoUndo the type of the undo action will be set to this value. For example, if pType is "add object" then this might be "delete object". Leave empty  if there is no inverse type. If this value is different then pType then make sure you register this type as well.
+pRemoveFromStackCallback: The callback that will be sent when an undo action of this type is removed from the undo stack. Pass in empty if you have no cleanup requirements.
+[pCallbackTarget]: Optional control reference where callback messages should be sent. See undoSetTargetForStackCallbacks if you need to target callbacks based on a specific undo stack.
+
+Returns: empty
+
+Description:
+When adding an undo entry to an undo stack, you specify a type.
+The type helps the application know how to undo or redo the action.
+Each type has callbacks that will be triggered when that type of undo entry
+needs to be undone or redone.
 */
-command undoRegisterType pType, pStoreUndoOnStackCallback, pUndoCallback, pRemoveFromStackCallback, pCallbackTarget, pInverseType
+command undoRegisterType pType, pInverseType, pRemoveFromStackCallback, pCallbackTarget
   local tLineNo
 
   set the wholematches to true
   put lineoffset(pType, sUndoStructure["types"]) into tLineNo
   if tLineNo is 0 then put pType into line (the number of lines of sUndoStructure["types"] + 1) of sUndoStructure["types"]
 
-  put pStoreUndoOnStackCallback into sUndoStructure[pType]["store memento handler"]
-  put pUndoCallback into sUndoStructure[pType]["restore memento handler"]
   put pRemoveFromStackCallback into sUndoStructure[pType]["cleanup handler"]
   put pCallbackTarget into sUndoStructure[pType]["target"]
   put pInverseType into sUndoStructure[pType]["inverse type"]
@@ -88,20 +98,17 @@ end undoRegisterType
 
 
 private command _cleanupIndex pUndoStack, pUndoOrRedo, pIndex
-  local tType, tArray, tTarget
+  local i, tType, tArray, tTarget
 
-  put sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["type"] into tType
-  if sUndoStructure[tType]["cleanup handler"] is not empty then
-    ## Extract undo array from stack
-    put sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ] into tArray
+  # Clean up each memento in turn
+  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"]
+    put sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"][i]["type"] into tType
 
-    put _getTargetForMessages(pUndoStack, tType) into tTarget
-    if tTarget is not empty then
-      dispatch sUndoStructure[tType]["cleanup handler"] to tTarget with tArray
-    else
-      dispatch sUndoStructure[tType]["cleanup handler"] with tArray
+    if sUndoStructure[tType]["cleanup handler"] is not empty then
+      put _getTargetForMessages(pUndoStack, tType) into tTarget
+      dispatch sUndoStructure[tType]["cleanup handler"] to tTarget with sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"][i]
     end if
-  end if
+  end repeat
 
   delete local sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]
 
@@ -110,32 +117,37 @@ end _cleanupIndex
 
 
 /**
-* \brief Returns the target object for messages.
-*
-* \param pUndoStack The undo stack to target.
-* \param pUndoType The undo type for the event.
-*
-* \return object reference or empty.
+Summary: Returns the target object for messages.
+
+pUndoStack: The target undo stack.
+pUndoType: The undo type for the event.
+
+Returns: object reference or empty.
+
+Description:
+If an target callback has been defined for the type then that callback is returned.
+If not then the target for the undo stack is returned.
 */
 private function _getTargetForMessages pUndoStack, pUndoType
-  if sUndoLogA[pUndoStack]["target"] is not empty then
-    return sUndoLogA[pUndoStack]["target"]
-  else if sUndoStructure[pUndoType]["target"] is not empty then
+  if pUndoType is not empty and sUndoStructure[pUndoType]["target"] is not empty then
     return sUndoStructure[pUndoType]["target"]
+  else if sUndoLogA[pUndoStack]["target"] is not empty then
+    return sUndoLogA[pUndoStack]["target"]
   else
-    return empty
+    return the long id of the target
   end if
 end _getTargetForMessages
 
 
 /**
-* \brief Resets an undo stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* Cleanup callbacks will be sent for any undo actions in the stack.
-*
-* \return empty
+Summary: Resets an undo stack.
+
+pUndoStack: The undo stack to target.
+
+Returns: empty
+
+Description:
+Cleanup callbacks will be sent for any undo actions in the stack.
 */
 command undoReset pUndoStack
   local tIndexes, tIndex
@@ -171,55 +183,21 @@ end undoReset
 
 
 /**
-* \brief Prints the undo log array.
-*
+Summary: Prints the undo log array. Use for troublehsooting.
+
+Returns: text representation of internal array
 */
 command undoPrintLog
-  put printKeys(sUndoLogA)
+  return printKeys(sUndoLogA)
 end undoPrintLog
 
 
-private function _printArray pArray, pDimension, pFullData
-  local tKeys, tKey, tText, tTempArray
-
-  if pDimension is empty then put 0 into pDimension
-
-  put the keys of pArray into tKeys
-  sort tKeys numeric
-
-  repeat for each line tKey in tKeys
-    if pArray[tKey] is an array then
-      put _printCharXTimes(space, pDimension * 3) & tKey & cr after tText
-      put pArray[tKey] into tTempArray
-      put _printArray(tTempArray, pDimension + 1, pFullData) after tText
-    else
-      if pFullData then
-        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && pArray[tKey] & cr after tText
-      else
-        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && line 1 of pArray[tKey] & cr after tText
-      end if
-    end if
-  end repeat
-
-  return tText
-end _printArray
-
-private function _printCharXTimes pChar, pTimes
-  local tStr
-
-  repeat with i = 1 to pTimes
-    put pChar after tStr
-  end repeat
-  return tStr
-end _printCharXTimes
-
-
 /**
-* \brief Returns true if there is an undo action.
-*
-* \param pUndoStack The name of the undo stack to target. Leave empty for "default"
-*
-* \return Boolean
+Summary: Returns true if there is an undo action.
+
+pUndoStack: The name of the undo stack to target. Leave empty for "default"
+
+Returns: Boolean
 */
 function undoCanUndo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
@@ -228,11 +206,11 @@ end undoCanUndo
 
 
 /**
-* \brief Returns true if there is a redo action.
-*
-* \param pUndoStack The name of the undo stack to target. Leave empty for "default"
-*
-* \return Boolean
+Summary: Returns true if there is a redo action.
+
+pUndoStack: The name of the undo stack to target. Leave empty for "default"
+
+Returns: Boolean
 */
 function undoCanRedo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
@@ -241,111 +219,67 @@ end undoCanRedo
 
 
 /**
-* |brief Sets the target for all callbacks for a particular undo stack. This overrides any type-specific callback target.
-*
-* \param pUndoStack The undo stack to target.
-* \param pTarget The target object for messages.
-*
-* \return empty
+Summary: Sets the target for undo type callbacks for an undo stack.
+
+pUndoStack: The undo stack to target.
+pTarget: The target object for messages.
+
+Returns: empty
+
+Description:
+If a callback target control is set for an undo stack then any undo type
+which doesn't specify a contorl will send to the undo stack control.
 */
 command undoSetTargetForStackCallbacks pUndoStack, pTarget
   put pTarget into sUndoLogA[pUndoStack]["target"]
+  return empty
 end undoSetTargetForStackCallbacks
 
 
 /**
-* \brief Adds an undo action to the "default" undo stack.
-*
-* \param pType The undo action type. You must have registered this type with undoRegisterType.
-* \param pActionName The name of the undo action. This is what you would want to display in the Edit > Undo/Redo menus.
-* \param pMementoA The memento for this undo action. You can pass in an array or any number of parameters in "key:value" format.
-*
-* \return The array representing the undo action that was created.
-*
-* \seealso undoRegisterType, undoAddActionToUndoStack
+Summary: Adds an undo action to an undo stack.
+
+pUndoStack: The name of the undo stack to associate the action with. If empty then the undo stack is "default".
+pType: The undo action type. You must have registered this type with undoRegisterType.
+pActionName: The name of the undo action. This is what you will display in the Edit > Undo/Redo menus.
+pMementosA: A numerically indexed array of memento arrays for this action.
+
+Returns: The array representing the undo action that was created.
+
+Description:
+Use this handler to add undo actions to an undo stack in your application.
+
+```
+local tMementoA, tMementosA
+
+put tId into tMementoA["id"]
+put tIndex into tMementoA["index"]
+
+put tMementoA into tMementosA[1]
+
+undoAddAction "document 1", "Create thing", tMementosA
+```
 */
-command undoAddAction pType, pActionName, pMementoA
-  local tUndoStack
-
-  put "default" into tUndoStack
-  if the keys of param(3) is not empty then
-    undoAddActionToUndoStack tUndoStack, pType, pActionName, pMementoA
-  else
-    local tDo
-
-    put "undoAddActionToUndoStack tUndoStack, pType, pActionName" into tDo
-    repeat with i = 3 to the paramcount
-      put ", param(" & i & ")" after tDo
-    end repeat
-    do tDo
-  end if
-
-  return the result
-end undoAddAction
-
-
-/**
-* \brief Adds an undo action to an undo stack.
-*
-* \param pUndoStack The name of the undo stack to associate the action with. If empty then the undo stack is "default".
-* \param pType The undo action type. You must have registered this type with undoRegisterType.
-* \param pActionName The name of the undo action. This is what you will display in the Edit > Undo/Redo menus.
-* \param pMementoA The memento for this undo action. You can pass in an array or any number of parameters in "key:value" format.
-*
-* \return The array representing the undo action that was created.
-*/
-command undoAddActionToUndoStack pUndoStack, pType, pActionName, pMementoA
-  local tIndex
+command undoAddAction pUndoStack, pActionName, pMementosA
+  local i, tIndex, tMementoA
 
   if pUndoStack is empty then put "default" into pUndoStack
-  if sUndoStructure[pType] is not an array then return "undo not set up for this type"
-
   put _getNextUndoIndex(pUndoStack) into tIndex
 
-  ## UNIVERSAL PROPS
-  put pType into sUndoLogA[pUndoStack]["undo"][tIndex]["type"]
-  put pType into sUndoLogA[pUndoStack]["undo"][tIndex]["inverse type"]
+  repeat with i = 1 to the number of elements of pMementosA
+    if sUndoStructure[ pMementosA[i]["type"] ] is not an array then return "undo not set up for this type"
+  end repeat
+
   put pActionName into sUndoLogA[pUndoStack]["undo"][tIndex]["action name"]
+  put pMementosA into sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"]
 
-  put pUndoStack into sUndoLogA[pUndoStack]["undo"][tIndex]["key"][1]
-  put "undo" into sUndoLogA[pUndoStack]["undo"][tIndex]["key"][2]
-  put tIndex into sUndoLogA[pUndoStack]["undo"][tIndex]["key"][3]
+  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"]
+    local tTarget, tType
 
-  ## User can pass in an array or just set of "key:value" params
-  if the keys of pMementoA is not empty then
-    repeat for each key tKey in pMementoA
-      put pMementoA[tKey] into sUndoLogA[pUndoStack]["undo"][tIndex]["memento"][tKey]
-    end repeat
-  else
-    local tString
-
-    set the itemdelimiter to ":"
-    repeat with i = 4 to the paramcount
-      put param(i) into tString
-      put item 1 of tString into tKey
-      delete item 1 of tString
-      put tString into sUndoLogA[pUndoStack]["undo"][tIndex]["memento"][tKey]
-    end repeat
-  end if
-
-  local tUndoArray
-
-  put sUndoLogA[pUndoStack]["undo"][tIndex] into tUndoArray
-
-  set the wholematches to true
-  if sUndoStructure[pType]["store memento handler"] is not empty then
-    local tTarget
-
-    put _getTargetForMessages(pUndoStack, pType) into tTarget
-    if tTarget is not empty then
-      dispatch sUndoStructure[pType]["store memento handler"] to tTarget with tUndoArray
-    else
-      dispatch sUndoStructure[pType]["store memento handler"] with tUndoArray
-    end if
-
-    ## Update as user may have changed it
-    put tUndoArray into sUndoLogA[pUndoStack]["undo"][tIndex]
-  end if
+    put sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][1]["type"] into tType
+    put _getTargetForMessages(pUndoStack, tType) into tTarget
+    dispatch "undoStoreMemento" to tTarget with sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][i]
+  end repeat
 
   ## Redos are wiped out. "cleanup handler" is called so program
   ## can clean up after any internal data specific to the undo array.
@@ -368,19 +302,20 @@ command undoAddActionToUndoStack pUndoStack, pType, pActionName, pMementoA
     _cleanupIndex pUndoStack, "undo", line i of tIndexes
   end repeat
 
-  return tUndoArray
-end undoAddActionToUndoStack
+  return sUndoLogA[pUndoStack]["undo"][tIndex]
+end undoAddAction
 
 
 /**
-* \brief Returns the undo structure for the next undo in the stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* Use this for comparisons to determine if a new undo action should be added to the stack
-* (e.g. actions that repeat but you only want 1 undo for).
-*
-* \return Array or empty
+Summary: Returns the undo structure for the next undo in the stack.
+
+pUndoStack: The undo stack to target.
+
+Description:
+Use this for comparisons to determine if a new undo action should be added to the stack
+(e.g. actions that repeat but you only want 1 undo for).
+
+Returns: Array or empty
 */
 function undoGetNextUndoInStack pUndoStack
   local tIndex
@@ -397,11 +332,11 @@ end undoGetNextUndoInStack
 
 
 /**
-* \brief Performs an undo operation for the last undo added to the stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* \return empty or "can't undo"
+Summary: Performs an undo operation for the last undo added to the stack.
+
+pUndoStack: The undo stack to target.
+
+Returns: empty or "can't undo"
 */
 command undoUndo pUndoStack
   local tIndex
@@ -409,8 +344,7 @@ command undoUndo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
   if undoCanUndo(pUndoStack) then
-    put item 2 of line 1 of the extents of sUndoLogA[pUndoStack]["undo"] into tIndex
-    _undo pUndoStack, tIndex
+    _reverseAction pUndoStack, "undo", the number of elements of sUndoLogA[pUndoStack]["undo"]
     return empty
   else
     return "can't undo"
@@ -419,17 +353,17 @@ end undoUndo
 
 
 /**
-* \brief Performs an redo operation for the last redo added to the stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* \return empty or "can't redo"
+Summary: Performs an redo operation for the last redo added to the stack.
+
+pUndoStack: The undo stack to target.
+
+Returns: empty or "can't redo"
 */
 command undoRedo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
   if undoCanRedo(pUndoStack) then
-    _redo pUndoStack, the number of elements of sUndoLogA[pUndoStack]["redo"]
+    _reverseAction pUndoStack, "redo", the number of elements of sUndoLogA[pUndoStack]["redo"]
     return empty
   else
     return "can't redo"
@@ -438,13 +372,14 @@ end undoRedo
 
 
 /**
-* \brief Returns the next undo action name in a stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* The action name that was assigned when calling undoAddActionToUndoStack.
-*
-* \return String
+Summary: Returns the next undo action name in a stack.
+
+pUndoStack: The undo stack to target.
+
+Description:
+The action name that was assigned when calling undoAddAction.
+
+Returns: String
 */
 function undoUndoActionName pUndoStack
   local tIndex
@@ -461,13 +396,14 @@ end undoUndoActionName
 
 
 /**
-* \brief Returns the next redo action name in a stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* The action name that was assigned when calling undoAddActionToUndoStack.
-*
-* \return String
+Summary: Returns the next redo action name in a stack.
+
+pUndoStack: The undo stack to target.
+
+Description:
+The action name that was assigned when calling undoAddAction.
+
+Returns: String
 */
 function undoRedoActionName pUndoStack
   local tIndex
@@ -484,11 +420,11 @@ end undoRedoActionName
 
 
 /**
-* \brief Removes the last added undo action from the undo stack.
-*
-* \param pUndoStack The undo stack to target.
-*
-* \return empty
+Summary: Removes the last added undo action from the undo stack.
+
+pUndoStack: The undo stack to target.
+
+Returns: empty
 */
 command undoRemoveLatest pUndoStack
   local tIndex
@@ -502,19 +438,16 @@ end undoRemoveLatest
 
 
 /**
-* \brief Removes all undo entries for a particular owner.
-*
-* \param pUndoStack The undo stack to target.
-*
-* \return empty
+Summary: Removes all undo entries for a particular owner.
+
+pUndoStack: The undo stack to target.
+
+Returns: empty
 */
 command undoCleanupStack pUndoStack
   delete local sUndoLogA[pUndoStack]
   return empty
 end undoCleanupStack
-
-
---> Private
 
 
 private function _validateUndoStackString pUndoStack
@@ -553,152 +486,61 @@ private function _getNextRedoIndex pUndoStack
 end _getNextRedoIndex
 
 
-private command _undo pUndoStack, pIndex
-  local tType, tRedoIndex, tRedoType, tRedoArray
+private command _reverseAction pUndoStack, pTargetQueue, pIndex
+  local tInverseQueue, i, tType, tInverseIndex, tTarget, tHasManyMementos
 
   put _validateUndoStackString(pUndoStack) into pUndoStack
-
-  put sUndoLogA[pUndoStack]["undo"][pIndex]["type"] into tType
-
-  ## STORE REDO
-  put _getNextRedoIndex(pUndoStack) into tRedoIndex
-  put sUndoLogA[pUndoStack]["undo"][pIndex] into sUndoLogA[pUndoStack]["redo"][tRedoIndex]
-  put "redo" into sUndoLogA[pUndoStack]["redo"][tRedoIndex]["key"][2]
-  put tRedoIndex into sUndoLogA[pUndoStack]["redo"][tRedoIndex]["key"][3]
-
-  if sUndoStructure[tType]["inverse type"] is not empty then
-    put sUndoStructure[tType]["inverse type"] into sUndoLogA[pUndoStack]["redo"][tRedoIndex]["type"]
+  if pTargetQueue is "undo" then
+    put "redo" into tInverseQueue
+    put _getNextRedoIndex(pUndoStack) into tInverseIndex
   else
-    put sUndoLogA[pUndoStack]["undo"][pIndex]["type"] into sUndoLogA[pUndoStack]["redo"][tRedoIndex]["type"]
+    put "undo" into tInverseQueue
+    put _getNextUndoIndex(pUndoStack) into tInverseIndex
   end if
 
-  ## Now onto redo messaging for advanced cases
-  put sUndoLogA[pUndoStack]["redo"][tRedoIndex]["type"] into tRedoType
-  put sUndoLogA[pUndoStack]["redo"][tRedoIndex] into tRedoArray
+  # Store redo
+  put sUndoLogA[pUndoStack][pTargetQueue][pIndex] into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]
 
-  # 2016-03-09: If using an array of mementos then reverse order.
+  # Inverse types
+  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"]
+    put sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"] into tType
+
+    put sUndoStructure[tType]["inverse type"] into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"]
+  end repeat
+
   local tKeys, tKey
 
-  put the keys of tRedoArray["memento"] into tKeys
-  if _keysAreNumeric(tKeys) then
-    local i = "0"
-    local tSwappedMementoA
-    sort lines of tKeys descending numeric
-    repeat for each line tKey in tKeys
-      add 1 to i
-      put tRedoArray["memento"][tKey] into tSwappedMementoA[i]
-    end repeat
-    put tSwappedMementoA into tRedoArray["memento"]
-  end if
+  # Move over all keys except "mementos" to inverse
+  put the keys of sUndoLogA[pUndoStack][pTargetQueue][pIndex] into tKeys
+  repeat for each line tKey in tKeys
+    if tKey is "mementos" then next repeat
+    put sUndoLogA[pUndoStack][pTargetQueue][pIndex][tKey] into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex][tKey]
+  end repeat
 
-  if sUndoStructure[tRedoType]["store memento handler"] is not empty then
-    local tTarget
+  # Store memento for inverse: Reverse order of mementos, set inverse type, and dispatch message
+  put 0 into i
+  put the keys of sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"] into tKeys
+  sort lines of tKeys descending numeric
+  repeat for each line tKey in tKeys
+    add 1 to i
 
-    put _getTargetForMessages(pUndoStack, tRedoType) into tTarget
-    if tTarget is not empty then
-      dispatch sUndoStructure[tRedoType]["store memento handler"] to tTarget with tRedoArray
-    else
-      dispatch sUndoStructure[tRedoType]["store memento handler"] with tRedoArray
-    end if
-    if it is not "unhandled" then
-      put tRedoArray into sUndoLogA[pUndoStack]["redo"][tRedoIndex]
-    end if
-  end if
+    put sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"][tKey] into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]
+    put sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"] into tType
+    put sUndoStructure[tType]["inverse type"] into tType
+    put tType into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"]
+
+    put _getTargetForMessages(pUndoStack, tType) into tTarget
+    dispatch "undoStoreMemento" to tTarget with sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]
+  end repeat
 
   ## Run the undo
-  local tUndoArray
+  put _getTargetForMessages(pUndoStack) into tTarget
+  dispatch "undoRestoreMementos" to tTarget with sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"]
 
-  put sUndoLogA[pUndoStack]["undo"][pIndex] into tUndoArray
-
-  put _getTargetForMessages(pUndoStack, tType) into tTarget
-  if tTarget is not empty then
-    dispatch sUndoStructure[tType]["restore memento handler"] to tTarget with tUndoArray, tRedoArray
-  else
-    dispatch sUndoStructure[tType]["restore memento handler"] with tUndoArray, tRedoArray
-  end if
-  if it is not "unhandled" then
-    put tRedoArray into sUndoLogA[pUndoStack]["redo"][tRedoIndex]
-  end if
-
-  delete local sUndoLogA[pUndoStack]["undo"][pIndex]
+  delete local sUndoLogA[pUndoStack][pTargetQueue][pIndex]
 
   return empty
-end _undo
-
-
-private command _redo pUndoStack, pIndex
-  local tType, tUndoIndex, tUndoType, tUndoArray
-
-  put _validateUndoStackString(pUndoStack) into pUndoStack
-
-  put sUndoLogA[pUndoStack]["redo"][pIndex]["type"] into tType
-
-  ## STORE REDO
-  put _getNextUndoIndex(pUndoStack) into tUndoIndex
-  put sUndoLogA[pUndoStack]["redo"][pIndex] into sUndoLogA[pUndoStack]["undo"][tUndoIndex]
-  put sUndoLogA[pUndoStack]["redo"][pIndex]["inverse type"] into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["type"]
-  put sUndoLogA[pUndoStack]["redo"][pIndex]["type"] into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["inverse type"]
-  put "undo" into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["key"][2]
-  put tUndoIndex into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["key"][3]
-
-  if sUndoStructure[tType]["inverse type"] is not empty then
-    put sUndoStructure[tType]["inverse type"] into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["type"]
-  else
-    put sUndoLogA[pUndoStack]["redo"][pIndex]["type"] into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["type"]
-  end if
-
-  ## Now onto undo messaging for advanced cases
-  put sUndoLogA[pUndoStack]["undo"][tUndoIndex]["type"] into tUndoType
-  put sUndoLogA[pUndoStack]["undo"][tUndoIndex] into tUndoArray
-
-  # 2016-03-09: If using an array of mementos then reverse order.
-  local tKeys, tKey
-
-  put the keys of tUndoArray["memento"] into tKeys
-  if _keysAreNumeric(tKeys) then
-    local i = "0"
-    local tSwappedMementoA
-    sort lines of tKeys descending numeric
-    repeat for each line tKey in tKeys
-      add 1 to i
-      put tUndoArray["memento"][tKey] into tSwappedMementoA[i]
-    end repeat
-    put tSwappedMementoA into tUndoArray["memento"]
-  end if
-
-  if sUndoStructure[tUndoType]["store memento handler"] is not empty then
-    local tTarget
-
-    put _getTargetForMessages(pUndoStack, tUndoType) into tTarget
-    if tTarget is not empty then
-      dispatch sUndoStructure[tUndoType]["store memento handler"] to tTarget with tUndoArray
-    else
-      dispatch sUndoStructure[tUndoType]["store memento handler"] with tUndoArray
-    end if
-    if it is not "unhandled" then
-      put tUndoArray into sUndoLogA[pUndoStack]["undo"][tUndoIndex]
-    end if
-  end if
-
-  ## Run the redo
-  local tRedoArray
-
-  put sUndoLogA[pUndoStack]["redo"][pIndex] into tRedoArray
-
-  put _getTargetForMessages(pUndoStack, tType) into tTarget
-  if tTarget is not empty then
-    dispatch sUndoStructure[tType]["restore memento handler"] to tTarget with tRedoArray, tUndoArray
-  else
-    dispatch sUndoStructure[tType]["restore memento handler"] with tRedoArray, tUndoArray
-  end if
-  if it is not "unhandled" then
-    put tUndoArray into sUndoLogA[pUndoStack]["undo"][tUndoIndex]
-  end if
-
-  delete local sUndoLogA[pUndoStack]["redo"][pIndex]
-
-  return empty
-end _redo
+end _reverseAction
 
 
 private function _keysAreNumeric pKeys
@@ -723,32 +565,38 @@ private function _uniqueName pControl
 end _uniqueName
 
 
---> Mementos (Default Text)
+# Mementos (Default Text)
 
+/**
+Summary: Stores a memento for a field prior to changes being made.
+*/
 command undoTextSaveMemento @pUndoA
-  put word 1 to 4 of the selectedchunk into pUndoA["memento"]["control selected chunk"]
-  if not pUndoA["memento"]["is set"] then
+  put word 1 to 4 of the selectedchunk into pUndoA["mementos"]["control selected chunk"]
+  if not pUndoA["mementos"]["is set"] then
     local tControl
 
-    put pUndoA["memento"]["control"] into tControl
-    put compress(the htmltext of tControl) into pUndoA["memento"]["value"]
-    put true into pUndoA["memento"]["is set"]
+    put pUndoA["mementos"]["control"] into tControl
+    put compress(the htmltext of tControl) into pUndoA["mementos"]["value"]
+    put true into pUndoA["mementos"]["is set"]
   end if
 end undoTextSaveMemento
 
 
+/**
+Summary: Restore text in a field to the value stored in the undo entry.
+*/
 command undoTextRestoreMemento pUndoA, @pInverseUndoA
   local tControl, tChunk
 
-  put pUndoA["memento"]["control"] into tControl
+  put pUndoA["mementos"]["control"] into tControl
   if there is not a tControl then exit undoTextRestoreMemento
 
   ## Store memento in inverse structure
-  put compress(the htmltext of tControl) into pInverseUndoA["memento"]["value"]
+  put compress(the htmltext of tControl) into pInverseUndoA["mementos"]["value"]
 
   lock screen
-  set the htmltext of tControl to decompress(pUndoA["memento"]["value"])
-  put pUndoA["memento"]["control selected chunk"] into tChunk
+  set the htmltext of tControl to decompress(pUndoA["mementos"]["value"])
+  put pUndoA["mementos"]["control selected chunk"] into tChunk
 
   try
     if tChunk is not empty then
@@ -773,3 +621,37 @@ command undoTextRestoreMemento pUndoA, @pInverseUndoA
   dispatch "TextChanged" to tControl ## let control know that content was updated.
   unlock screen
 end undoTextRestoreMemento
+
+
+private function _printArray pArray, pDimension, pFullData
+  local tKeys, tKey, tText, tTempArray
+
+  if pDimension is empty then put 0 into pDimension
+
+  put the keys of pArray into tKeys
+  sort tKeys numeric
+
+  repeat for each line tKey in tKeys
+    if pArray[tKey] is an array then
+      put _printCharXTimes(space, pDimension * 3) & tKey & cr after tText
+      put _printArray(pArray[tKey], pDimension + 1, pFullData) after tText
+    else
+      if pFullData then
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && pArray[tKey] & cr after tText
+      else
+        put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && line 1 of pArray[tKey] & cr after tText
+      end if
+    end if
+  end repeat
+
+  return tText
+end _printArray
+
+private function _printCharXTimes pChar, pTimes
+  local tStr
+
+  repeat with i = 1 to pTimes
+    put pChar after tStr
+  end repeat
+  return tStr
+end _printCharXTimes

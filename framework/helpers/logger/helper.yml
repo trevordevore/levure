@@ -1,3 +1,2 @@
 frontscripts:
-  1:
-    filename: logger.livecodescript
+  - filename: logger.livecodescript

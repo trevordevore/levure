@@ -1,4 +1,4 @@
-script "appLogger"
+script "Logger Library"
 constant kLogTypes = "developer,extensions,network,msg"
 
 local sLogTarget
@@ -30,13 +30,13 @@ Description:
 You can target the "console", a file, or a field. "console" writes the log message to `stdout`.
 
 Examples:
-appSetLogTarget "console"
-appSetLogTarget specialFolderPath("desktop") & "/log_file.txt"
-sppSetLogTarget the long id of field "Log" of me
+loggerSetTarget "console"
+loggerSetTarget specialFolderPath("desktop") & "/log_file.txt"
+loggerSetTarget the long id of field "Log" of me
 
 Returns: Empty
 */
-command appSetLogTarget pTarget
+command loggerSetTarget pTarget
   put pTarget into sLogTarget
 
   if sLogTarget begins with "field " then
@@ -54,7 +54,7 @@ command appSetLogTarget pTarget
   end if
 
   return empty
-end appSetLogTarget
+end loggerSetTarget
 
 
 /**
@@ -62,9 +62,9 @@ Summary: Returns the current target where log messages are sent.
 
 Returns: empty, `console`, <filename>, or field reference
 */
-function appGetLogTarget
+function loggerGetTarget
   return sLogTarget
-end appGetLogTarget
+end loggerGetTarget
 
 
 /**
@@ -75,14 +75,14 @@ pTypes: A comma-delimited list of types to log. `developer`, `network`, `msg`, `
 Description:
 Use this command to filter the types of messages that are logged.
 
-`developer`: Any message logged using `appLogMsg`.
+`developer`: Any message logged using `loggerLogMsg`.
 `network`: Messages logged by libURL.
 `msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
 `extensions`: Messages logged by an extension using the `log` command in LiveCode Builder.
 
 Returns: Empty
 */
-command appSetLogTypes pTypes
+command loggerSetTypes pTypes
   if pTypes is "all" then
     local tType
     repeat for each item tType in kLogTypes
@@ -98,7 +98,7 @@ command appSetLogTypes pTypes
   _activateExternalLogger sLogA["network"] is true
 
   return empty
-end appSetLogTypes
+end loggerSetTypes
 
 
 /**
@@ -108,7 +108,7 @@ pType: `developer`, `network`, `msg`, `extensions`.
 
 Returns: Empty
 */
-command appAddLogType pType
+command loggerAddType pType
   if pType is among the items of kLogTypes then
     put true into sLogA[pType]
   end if
@@ -116,7 +116,7 @@ command appAddLogType pType
   _activateExternalLogger sLogA["network"] is true
 
   return empty
-end appAddLogType
+end loggerAddType
 
 
 /**
@@ -126,7 +126,7 @@ pType: `developer`, `network`, `msg`, `extensions`.
 
 Returns: Empty
 */
-command appRemoveLogType pType
+command loggerRemoveType pType
   if pType is among the items of kLogTypes then
     put false into sLogA[pType]
   end if
@@ -134,7 +134,7 @@ command appRemoveLogType pType
   _activateExternalLogger sLogA["network"] is true
 
   return empty
-end appRemoveLogType
+end loggerRemoveType
 
 
 /**
@@ -142,7 +142,7 @@ Summary: Returns the types of messages that are being logged.
 
 Returns: Comma-delimited list
 */
-function appGetLogTypes
+function loggerGetTypes
   local pTypes
 
   repeat for each key tKey in sLogA
@@ -154,11 +154,11 @@ function appGetLogTypes
   sort items of pTypes
 
   return pTypes
-end appGetLogTypes
+end loggerGetTypes
 
 
 /**
-Summary: Registers regex filters that will be appliedd to libURL messages that are logged.
+Summary: Registers regex filters that will be applied to libURL messages that are logged.
 
 pFilters: A CR-delimited list of filters to apply to libURL messages. Each line is a tab-delimited list where item 1 is a regex pattern and item 2 is the value to use as a replacement.
 
@@ -167,10 +167,10 @@ You can set network traffic log filters to remove sensitive data from logs that 
 
 Returns: Empty
 */
-command appSetNetworkTrafficLogFilters pFilters
+command loggerSetNetworkTrafficFilters pFilters
   put pFilters into sNetworkFilters
   return empty
-end appSetNetworkTrafficLogFilters
+end loggerSetNetworkTrafficFilters
 
 
 /**
@@ -178,9 +178,9 @@ Summary: Returns the list of filters that are being applied to libURL messages.
 
 Return: CR-delimited list of filters.
 */
-function appGetNetworkTrafficLogFilters
+function loggerGetNetworkTrafficFilters
   return sNetworkFilters
-end appGetNetworkTrafficLogFilters
+end loggerGetNetworkTrafficFilters
 
 
 /**
@@ -190,7 +190,7 @@ pMsg: The message to log.
 
 Returns: Error message
 */
-command appLogMsg pMsg
+command loggerLogMsg pMsg
   if not sLogA["developer"] OR sLogTarget is empty then return empty
 
   local tError
@@ -199,7 +199,7 @@ command appLogMsg pMsg
   put the result into tError
 
   return tError for error
-end appLogMsg
+end loggerLogMsg
 
 
 private command _log pMsg
@@ -235,7 +235,6 @@ private command _activateExternalLogger pBoolean
   end if
 end _activateExternalLogger
 
-
 # LCB
 on logChanged pMsg
   if sLogA["extensions"] AND sLogTarget is not empty then
@@ -270,7 +269,7 @@ pMsg: The message to log
 
 Description:
 Replaces CRLF with CR so that extra lines don't appear in the log. Any filters
-set using appSetNetworkTrafficLogFilters will be applied as well.
+set using loggerSetNetworkTrafficFilters will be applied as well.
 */
 private command _logLibURLMessage pMsg
   local tFilter, tCR, tLF

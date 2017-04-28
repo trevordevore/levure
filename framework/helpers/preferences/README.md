@@ -1,36 +1,88 @@
-# preferences Helper
+# preferences
 
-The **preferences** helper manages storing, retrieving, and setting default values for preferences in your application. A default value is the value that will be returned by the API for a preference key if the user hasn't specified a setting for the preference key yet.
+Levure provides your LiveCode application with a preferences management system.
+
+On Macintosh OS X an external is used so you can set preferences using the OS X APIs. On Windows, Linux, iOS, and Android preferences are stored in a file containing data serialized using arrayEncode.
+
+## Contents
+
+* [Activate the preferences framework helper](#activate-the-preferences-framework-helper)
+* [Specify the preferences file name](#specify-the-preferences-file-name)
+* [Set default preferences values](#set-default-preferences-values)
+* [Set a preference to a value](#set-a-preference-to-a-value)
+* [Get a preference value](#get-a-preference-value)
+* [API](#api)
+
+## Activate the preferences framework helper
+
+The `levure/framework/helpers/preferences` helper provides an API for managing your application preferences. By default this helper is activated for you in `app.yml`:
+
+```
+# app.yml
+
+helpers:
+  - folder: ./helpers
+  - filename: "[[FRAMEWORK]]/helpers/preferences"
+```
 
 ## Specify the preferences file name
 
-You specify the preferences file name for the platforms your application supports in `app.yml`. If you want all platforms to use the same file name then set the `default` key. For any platforms your application does not support just leave the entry blank.
+You specify the preferences file name for the platforms your application supports in `app.yml`. You can provide an optional default file name for all platforms and then override it for specific platforms.
 
-**IMPORTANT:** Do not use quote marks around your strings in `app.yml`.
+The preferences file is stored in the folder returned by `levureApplicationDataFolder()` on all platforms except macOS, where it is stored in `~/Library/Preferences`, so you should specify only the name of the preferences file without any other path information.
+
+IMPORTANT: Do not use quote marks around your strings in `app.yml`.
 
 ```
 # app.yml
 
 preferences filename:
   user:
-    default: Default Application Preferences
-    macos: My Mac OS Application Preferences
-    windows: My Windows Application Preferences
-    linux: My Linux Application Preferences
-    ios: My iOS Application Preferences
-    android: My Android Application Preferences
+    default:
+    macos:
+    windows:
+    linux:
+    ios:
+    android:
   shared:
-    default: Default Shared Application Preferences
-    macos: Shared Mac OS Application Preferences
-    windows: Shared Windows Application Preferences
-    linux: Shared Linux Application Preferences
+    default:
+    macos:
+    windows:
+    linux:
 ```
+
+### Examples
+
+You can set an optional default preferences filename for all platforms and then override it for specific platforms. So this:
+
+```
+preferences filename:
+  user:
+    default: My Application.prefs
+    macos: com.mycompany.myapplication
+    windows:
+    linux:
+    ios:
+    android:
+```
+
+Will cause your application to create and use these user preferences file names:
+
+| Platform | Preferences File Name |
+| ---- | ----------- |
+| macOS |  com.mycompany.myapplication |
+| Windows |  My Application.prefs |
+| Linux |  My Application.prefs |
+| iOS |  My Application.prefs |
+| Android |  My Application.prefs |
+
+Note that in this example the `default:` preferences file name is used for all platforms except for macOS where it is overridden with the `macos:` file name.
 
 ## Set default preferences values
 
 You set default preferences values in a `prefs.yml` file that sits alongside `app.yml` in your `app` folder. You specify the default values by entering them as `name: value` pairs, one preference per line.
 
-**IMPORTANT:** Do not use quote marks around your strings in `prefs.yml`.
+IMPORTANT: Do not use quote marks around your strings in `prefs.yml`.
 
 ```
 my preference 1: my preference 1 default value
@@ -40,45 +92,214 @@ my preference 3: true
 
 ## Set a preference to a value
 
-While your application is running you can set an application preference to a value with the `appSetPref` command. If the preference does not already exist, it will be created and set to the value.
+While your application is running you can set an application preference to a value with the `prefsSetPref` command. If the preference does not already exist, it will be created and set to the value.
 
 ```
-appSetPref "my preference name", "my preference value"
+prefsSetPref "my preference 1", "a string value"
+prefsSetPref "my preference 2", 80
+prefsSetPref "my preference 3", false
 ```
-
-The full syntax is:
-
-```
-appSetPref <pKey>, <pValue>, <pUserOrShared>, <pType>
-```
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pKey` |  Pass in name of preference to set. |
-| `pValue` |  Pass in value to set preference to. This can be a string or an array. |
-| `pUserOrShared` |  Pass in "shared" to set a pref in shared preferences. Leave empty for default behavior. |
-| `pType` |  Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary. |
 
 ## Get a preference value
 
-While your application is running you can get a preference value with the `appGetPref` function.
+While your application is running you can get a preference value with the `prefsGetPref` function.
 
 ```
-put appGetPref("my preference name") into tPreferenceValue
+put prefsGetPref("my preference name") into tPreferenceValue
 ```
 
-The syntax is:
+<br>
 
-```
-appGetPref(<pKey>)
-```
+## API
 
-**Returns:** Value of a preference.
+- [prefsGetDefaults](#prefsGetDefaults)
+- [prefsGetPref](#prefsGetPref)
+- [prefsGetPreferenceFile](#prefsGetPreferenceFile)
+- [prefsIsPrefSet](#prefsIsPrefSet)
+- [prefsReload](#prefsReload)
+>
+- [prefsReset](#prefsReset)
+- [prefsSave](#prefsSave)
+- [prefsSetPref](#prefsSetPref)
+
+
+<br>
+
+## <a name="prefsGetDefaults"></a>prefsGetDefaults
+
+**Type**: function
+
+**Syntax**: `prefsGetDefaults(<pUserOrShared>)`
+
+**Summary**: Returns the entire array of default preferences.
+
+**Returns**: Array representing YAML configuration store in `prefs.yml` and `prefs_shared.yml`
 
 **Parameters**:
 
 | Name | Description |
 |:---- |:----------- |
-| `pKey` |  Pass in name of preference whose value you want to get. |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+<br>
+
+## <a name="prefsGetPref"></a>prefsGetPref
+
+**Type**: function
+
+**Syntax**: `prefsGetPref(<pKey>,<pUserOrShared>)`
+
+**Summary**: Gets an application preference.
+
+**Returns**: value
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pKey` |  Name of preference to get. |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+<br>
+
+## <a name="prefsGetPreferenceFile"></a>prefsGetPreferenceFile
+
+**Type**: function
+
+**Syntax**: `prefsGetPreferenceFile(<pUserOrShared>)`
+
+**Summary**: Returns the file where preferences are stored.
+
+**Returns**: Filename or empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+**Description**:
+
+Returns the filename of the preference file. If an external is being used on OS X
+then empty will be returned.
+
+
+<br>
+
+## <a name="prefsIsPrefSet"></a>prefsIsPrefSet
+
+**Type**: function
+
+**Syntax**: `prefsIsPrefSet(<pKey>,<pUserOrShared>)`
+
+**Summary**: Checks if a preference has been set on the computer the application is running on.
+
+**Returns**: true/false
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pKey` |  Name of preference to check. |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+<br>
+
+## <a name="prefsReload"></a>prefsReload
+
+**Type**: command
+
+**Syntax**: `prefsReload <pUserOrShared>`
+
+**Summary**: Reloads preferences from the file on disk.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+**Description**:
+
+This handler will clear out any values that are stored internally and reloads
+preferences from the file on disk.
+
+Note that this command does nothing on OS X which handles preferences using Cocoa
+APIs.
+
+
+<br>
+
+## <a name="prefsReset"></a>prefsReset
+
+**Type**: command
+
+**Syntax**: `prefsReset <pUserOrShared>`
+
+**Summary**: Resets all values in in preferences to empty.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+**Description**:
+
+Use this handler if you would like to reset all preferences to their default values as defined
+in `prefs.yml` and `prefs_shared.yml`.
+
+Note that on OS X this command currently does not work.
+
+
+<br>
+
+## <a name="prefsSave"></a>prefsSave
+
+**Type**: command
+
+**Syntax**: `prefsSave <pUserOrShared>`
+
+**Summary**: Saves preferences to disk.
+
+**Returns**: Error message
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+
+**Description**:
+
+When setting preferences the preference is updated in memory. To permanently
+store changes on disk use this command.
+
+
+<br>
+
+## <a name="prefsSetPref"></a>prefsSetPref
+
+**Type**: command
+
+**Syntax**: `prefsSetPref <pKey>,<pValue>,<pUserOrShared>,<pType>`
+
+**Summary**: Sets an application preference.
+
+**Returns**: error message
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pKey` |  Name of preference to set. |
+| `pValue` |  Value to set preference to. This can be a string or an array. |
+| `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
+| `pType` |  Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary. |
+
+
+

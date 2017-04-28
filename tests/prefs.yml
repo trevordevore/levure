@@ -1,2 +1,3 @@
-text: ∂©Ekl
-"test: key": test: value
+unicode text: ∂©Ekl
+"test: key": "test: value"
+"test #key": "value #"

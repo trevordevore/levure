@@ -1,9 +1,0 @@
-libraries:
-  1:
-    filename: app_updater.livecodescript
-externals:
-  macos:
-    1:
-      filename: mergSparkle.bundle
-      name: mergSparkle
-  windows:

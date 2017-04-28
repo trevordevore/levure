@@ -1,4 +1,4 @@
-script "appFontLoader"
+script "Font Loader Library"
 on libraryStack
   if the target is not me then pass libraryStack
 

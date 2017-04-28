@@ -1,0 +1,4 @@
+libraries:
+  - filename: libUnitTest.livecodescript
+ui:
+  - filename: show_test_results.livecode

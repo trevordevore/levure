@@ -1,7 +1,5 @@
 libraries:
-  1:
-    filename: undoManager.livecodescript
+  - filename: undoManager.livecodescript
 frontscripts:
-  1:
-    filename: field_edits_undo.livecodescript
+  - filename: field_edits_undo.livecodescript
     autoload: false

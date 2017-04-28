@@ -32,23 +32,27 @@ end releaseStack
 
 
 /**
-* Marks the current card as initialized.
-* This happens in the library rather than the frontscrip as it is at the end of the message chain.
-*
+Summary: Marks the current card as initialized.
+
+Description:
+Your application MUST pass the openCard message so that it reaches this library. Otherwise the library
+cannot track whether or not cards or stacks have been opened in the current session.
 */
 on openCard
+  # This happens in the library rather than the frontscript as it is at the end of the message chain.
   if windowIsManaged() then
-    ## MARK CARD AND STACK AS HAVING BEEN INITIALIZED
-    windowSetCardInit the short name of the owner of the target, the short name of the target, true
+    windowSetCardInitializedState the short name of the owner of the target, the short name of the target, true
   end if
 
   pass openCard
 end openCard
 
 
---> API
+/**
+Summary: Determines the stack of the current event's target.
 
-
+Returns: stack name
+*/
 function windowResolveTargetStack
   local tStack
 
@@ -70,12 +74,52 @@ function windowResolveTargetStack
 end windowResolveTargetStack
 
 
-function windowGetProperty pProperty, pStackName
+/**
+Summary: Returns a window manager property for a stack.
+
+pProperty: The property to get.
+pStackName: The name of the stack the property is attached to. If empty then the owner of the target is assumed.
+
+Returns: mixed
+
+Description:
+The Window Manager library uses properties assigned to a stack to determine
+whether or not the library is managed by the library. The properties are stored
+in the uWindowManager custom proprty set. This handler accesses that property set.
+*/
+function windowGetProperty pStackName, pProperty
   if pStackName is empty then put the short name of the owner of the target into pStackName
   return the uWindowManager[pProperty] of stack pStackName
 end windowGetProperty
 
 
+/**
+Summary: Use this command to set Window Manager library properties on a stack.
+
+pProperty: The property to set.
+pValue: The value to set the property to.
+pStackName: The name of the stack the property is attached to. If empty then the owner of the target is assumed.
+
+Returns: empty
+
+*/
+command windowSetProperty pStackName, pProperty, pValue
+  if pStackName is empty then put the short name of the owner of the target into pStackName
+  set the uWindowManager[pProperty] of stack pStackName to pValue
+  return empty
+end windowSetProperty
+
+
+/**
+Summary: Returns the name of the frontmost stack of with mode of pMode or lower.
+
+pMode: The maximum mode the returned stack can have.
+
+Returns: Stack name or empty
+
+Description:
+The stack must have a mode no higher than pMode and be visible.
+*/
 function windowTopMostWindowWithModeOfCeiling pMode
   local tMode
 
@@ -92,6 +136,16 @@ function windowTopMostWindowWithModeOfCeiling pMode
 end windowTopMostWindowWithModeOfCeiling
 
 
+/**
+Summary: Returns the name of the frontmost stack with a mode of pMode.
+
+pMode: The mode stack must have.
+
+Returns: Stack name or empty
+
+Description:
+The stack must have the same mode as pMode and be visible.
+*/
 function windowTopMostWindowOfMode pMode
   repeat for each line tStack in the openstacks
     if tStack is empty then next repeat
@@ -105,7 +159,15 @@ function windowTopMostWindowOfMode pMode
 end windowTopMostWindowOfMode
 
 
-on windowResizeMenu pStackName
+/**
+Summary: Resizes a stack's menu to fill the width of the stack.
+
+pStackName: The name of the target stack.
+
+Description:
+A stack's menu is the group name assigned to the `menubar` property of the stack.
+*/
+command windowResizeMenu pStackName
   local tRect
 
   if there is a group (the menubar of stack pStackName) of stack pStackName then
@@ -113,136 +175,173 @@ on windowResizeMenu pStackName
     put the width of the target + 10 into item 3 of tRect
     set rect of group (the menubar of stack pStackName) to tRect
   end if
+
+  return empty
 end windowResizeMenu
 
 
-on windowSaveWindowPosition pStackName
+/**
+Summary: Saves the coordinates of the stack in preferences.
+
+pStackName: The name of the target stack.
+
+Description:
+This handler requires the Preferences helper.
+*/
+command windowSaveWindowPosition pStackName
   local tRect
 
   put the rect of stack pStackName into tRect
-  appSetPref "window."& pStackName &".rect", tRect
-  appSetPref "window."& pStackName &".card", the short name of the current card of stack pStackName
+  prefsSetPref "window."& pStackName &".rect", tRect
+  prefsSetPref "window."& pStackName &".card", the short name of the current card of stack pStackName
+
+  return empty
 end windowSaveWindowPosition
 
 
 /**
-* Returns true if a window is being managed by this library.  False otherwise.
-*
-* @param  pWindow    short name of the stack window.  default is current stack.
-* @return empty
+Summary Returns true if a window is being managed by this library.
+
+pStackName: The name of the target stack. The default is `this stack`.
+
+Returns: true/false
+
+Description:
+A stack is considered to be manaaged by this library if the
+`uWindowManager["managed properties"]` custom property is not empty.
 */
-function windowIsManaged pWindow
-  if pWindow is empty then put short name of this stack into pWindow
-  return windowGetProperty("managed properties", pWindow) is not empty
+function windowIsManaged pStackName
+  if pStackName is empty then put short name of this stack into pStackName
+  return windowGetProperty(pStackName, "managed properties") is not empty
 end windowIsManaged
 
 
-function windowPropertyIsManaged pWindow, pProperty
+/**
+Summary Returns true if a specific property of the window is being managed by this library.
+
+pStackName: The name of the target stack. The default is `this stack`.
+
+Returns: true/false
+
+Description:
+A property is considered to be manaaged by this library if the
+`uWindowManager["managed properties"]` custom property is `all` or contains the property.
+*/
+function windowIsPropertyManaged pWindow, pProperty
   local tProps
   set the wholematches to true
-  put windowGetProperty("managed properties", pWindow) into tProps
+  put windowGetProperty(pWindow, "managed properties") into tProps
   return tProps is "all" or pProperty is among the items of tProps
-end windowPropertyIsManaged
+end windowIsPropertyManaged
 
 
 /**
-* Returns true if the window has been initialized, false otherwise.
-*
-* @param  pWindow    short name of the stack window.  default is current stack.
-* @return Boolean
+Summary: Returns true if the window has been initialized, false otherwise.
+
+pStackName: The name of the target stack. The default is `this stack`.
+
+Returns: true/false
 */
-function windowIsInit pWindow
-  if pWindow is empty then put short name of this stack into pWindow
-  ## IF YOU GO CARD IN A PREOPENSTACK HANDLER IT CAN ALTER THE ORDER OF FIRED EVENTS -
-  ## openCard WILL COME BEFORE openStack.  SO WE COMBINE BOTH EVENTS TO SEE IF A STACK HAS BEEN INITED.
-  return sWindowsA[pWindow]["initcard"] and sWindowsA[pWindow]["initstack"]
-end windowIsInit
+function windowHasWindowBeenOpened pStackName
+  if pStackName is empty then put short name of this stack into pStackName
+
+  return sWindowsA[pStackName]["initstack"]
+end windowHasWindowBeenOpened
 
 
-command windowClearWindowCache pWindow
-  if pWindow is empty then put short name of this stack into pWindow
-  delete local sWindowsA[pWindow]
+/**
+Summary: Clears the internal librar cache for a stack.
+
+pStackName: The name of the target stack. The default is `this stack`.
+
+Returns: empty
+
+Description:
+This handler should be called when closing a managed stack that has `destroyStack` set to true.
+*/
+command windowClearWindowCache pStackName
+  if pStackName is empty then put short name of this stack into pStackName
+  delete local sWindowsA[pStackName]
+  return empty
 end windowClearWindowCache
 
 
-function windowHasBeenOpened pStackName
-  return windowIsInit(pStackName)
-end windowHasBeenOpened
+/**
+Summary: Sets the initialized state of a window.
+
+pStackName: The name of the target stack. The default is `this stack`.
+pIsInit: true/false
+
+Returns: empty
+*/
+command windowSetInitializedState pStackName, pIsInit
+  if pStackName is empty then put short name of this stack into pStackName
+  put pIsInit is true into sWindowsA[pStackName]["initstack"]
+  return empty
+end windowSetInitializedState
 
 
 /**
-* Sets the initialized state of a window.
-*
-* @param  pWindow    name of window.  default is the short name of current stack.
-* @param  pIsInit    Boolean.
-* @return Boolean
-*/
-on windowSetInit pWindow, pIsInit
-  if pWindow is empty then put short name of this stack into pWindow
-  put pIsInit is true into sWindowsA[pWindow]["initstack"]
-  put sWindowsA[pWindow]["initstack"] into sWindowsA[pWindow]["initcard"]
-end windowSetInit
+Summary: Returns whether or not a card has been opened at least once during the current session.
 
+pStackName: The name of the target stack. The default is `this stack`.
+pCard: The name of the target card. The default is `this card`.
 
-/**
-* Returns true if the card has been opened.
-*
-* @param  pWindow    short name of the stack window.  default is current stack.
-* @param  pCard    short name of card.  default is current card.
-* @return Boolean
+Returns: empty
+
+Description:
+If you want to know if a card has been opened in your own code you should use the `windowHasCardBeenOpened` handler.
 */
-function windowIsCardInit pWindow, pCard
-  if pWindow is empty then put short name of this stack into pWindow
+function windowHasCardBeenOpened pStackName, pCard
+  if pStackName is empty then put short name of this stack into pStackName
   if pCard is empty then put the short name of this card into pCard
-  return sWindowsA[pWindow][pCard]["init"] is true
-end windowIsCardInit
-
-
-function windowCardHasBeenOpened pStack, pCard
-  return windowIsCardInit(pStack, pCard)
-end windowCardHasBeenOpened
+  return sWindowsA[pStackName][pCard]["init"] is true
+end windowHasCardBeenOpened
 
 
 /**
-* Sets the initialized state of a window.
-*
-* @param  pWindow    short name of the stack window.  default is current stack.
-* @param  pCard    short name of card in window.  default is current card.
-* @param  pIsInit    Boolean.
-* @return Boolean
+Summary: Sets the initialized state of a card.
+
+pStackName: The name of the target stack. The default is `this stack`.
+pCard: The name of the target card. The default is `this card`.
+pIsInit: true/false
+
+Returns: true/false
 */
-on windowSetCardInit pWindow, pCard, pIsInit
-  if pWindow is empty then put short name of this stack into pWindow
+command windowSetCardInitializedState pStackName, pCard, pIsInit
+  if pStackName is empty then put short name of this stack into pStackName
   if pCard is empty then put the short name of the current card into pCard
-  put pIsInit is true into sWindowsA[pWindow][pCard]["init"]
+  put pIsInit is true into sWindowsA[pStackName][pCard]["init"]
   if pIsInit then
-    put true into sWindowsA[pWindow]["initstack"]
-    put true into sWindowsA[pWindow]["initcard"]
+    put true into sWindowsA[pStackName]["initstack"]
   end if
-end windowSetCardInit
+end windowSetCardInitializedState
 
 
 /**
-* Opens a stack window and loads the card that was open the last time the stack window was closed.
-* if the stack window has not been opened before then it goes to card 1.  Stack window must be in
-* memory.
-*
-* @param  pWindow    Stack window name.
-* @param  pMode    mode to open window in.  default is "toplevel".
-* @return empty
+Summary: Opens a stack window and loads the card that was open the last time the stack window was closed.
+
+pStackName: The name of the target stack. The default is `this stack`.
+pMode: The mode to open window in.  Default is "toplevel".
+
+Returns: empty
+
+Description:
+If the stack window has not been opened before then it goes to card 1. Stack window must be in
+memory.
 */
-on windowGoStack pWindow, pMode
+command windowGoStack pStackName, pMode
   local tStackReference, tCard
   local tDo
 
   if pMode is empty then put "toplevel" into pMode
 
-  put quote & pWindow & quote into tStackReference
+  put quote & pStackName & quote into tStackReference
 
-  if not windowIsInit(pWindow) then
-    put appGetPref("window."& pWindow &".card") into tCard
+  if not windowHasWindowBeenOpened(pStackName) then
+    put prefsGetPref("window."& pStackName &".card") into tCard
     if tCard is empty then
-      put line 1 of the cardnames of stack pWindow into tCard
+      put line 1 of the cardnames of stack pStackName into tCard
     end if
 
     ## FILTER OUT card id 1000 STUFF
@@ -261,47 +360,33 @@ end windowGoStack
 
 
 /**
-* Returns true if the current cards rect has changed since it was last closed.  Useful when
-* opening a card to see if elements need to be resized.  if the card has never been opened
-* before then this function returns true.
-*
-* @return Boolean
+Summary: Sizes and positions a stack window on screen within the working screen rect.
+
+pStackName: The name of the target stack. The default is `this stack`.
+pRestoreFromPrefs: If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
+
+Returns: empty
+
+Description:
+This handler will use uWindowManager["default width"] and uWindowManager["default height"] to size a window that
+is being opened for the first time. This handler is called automatically if the "rect" property is managed for a
+stack that is being opened.
 */
-on windowHasCardRectChanged
-  local tCard, tWindow
-
-  put short name of this stack into tWindow
-  put the short name of the current card into tCard
-  return sWindowsA[tWindow][tCard]["lastrect"] is not the rect of this card
-end windowHasCardRectChanged
-
-
-/**
-* \brief Sizes and positions a stack window on screen within the working screen rect.
-*
-* \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
-* \param pRestoreFromPrefs If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
-*
-* This handler will use uWindowManager["default width"] and uWindowManager["default height"] to size a window that \
-* is being opened for the first time. This handler is called automatically for windows that have uWindowManager["manage window"] set to true.
-*
-* \return empty
-*/
-command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
+command windowPositionWithinConstraints pStackName, pRestoreFromPrefs
   local msgsAreLocked,tHeight,tLoc,tRect
   local tScreenRect,tStack,tWidth
 
   put the lockMessages into msgsAreLocked
   unlock messages
 
-  if pWindowName is empty then
-    put the short name of this stack into pWindowName
+  if pStackName is empty then
+    put the short name of this stack into pStackName
   end if
-  put the long id of stack pWindowName into tStack
+  put the long id of stack pStackName into tStack
 
   ## FIRST RUN GETS DEFAULT SETTINGS CENTERED ON SCREEN
   if pRestoreFromPrefs then
-    put appGetPref("window."& pWindowName &".rect") into tRect
+    put prefsGetPref("window."& pStackName &".rect") into tRect
     if tRect is a rect then
       put _locOfRect(tRect) into tLoc
     end if
@@ -322,9 +407,9 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
 
       local tDefaultWidth, tDefaultHeight, tPercent
 
-      put windowGetProperty("default width", pWindowName) into tDefaultWidth
-      put windowGetProperty("default height", pWindowName) into tDefaultHeight
-      put windowGetProperty("default loc", pWindowName) into tLoc
+      put windowGetProperty(pStackName, "default width") into tDefaultWidth
+      put windowGetProperty(pStackName, "default height") into tDefaultHeight
+      put windowGetProperty(pStackName, "default loc") into tLoc
 
       if tDefaultWidth is not empty then
         put item 3 of tScreenRect - item 1 of tScreenRect into tWidth
@@ -348,30 +433,30 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
           -- we already have proper value
         end if
       else
-        put the width of stack pWindowName into tWidth
-        put the height of stack pWindowName into tHeight
+        put the width of stack pStackName into tWidth
+        put the height of stack pStackName into tHeight
       end if
       put min(tWidth, item 3 of tScreenRect - item 1 of tScreenRect) into tWidth
       put min(tHeight, item 4 of tScreenRect - item 2 of tScreenRect) into tHeight
 
       put the screenLoc into tLoc
     else
-      ## PROGRAM HAS BEEN RUN BEFORE
+      # stack has not been opened before
       put item 3 of tRect - item 1 of tRect into tWidth
       put item 4 of tRect - item 2 of tRect into tHeight
     end if
   end if
 
-  ## VALIDATE WIDTH/HEIGHT AGAINST STACK MIN/MAX VALUES
+  # Validate width/height against stack min/max values
   put min( max(tWidth, the minWidth of tStack), the maxWidth of tStack) into tWidth
   put min( max(tHeight, the minHeight of tStack), the maxHeight of tStack) into tHeight
 
   put item 1 of tRect + tWidth into item 3 of tRect
   put item 2 of tRect + tHeight into item 4 of tRect
 
-  ## DETERMINE LOC AFTER ADJUSTMENTS
+  # Determine loc after adjustments
   if tLoc is not a point then
-    if windowGetProperty("center window on screen") \
+    if windowGetProperty(empty, "center window on screen") \
           or tRect is not a rect or tWidth is not an integer or tHeight is not an integer then
       put the screenLoc into tLoc
     else
@@ -381,23 +466,23 @@ command windowPositionWithinConstraints pWindowName, pRestoreFromPrefs
 
   set the lockMessages to msgsAreLocked
 
-  ## PLACE STACK ON SCREEN
+  ## Place stack on screen
   lock screen
 
-  set rect of stack pWindowName to tRect
-  set loc of stack pWindowName to tLoc
+  set rect of stack pStackName to tRect
+  set loc of stack pStackName to tLoc
 
   get tRect
 
   # Bug 18997 workaround <http://quality.livecode.com/show_bug.cgi?id=18997>
-  put the rect of stack pWindowName into tRect
+  put the rect of stack pStackName into tRect
   subtract sFrameA["left"] from item 1 of tRect
   subtract sFrameA["top"] from item 2 of tRect
   add sFrameA["right"] to item 3 of tRect
   add sFrameA["bottom"] to item 4 of tRect
   # end bug workaround
 
-  windowMoveWindowOnScreen pWindowName, tRect
+  windowMoveWindowOnScreen pStackName, tRect
   unlock screen
 
   return empty
@@ -405,39 +490,40 @@ end windowPositionWithinConstraints
 
 
 /**
-* \brief Repositions a stack so that it appears within a visible portion of the screen.
-*
-* \param pWindowName Name of the stack to position on the screen. Default is 'this stack'.
-*
-*  This handler is called from windowPositionWithinConstraints to ensure that a window appears in a visible \
-      * area of the screen. You can call this function in other circumstances if need be.
-*
-* \return empty
+Summary: Repositions a stack so that it appears within a visible portion of the screen.
+
+pStackName: The name of the target stack. The default is `this stack`.
+
+Returns: empty
+
+Description:
+This handler is called from windowPositionWithinConstraints to ensure that a window appears in a visible \
+area of the screen. You can call this function in other circumstances if need be.
 */
-command windowMoveWindowOnScreen pWindowName, pEffectiveRect -- http://quality.livecode.com/show_bug.cgi?id=18997
+command windowMoveWindowOnScreen pStackName, pEffectiveRect -- http://quality.livecode.com/show_bug.cgi?id=18997
   local tConstraintRect, tHeight, tWidth
   local tMaxHeight, tMaxWidth, tRect, tScreenNo
 
-  if pWindowName is empty then
-    put the short name of this stack into pWindowName
+  if pStackName is empty then
+    put the short name of this stack into pStackName
   end if
 
-  put the screen of stack pWindowName into tScreenNo
+  put the screen of stack pStackName into tScreenNo
   put line tScreenNo of the working screenrects into tConstraintRect
   if tConstraintRect is not a rect then put line 1 of the working screenrects into tConstraintRect
 
-  ## WHAT WIDTHS/HEIGHTS ARE WE WORKING WITH?
+  # What widths/heights are we working with?
   put item 3 of tConstraintRect - item 1 tConstraintRect into tMaxWidth
   put item 4 of tConstraintRect - item 2 tConstraintRect into tMaxHeight
 
   put pEffectiveRect into tRect
   if tRect is not a rect then
-    put the effective rect of stack pWindowName into tRect
+    put the effective rect of stack pStackName into tRect
   end if
   put item 3 of tRect - item 1 of tRect into tWidth
   put item 4 of tRect - item 2 of tRect into tHeight
 
-  ## ENSURE STACK HEIGHT/WIDTH FITS WITHIN CONSTRAINTS
+  # Ensure stack height/width fits within constraints
   if tWidth > tMaxWidth or tHeight > tMaxHeight then
     if tWidth > tMaxWidth then
       put item 1 of tConstraintRect into item 1 of tRect
@@ -449,9 +535,9 @@ command windowMoveWindowOnScreen pWindowName, pEffectiveRect -- http://quality.l
       put item 4 of tConstraintRect into item 4 of tRect
     end if
 
-    set effective rect of stack pWindowName to tRect
+    set effective rect of stack pStackName to tRect
   else
-    ## IF HEIGHT/WIDTH CHECK OUT THEN ENSURE ENTIRE WINDOW IS ON SCREEN
+    # If height/width check out then ensure entire window is on screen
 
     # Anything less than this and stack is repositioned on screen
     local tBuffer
@@ -460,20 +546,20 @@ command windowMoveWindowOnScreen pWindowName, pEffectiveRect -- http://quality.l
     # Added temporary workarounds until bug is fixed
     # http://quality.livecode.com/show_bug.cgi?id=18997
     if item 2 of tRect < item 2 of tConstraintRect then
-      --set the effective top of stack pWindowName to item 2 of tConstraintRect
-      set the top of stack pWindowName to item 2 of tConstraintRect + 25 -- 25 is so title shows up.
+      --set the effective top of stack pStackName to item 2 of tConstraintRect
+      set the top of stack pStackName to item 2 of tConstraintRect + 25 -- 25 is so title shows up.
     else if item 2 of tRect > item 4 of tConstraintRect - tBuffer then
-      --set the effective bottom of stack pWindowName to item 4 of tConstraintRect
-      set the bottom of stack pWindowName to item 4 of tConstraintRect - 10
+      --set the effective bottom of stack pStackName to item 4 of tConstraintRect
+      set the bottom of stack pStackName to item 4 of tConstraintRect - 10
     end if
     if item 1 of tRect > item 3 of tConstraintRect - tBuffer then
       ## LEFT CAN'T BE PAST RIGHT
-      --set the effective right of stack pWindowName to item 3 of tConstraintRect
-      set the right of stack pWindowName to item 3 of tConstraintRect - 10
+      --set the effective right of stack pStackName to item 3 of tConstraintRect
+      set the right of stack pStackName to item 3 of tConstraintRect - 10
     else if item 3 of tRect < item 1 of tConstraintRect + tBuffer then
       ## RIGHT CAN'T BE PAST LEFT
-      --set the effective left of stack pWindowName to item 1 of tConstraintRect
-      set the left of stack pWindowName to item 1 of tConstraintRect + 10
+      --set the effective left of stack pStackName to item 1 of tConstraintRect
+      set the left of stack pStackName to item 1 of tConstraintRect + 10
     end if
   end if
 
@@ -482,11 +568,11 @@ end windowMoveWindowOnScreen
 
 
 /**
-* \brief Returns the loc of a rectangle.
-*
-* \param pRect The rectangle to find the loc of.
-*
-* \return Point
+Summary: Returns the loc of a rectangle.
+
+pRect: The rectangle to find the loc of.
+
+Returns: point
 */
 private function _locOfRect pRect
   local tLoc

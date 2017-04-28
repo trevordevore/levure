@@ -18,6 +18,14 @@ command CreateLevureApp pFolder
 
   put empty into sSettingsA
 
+  put word 1 to -1 of the text of field "GitPath" into sSettingsA["git folder"]
+  replace "\" with "/" in sSettingsA["git folder"]
+  if sSettingsA["git folder"] is not empty then
+    if the last char of sSettingsA["git folder"] is not "/" then
+      put "/" after sSettingsA["git folder"]
+    end if
+  end if
+
   put pFolder into sSettingsA["target folder"]
 
   if the hilite of button "UseGit" then
@@ -168,14 +176,14 @@ command SetupGitInFolder
   set the defaultFolder to sSettingsA["target folder"]
 
   if tError is empty then
-    put shell("git init") into tResult
+    put shell(sSettingsA["git folder"] & "git init") into tResult
     if the result is not empty then
       put tResult into tError
     end if
   end if
 
   if tError is empty then
-    put shell("git submodule add https://github.com/trevordevore/levure.git levure") into tResult
+    put shell(sSettingsA["git folder"] & "git submodule add https://github.com/trevordevore/levure.git levure") into tResult
     if the result is not empty then
       put tResult into tError
     end if
@@ -198,7 +206,7 @@ command AddFilesToGit
   set the defaultFolder to sSettingsA["target folder"]
 
   if tError is empty then
-    put shell("git add .") into tResult
+    put shell(sSettingsA["git folder"] & "git add .") into tResult
     if the result is not empty then
       put tResult into tError
     end if

@@ -17,9 +17,9 @@ command InitializeApplication
 
   # If this the first time application has run on this computer, call FirstRun
   # This method requires the preferences framework helper to be loaded.
-  if appGetPref("software build") is empty then
+  if prefsGetPref("software build") is empty then
     FirstRun
-    appSetPref "software build", levureAppGet("build")
+    prefsSetPref "software build", levureAppGet("build")
   end if
 
   # Perform initialization operations every time application runs.
@@ -56,12 +56,12 @@ end shutdownRequest
 
 command ProcessURL pURLs
   # First parameter is line delimited list of urls your app has been requested to process.
-  # Requires the {{FRAMEWORK}}/helpers/files_and_urls helper.
+  # Requires the [[FRAMEWORK]]/helpers/files_and_urls helper.
 end ProcessURL
 
 
 command ProcessFiles pFiles
   # First parameter is line delimited list of files your application supports
   # and that you should process.
-  # Requires the {{FRAMEWORK}}/helpers/files_and_urls helper.
+  # Requires the [[FRAMEWORK]]/helpers/files_and_urls helper.
 end ProcessFiles

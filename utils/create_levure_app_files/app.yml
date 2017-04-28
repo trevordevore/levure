@@ -33,25 +33,18 @@ preferences filename:
     windows:
     linux:
 ui:
-  1:
-    folder: ./ui
+  - folder: ./ui
 libraries:
-  1:
-    folder: ./libraries
+  - folder: ./libraries
 frontscripts:
-  1:
-    folder: ./frontscripts
+  - folder: ./frontscripts
 backscripts:
-  1:
-    folder: ./backscripts
+  - folder: ./backscripts
 helpers:
-  1:
-    folder: ./helpers
-  2:
-    filename: {{FRAMEWORK}}/helpers/preferences
+  - folder: ./helpers
+  - filename: "[[FRAMEWORK]]/helpers/preferences"
 behaviors:
-  1:
-    folder: ./behaviors
+  - folder: ./behaviors
 build folder: ../builds
 build profiles:
   all profiles:

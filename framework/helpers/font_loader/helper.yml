@@ -1,7 +1,5 @@
 libraries:
-  1:
-    filename: font_loader.livecodescript
+  - filename: font_loader.livecodescript
 register components:
-  1:
-    key: fonts
+  - key: fonts
     kind: files
