@@ -94,6 +94,9 @@ command appSetLogTypes pTypes
     put "msg" is among the items of pTypes into sLogA["msg"]
     put "extensions" is among the items of pTypes into sLogA["extensions"]
   end if
+
+  _activateExternalLogger sLogA["network"] is true
+
   return empty
 end appSetLogTypes
 
@@ -109,6 +112,9 @@ command appAddLogType pType
   if pType is among the items of kLogTypes then
     put true into sLogA[pType]
   end if
+
+  _activateExternalLogger sLogA["network"] is true
+
   return empty
 end appAddLogType
 
@@ -124,6 +130,9 @@ command appRemoveLogType pType
   if pType is among the items of kLogTypes then
     put false into sLogA[pType]
   end if
+
+  _activateExternalLogger sLogA["network"] is true
+
   return empty
 end appRemoveLogType
 
@@ -205,6 +214,17 @@ command appLogMsg pMsg
 
   return tError for error
 end appLogMsg
+
+
+private command _activateExternalLogger pBoolean
+  if pBoolean then
+    # tsNet just looks for a non-empty value to turn logging on
+    dispatch "ulExtSetLogField" with "nothing to see here"
+  else
+    dispatch "ulExtSetLogField" with empty
+  end if
+end _activateExternalLogger
+
 
 # LCB
 on logChanged pMsg
