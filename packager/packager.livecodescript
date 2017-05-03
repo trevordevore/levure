@@ -645,7 +645,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     try
       log "Build: revSaveAsStandalone"
 
-      revSetTestEnvironment true
       set the itemdelimiter to "."
 
       # This will trigger a "purge stack" error for the levureFramework stack. The stack in question resides
@@ -657,8 +656,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
       put the result into tError
     catch e
       put e into tError
-    finally
-      revSetTestEnvironment false
     end try
   end if
 
