@@ -1494,19 +1494,12 @@ end loadMessagePathAssets
 
 
 private command loadExtensions pArrayA
-  local tError, tDefaultResourcesFolder
+  local tError
   local i
-
-  put sAppFolder & "/resources" into tDefaultResourcesFolder
-  if there is not a folder tDefaultResourcesFolder then
-    put empty into tDefaultResourcesFolder
-  end if
 
   repeat with i = 1 to the number of elements of pArrayA["extensions"]
     if pArrayA["extensions"][i]["resource path"] is not empty then
       load extension from file pArrayA["extensions"][i]["filename"] with resource path pArrayA["extensions"][i]["resource path"]
-    else if tDefaultResourcesFolder is not empty then
-      load extension from file pArrayA["extensions"][i]["filename"] with resource path tDefaultResourcesFolder
     else
       load extension from file pArrayA["extensions"][i]["filename"]
     end if
