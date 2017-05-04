@@ -652,7 +652,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
       # revSaveAsStandalone handler is not unloading the stackfiles stacks that the engine automatically loads
       # when loading a stack. See _unloadStackAndStackFiles in packager.livecodescript and look at adding same logic
       # to the LiveCode revSaveAsStandalone handler.
-      dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder
+      dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder,, true
       put the result into tError
     catch e
       put e into tError
