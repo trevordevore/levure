@@ -435,6 +435,8 @@ command levureInitializeFramework pRootFolder
   end if
 
   if tError is empty then
+    loadBehaviorsIntoMemory sAppA
+
     # Preload special helpers
     loadEarlyHelpers
     put the result into tError
@@ -1261,6 +1263,7 @@ private command loadEarlyHelpers
       put the result into tError
 
       if tError is empty then
+        loadBehaviorsIntoMemory sAppA["helpers"][i]
         loadMessagePathAssets sAppA["helpers"][i]
 
         repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
@@ -1338,6 +1341,7 @@ private command loadAppAssets
   if tError is empty then
     repeat with i = 1 to the number of elements of sAppA["helpers"]
       if sAppA["helpers"][i]["preload"] then next repeat
+      loadBehaviorsIntoMemory sAppA["helpers"][i]
       loadMessagePathAssets sAppA["helpers"][i]
     end repeat
 
@@ -1421,13 +1425,18 @@ command levureReloadRegisteredKey pKey
 end levureReloadRegisteredKey
 
 
-private command loadMessagePathAssets pArrayA
-  local tFileIsLoaded, i, j
-  local tStacksA, tStack, tIsLoaded
+private command loadBehaviorsIntoMemory pArrayA
+  local tFileIsLoaded
 
   repeat with i = 1 to the number of elements of pArrayA["behaviors"]
     put there is a stack pArrayA["behaviors"][i]["filename"] into tFileIsLoaded
   end repeat
+end loadBehaviorsIntoMemory
+
+
+private command loadMessagePathAssets pArrayA
+  local i, j
+  local tStacksA, tStack, tIsLoaded
 
   # Now that all behaviors are in memory enable a script only
   # behavior stack to set its own behavior
