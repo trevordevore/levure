@@ -273,11 +273,16 @@ Replaces CRLF with CR so that extra lines don't appear in the log. Any filters
 set using appSetNetworkTrafficLogFilters will be applied as well.
 */
 private command _logLibURLMessage pMsg
-  local tFilter
+  local tFilter, tCR, tLF
 
-  if the last char of pMsg is cr then delete the last char of pMsg
+  put numToCodePoint(10) into tLF
+  put numToCodePoint(13) into tCR
 
-  replace CRLF with CR in pMsg
+  repeat until the last char of pMsg is not among the items of (tLF & "," & tCR)
+    delete the last char of pMsg
+  end repeat
+
+  replace tCR & tLF with tCR in pMsg
 
   set the itemDelimiter to tab
   repeat for each line tFilter in sNetworkFilters
