@@ -195,6 +195,16 @@ command appLogMsg pMsg
 
   local tError
 
+  _log pMsg
+  put the result into tError
+
+  return tError for error
+end appLogMsg
+
+
+private command _log pMsg
+  local tError
+
   put "[" & the internet date & "] " && pMsg & cr into pMsg
 
   if sLogTarget is "console" then
@@ -213,7 +223,7 @@ command appLogMsg pMsg
   end if
 
   return tError for error
-end appLogMsg
+end _log
 
 
 private command _activateExternalLogger pBoolean
@@ -229,7 +239,7 @@ end _activateExternalLogger
 # LCB
 on logChanged pMsg
   if sLogA["extensions"] AND sLogTarget is not empty then
-    appLogMsg pMsg
+    _log pMsg
   else
     pass logChanged
   end if
@@ -247,7 +257,7 @@ end ulLogIt
 # Message Box
 on msgChanged
   if sLogA["msg"] then
-    appLogMsg "Message box" & cr & "Object:" && messageBoxLastObject() & cr & "Message:" && msg
+    _log "Message box" & cr & "Object:" && messageBoxLastObject() & cr & "Message:" && msg
   end if
   pass msgChanged
 end msgChanged
@@ -276,5 +286,5 @@ private command _logLibURLMessage pMsg
     put replaceText(pMsg, item 1 of tFilter, item 2 of tFilter) into pMsg
   end repeat
 
-  appLogMsg pMsg
+  _log pMsg
 end _logLibURLMessage
