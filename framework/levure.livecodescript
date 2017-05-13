@@ -1265,7 +1265,10 @@ private command loadEarlyHelpers
       if tError is empty then
         loadBehaviorsIntoMemory sAppA["helpers"][i]
         loadMessagePathAssets sAppA["helpers"][i]
+        put the result into tError
+      end if
 
+      if tError is empty then
         repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
           put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
         end repeat
@@ -1343,10 +1346,19 @@ private command loadAppAssets
       if sAppA["helpers"][i]["preload"] then next repeat
       loadBehaviorsIntoMemory sAppA["helpers"][i]
       loadMessagePathAssets sAppA["helpers"][i]
+      put the result into tError
+
+      if tError is not empty then exit repeat
     end repeat
 
-    loadMessagePathAssets sAppA
+  end if
 
+  if tError is empty then
+    loadMessagePathAssets sAppA
+    put the result into tError
+  end if
+
+  if tError is empty then
     if tRenameAnswerDialog then
       if the environment is "development" then
         set the name of stack "Answer Dialog" to "Answer Dialog (LiveCode)"
@@ -1435,69 +1447,86 @@ end loadBehaviorsIntoMemory
 
 
 private command loadMessagePathAssets pArrayA
-  local i, j
+  local tError, i, j
   local tStacksA, tStack, tIsLoaded
 
-  # Now that all behaviors are in memory enable a script only
-  # behavior stack to set its own behavior
-  repeat with i = 1 to the number of elements of pArrayA["behaviors"]
-    dispatch "LoadBehavior" to stack pArrayA["behaviors"][i]["filename"]
+  try
+    # Note: tStack will contain the name of the last stack that this handler
+    #       tried to load. If an error occurs then include tStack in the error report.
 
-    # for packaged apps
-    repeat for each line tStack in the substacks of stack pArrayA["behaviors"][i]["filename"]
+    # Now that all behaviors are in memory enable a script only
+    # behavior stack to set its own behavior
+    repeat with i = 1 to the number of elements of pArrayA["behaviors"]
+      put pArrayA["behaviors"][i]["filename"] into tStack
       dispatch "LoadBehavior" to stack tStack
-    end repeat
-  end repeat
 
-  repeat with i = 1 to the number of elements of pArrayA["libraries"]
-    if pArrayA["libraries"][i]["autoload"] is not false then
-      start using stack pArrayA["libraries"][i]["filename"]
-    else
-      # Try to access property so that error is thrown if it can't be found
-      put the name of stack pArrayA["libraries"][i]["filename"] into tIsLoaded
-    end if
-    # for packaged apps
-    put the uStacksToLoad of stack pArrayA["libraries"][i]["filename"] into tStacksA
-    repeat with j = 1 to the number of elements of tStacksA
-      if tStacksA[j]["autoload"] is not false then
-        start using stack tStacksA[j]["name"]
+      # for packaged apps
+      repeat for each line tStack in the substacks of stack pArrayA["behaviors"][i]["filename"]
+        dispatch "LoadBehavior" to stack tStack
+      end repeat
+    end repeat
+
+    repeat with i = 1 to the number of elements of pArrayA["libraries"]
+      put pArrayA["libraries"][i]["filename"] into tStack
+
+      if pArrayA["libraries"][i]["autoload"] is not false then
+        start using stack tStack
+      else
+        # Try to access property so that error is thrown if it can't be found
+        put the name of stack tStack into tIsLoaded
       end if
+      # for packaged apps
+      put the uStacksToLoad of stack tStack into tStacksA
+      repeat with j = 1 to the number of elements of tStacksA
+        if tStacksA[j]["autoload"] is not false then
+          put tStacksA[j]["name"] into tStack
+          start using stack tStack
+        end if
+      end repeat
     end repeat
-  end repeat
 
-  repeat with i = 1 to the number of elements of pArrayA["backscripts"]
-    if pArrayA["backscripts"][i]["autoload"] is not false then
-      insert script of stack pArrayA["backscripts"][i]["filename"] into back
-    else
-      # Try to access property so that error is thrown if it can't be found
-      put the name of stack pArrayA["backscripts"][i]["filename"] into tIsLoaded
-    end if
-    # for packaged apps
-    put the uStacksToLoad of stack pArrayA["backscripts"][i]["filename"] into tStacksA
-    repeat with j = 1 to the number of elements of tStacksA
-      if tStacksA[j]["autoload"] is not false then
-        insert script of stack tStacksA[j]["name"] into back
+    repeat with i = 1 to the number of elements of pArrayA["backscripts"]
+      put pArrayA["backscripts"][i]["filename"] into tStack
+
+      if pArrayA["backscripts"][i]["autoload"] is not false then
+        insert script of stack tStack into back
+      else
+        # Try to access property so that error is thrown if it can't be found
+        put the name of stack tStack into tIsLoaded
       end if
+      # for packaged apps
+      put the uStacksToLoad of stack tStack into tStacksA
+      repeat with j = 1 to the number of elements of tStacksA
+        if tStacksA[j]["autoload"] is not false then
+          put tStacksA[j]["name"] into tStack
+          insert script of stack tStack into back
+        end if
+      end repeat
     end repeat
-  end repeat
 
-  repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
-    if pArrayA["frontscripts"][i]["autoload"] is not false then
-      insert script of stack pArrayA["frontscripts"][i]["filename"] into front
-    else
-      # Try to access property so that error is thrown if it can't be found
-      put the name of stack pArrayA["frontscripts"][i]["filename"] into tIsLoaded
-    end if
-    # for packaged apps
-    put the uStacksToLoad of stack pArrayA["frontscripts"][i]["filename"] into tStacksA
-    repeat with j = 1 to the number of elements of tStacksA
-      if tStacksA[j]["autoload"] is not false then
-        insert script of stack tStacksA[j]["name"] into front
+    repeat with i = 1 to the number of elements of pArrayA["frontscripts"]
+      put pArrayA["frontscripts"][i]["filename"] into tStack
+
+      if pArrayA["frontscripts"][i]["autoload"] is not false then
+        insert script of stack tStack into front
+      else
+        # Try to access property so that error is thrown if it can't be found
+        put the name of stack tStack into tIsLoaded
       end if
+      # for packaged apps
+      put the uStacksToLoad of stack tStack into tStacksA
+      repeat with j = 1 to the number of elements of tStacksA
+        if tStacksA[j]["autoload"] is not false then
+          put tStacksA[j]["name"] into tStack
+          insert script of stack tStack into front
+        end if
+      end repeat
     end repeat
-  end repeat
+  catch e
+    put "error loading stack" & quote & tStack & quote & cr & e into tError
+  end try
 
-  return empty for value
+  return tError for error
 end loadMessagePathAssets
 
 
