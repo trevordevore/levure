@@ -290,11 +290,11 @@ Currently Sublime Text is the only editor that will work using this setup. If yo
 installed for LiveCode then each time you save a LiveCode file in Sublime Text a request is sent to the server.
 
 Example:
-command PreloadApplication
+command InitializeApplication
   if the environment is "development" then
     levureLoadExternalEditorServer
   end if
-end PreloadApplication
+end InitializeApplication
 
 Returns: Empty
 */

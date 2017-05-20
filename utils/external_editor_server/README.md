@@ -5,12 +5,12 @@
 You can call `levureLoadExternalEditorServer` while a Levure-based application is open to turn the server on. The following code snippet demonstrates turning on external editor support whenever your application is opened in the LiveCode IDE.
 
 ```
-command PreloadApplication
+command InitializeApplication
   # Use external editor in development
   if the environment is "development" then
     levureLoadExternalEditorServer
   end if
 
   ...
-end PreloadApplication
+end InitializeApplication
 ```
