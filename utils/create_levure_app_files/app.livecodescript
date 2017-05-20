@@ -3,17 +3,17 @@ script "app"
 command PreloadApplication
   # Perform operations before stacks, extensions, and externals in app.yml are loaded.
 
-  # Uncomment to use Sublime Text external editor in development
-  -- if the environment is "development" then
-  --   levureLoadExternalEditorServer
-  -- end if
-
 end PreloadApplication
 
 
 command InitializeApplication
   # Called after script-only stacks, extensions, and externals in app.yml are loaded.
   # Perform initialization operations before UI stack is opened.
+
+  # Uncomment to use Sublime Text external editor in development
+  -- if the environment is "development" then
+  --   levureLoadExternalEditorServer
+  -- end if
 
   # If this the first time application has run on this computer, call FirstRun
   # This method requires the preferences framework helper to be loaded.
