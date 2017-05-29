@@ -5,8 +5,11 @@ levure
 
 Levure is an application development framework for LiveCode. The primary goals of Levure are the following:
 
-1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via libraries and helper components.
-2. Designed for use with version control systems. Wherever possible configuration and scripts are text files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be stored in script only stack files and assigned as behaviors.
+1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via helper components.
+2. Provide common features such as preferences, logging, and undo management.
+3. Easily extensible. Helpers all developers to develop features as helpers which can easily be added to any application.
+4. Easy to organize. Levure applications are organized using the file system. Easily browser your app structure and add files.
+5. Designed for use with version control systems. Wherever possible configuration and scripts are text files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be stored in script only stack files and assigned as behaviors.
 
 # Screencasts
 
@@ -22,7 +25,6 @@ Visit the [Levure Wiki](https://github.com/trevordevore/levure/wiki/) to get sta
 Want to help this project? There are a number of ways to contribute.
 
 - Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
-- Wrap YAML C++ library in module. YAML support is very limited right now. Ideally we would use `-` instead of `1:, 2:, 3:, etc.` keys.
 - Need to decide how errors should be reported when loading helpers. Should a developer throw an error or use some other mechanism? Ideally the application should report the error to the end user and then quit. We don't want the application hanging around if an error occurs on loading.
 - Create module for iOS prefs that uses NSUserDefaults.
 - Move preferences external for OS X into a module.
@@ -33,6 +35,7 @@ Want to help this project? There are a number of ways to contribute.
 - Help with an auto update helper component
   - Needs module wrapped around WinSparkle: https://winsparkle.org
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
+- Wrap YAML C++ library in module for full YAML support.
 
 # Known Issues
 
