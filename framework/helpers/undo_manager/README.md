@@ -1,8 +1,6 @@
-# Undo Manager
+# undo_manager
 
-Levure provides your LiveCode application with a preferences management system.
-
-On Macintosh OS X an external is used so you can set preferences using the OS X APIs. On Windows, Linux, iOS, and Android preferences are stored in a file containing data serialized using arrayEncode.
+The Undo Manager is an API that manages an undo/redo queue for your application.
 
 ## Contents
 
@@ -217,3 +215,400 @@ end undoRestoreMementos
 <br>
 
 ## API
+
+- [undoAddAction](#undoAddAction)
+- [undoCanRedo](#undoCanRedo)
+- [undoCanUndo](#undoCanUndo)
+- [undoCleanupStack](#undoCleanupStack)
+- [undoGetMaxUndos](#undoGetMaxUndos)
+>
+- [undoGetNextUndoInStack](#undoGetNextUndoInStack)
+- [undoPrintLog](#undoPrintLog)
+- [undoRedo](#undoRedo)
+- [undoRedoActionName](#undoRedoActionName)
+- [undoRegisterEditFieldType](#undoRegisterEditFieldType)
+>
+- [undoRegisterType](#undoRegisterType)
+- [undoRemoveLatest](#undoRemoveLatest)
+- [undoReset](#undoReset)
+- [undoSetMaxUndos](#undoSetMaxUndos)
+- [undoSetTargetForStackCallbacks](#undoSetTargetForStackCallbacks)
+>
+- [undoTextRestoreMemento](#undoTextRestoreMemento)
+- [undoTextSaveMemento](#undoTextSaveMemento)
+- [undoUndo](#undoUndo)
+- [undoUndoActionName](#undoUndoActionName)
+
+
+<br>
+
+## <a name="undoAddAction"></a>undoAddAction
+
+**Type**: command
+
+**Syntax**: `undoAddAction <pUndoStack>,<pActionName>,<pMementosA>`
+
+**Summary**: Adds an undo action to an undo stack.
+
+**Returns**: The array representing the undo action that was created.
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The name of the undo stack to associate the action with. If empty then the undo stack is "default". |
+| `pActionName` |  The name of the undo action. This is what you will display in the Edit > Undo/Redo menus. |
+| `pMementosA` |  A numerically indexed array of memento arrays for this action. |
+
+**Description**:
+
+Use this handler to add undo actions to an undo stack in your application.
+
+```
+local tMementoA, tMementosA
+
+put tId into tMementoA["id"]
+put tIndex into tMementoA["index"]
+
+put tMementoA into tMementosA[1]
+
+undoAddAction "document 1", "Create thing", tMementosA
+```
+
+
+<br>
+
+## <a name="undoCanRedo"></a>undoCanRedo
+
+**Type**: function
+
+**Syntax**: `undoCanRedo(<pUndoStack>)`
+
+**Summary**: Returns true if there is a redo action.
+
+**Returns**: Boolean
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The name of the undo stack to target. Leave empty for "default" |
+
+<br>
+
+## <a name="undoCanUndo"></a>undoCanUndo
+
+**Type**: function
+
+**Syntax**: `undoCanUndo(<pUndoStack>)`
+
+**Summary**: Returns true if there is an undo action.
+
+**Returns**: Boolean
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The name of the undo stack to target. Leave empty for "default" |
+
+<br>
+
+## <a name="undoCleanupStack"></a>undoCleanupStack
+
+**Type**: command
+
+**Syntax**: `undoCleanupStack <pUndoStack>`
+
+**Summary**: Removes all undo entries for a particular owner.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+<br>
+
+## <a name="undoGetMaxUndos"></a>undoGetMaxUndos
+
+**Type**: function
+
+**Syntax**: `undoGetMaxUndos()`
+
+**Summary**: Returns the maximum number of undo actions that are stored in an undo stack.
+
+**Returns**: Number of undo entries to store
+
+<br>
+
+## <a name="undoGetNextUndoInStack"></a>undoGetNextUndoInStack
+
+**Type**: function
+
+**Syntax**: `undoGetNextUndoInStack(<pUndoStack>)`
+
+**Summary**: Returns the undo structure for the next undo in the stack.
+
+**Returns**: Array or empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+**Description**:
+
+Use this for comparisons to determine if a new undo action should be added to the stack
+(e.g. actions that repeat but you only want 1 undo for).
+
+<br>
+
+## <a name="undoPrintLog"></a>undoPrintLog
+
+**Type**: command
+
+**Syntax**: `undoPrintLog `
+
+**Summary**: Prints the undo log array. Use for troublehsooting.
+
+**Returns**: text representation of internal array
+
+<br>
+
+## <a name="undoRedo"></a>undoRedo
+
+**Type**: command
+
+**Syntax**: `undoRedo <pUndoStack>`
+
+**Summary**: Performs an redo operation for the last redo added to the stack.
+
+**Returns**: empty or "can't redo"
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+<br>
+
+## <a name="undoRedoActionName"></a>undoRedoActionName
+
+**Type**: function
+
+**Syntax**: `undoRedoActionName(<pUndoStack>)`
+
+**Summary**: Returns the next redo action name in a stack.
+
+**Returns**: String
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+**Description**:
+
+The action name that was assigned when calling undoAddAction.
+
+<br>
+
+## <a name="undoRegisterEditFieldType"></a>undoRegisterEditFieldType
+
+**Type**: command
+
+**Syntax**: `undoRegisterEditFieldType `
+
+**Summary**: Registers the "edit field" undo stack for use while a user is editing text in a field.
+
+**Returns**: empty
+
+**Description**:
+
+Thie handler registers the "edit field" undo stack and inserts a frontscript into the message path.
+The frontscript monitors edits made in a field while it has focus. Undo/redo affects typing done before focus
+is removed from the field.
+
+<br>
+
+## <a name="undoRegisterType"></a>undoRegisterType
+
+**Type**: command
+
+**Syntax**: `undoRegisterType <pType>,<pInverseType>,<pRemoveFromStackCallback>,<pCallbackTarget>`
+
+**Summary**: Registers an undo type with the Undo Manager.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pType` |  The type to register. |
+| `pInverseType` |  When calling undoUndo the type of the undo action will be set to this value. For example, if pType is "add object" then this might be "delete object". Leave empty  if there is no inverse type. If this value is different then pType then make sure you register this type as well. |
+| `pRemoveFromStackCallback` |  The callback that will be sent when an undo action of this type is removed from the undo stack. Pass in empty if you have no cleanup requirements.
+[pCallbackTarget]: Optional control reference where callback messages should be sent. See undoSetTargetForStackCallbacks if you need to target callbacks based on a specific undo stack. |
+
+**Description**:
+
+When adding an undo entry to an undo stack, you specify a type.
+The type helps the application know how to undo or redo the action.
+Each type has callbacks that will be triggered when that type of undo entry
+needs to be undone or redone.
+
+
+<br>
+
+## <a name="undoRemoveLatest"></a>undoRemoveLatest
+
+**Type**: command
+
+**Syntax**: `undoRemoveLatest <pUndoStack>`
+
+**Summary**: Removes the last added undo action from the undo stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+<br>
+
+## <a name="undoReset"></a>undoReset
+
+**Type**: command
+
+**Syntax**: `undoReset <pUndoStack>`
+
+**Summary**: Resets an undo stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+**Description**:
+
+Cleanup callbacks will be sent for any undo actions in the stack.
+
+
+<br>
+
+## <a name="undoSetMaxUndos"></a>undoSetMaxUndos
+
+**Type**: command
+
+**Syntax**: `undoSetMaxUndos <pMax>`
+
+**Summary**: Sets the maximum number of undo actions that will be saved in an undo stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMax` |  The maximum number of undo entries to store. |
+
+<br>
+
+## <a name="undoSetTargetForStackCallbacks"></a>undoSetTargetForStackCallbacks
+
+**Type**: command
+
+**Syntax**: `undoSetTargetForStackCallbacks <pUndoStack>,<pTarget>`
+
+**Summary**: Sets the target for undo type callbacks for an undo stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+| `pTarget` |  The target object for messages. |
+
+**Description**:
+
+If a callback target control is set for an undo stack then any undo type
+which doesn't specify a contorl will send to the undo stack control.
+
+
+<br>
+
+## <a name="undoTextRestoreMemento"></a>undoTextRestoreMemento
+
+**Type**: command
+
+**Syntax**: `undoTextRestoreMemento <pUndoA>,<pInverseUndoA>`
+
+**Summary**: Restore text in a field to the value stored in the undo entry.
+
+
+<br>
+
+## <a name="undoTextSaveMemento"></a>undoTextSaveMemento
+
+**Type**: command
+
+**Syntax**: `undoTextSaveMemento <pUndoA>`
+
+**Summary**: Stores a memento for a field prior to changes being made.
+
+
+<br>
+
+## <a name="undoUndo"></a>undoUndo
+
+**Type**: command
+
+**Syntax**: `undoUndo <pUndoStack>`
+
+**Summary**: Performs an undo operation for the last undo added to the stack.
+
+**Returns**: empty or "can't undo"
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+<br>
+
+## <a name="undoUndoActionName"></a>undoUndoActionName
+
+**Type**: function
+
+**Syntax**: `undoUndoActionName(<pUndoStack>)`
+
+**Summary**: Returns the next undo action name in a stack.
+
+**Returns**: String
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack to target. |
+
+**Description**:
+
+The action name that was assigned when calling undoAddAction.
+
+
+

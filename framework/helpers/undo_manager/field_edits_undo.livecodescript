@@ -82,13 +82,9 @@ private command _logUndoIfNecessary pMsg
 end _logUndoIfNecessary
 
 
-/**
-* \brief Logs an undo for field editing.
-*
-* \param pMsg The label to use for the undo action.
-*
-* \return empty
-*/
+# Summary: Logs an undo for field editing.
+# pMsg: The label to use for the undo action.
+# Returns: empty
 command undoLogEditFieldUndo pMsg
   ## text is selected
   undoAddActionToUndoStack "edit field", "edit field", pMsg, "control:" & _longIDWithoutHierarchy(the long id of the selectedfield), "control selected chunk:" & the selectedchunk
