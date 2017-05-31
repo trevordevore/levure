@@ -71,7 +71,7 @@ You can check where log messages are being sent using the `loggerGetTarget()` fu
 
 ## Logging your own messages
 
-Call `loggerLogMsg pMsg` to log messages. Calls to `loggerLogMsg` can be added to your code to help troubleshoot issues in your application when it is running on a user's computer. Logging can be turned off by default but you provide a way for user's to turn logging on. When the user turns logging on in your application than all `loggerLogMsg` handler calls when add troubleshooting information to the log file.
+Call `loggerLogMsg pMsg` to log messages. Calls to `loggerLogMsg` can be added to your code to help troubleshoot issues in your application when it is running on a user's computer. Logging can be turned off by default but you provide a way for user's to turn logging on. When the user turns logging than all `loggerLogMsg` handler calls will add troubleshooting information to the log file.
 
 ## Filtering network traffic
 
