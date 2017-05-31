@@ -1,6 +1,9 @@
 # broadcaster
 
-The `Broadcaster` helper adds messaging APIs to your application. Objects within an aplication can register to be notified when certain events within the application occur. When an event of a certain kind is broadcast then all listeners are notified.
+The `Broadcaster` helper adds messaging APIs to your application. Objects within an aplication can register to be notified when certain events within the application occur. When an event of a certain kind is broadcast then all listeners are notified. There are two reasons you might want to use the Broadcaster helepr in your application:
+
+- So the broadcaster doesn't need to know in advance who the listeners are.
+- So multiple objects can respond to a message that is being broadcast.
 
 ## Contents
 
