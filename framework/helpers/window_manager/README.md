@@ -28,7 +28,7 @@ helpers:
 
 The Window Manager library uses properties assigned to a stack to determine
 whether or not the library is managed by the library. The properties are stored
-in the uWindowManager custom proprty set. To set these properties use the `windowSetProperty` command:
+in the uWindowManager custom property set. To set these properties use the `windowSetProperty` command:
 
 ```
 windowSetProperty pStackName, pProperty, pValue
@@ -59,7 +59,7 @@ Tells the Window Manager library to manage all properties discussed below.
 ### messages
 
 The library will dispach additional messages to a stack. `PreOpenWindow`/`OpenWindow`
-mimic `preOpenStack`/`openStack`. The message is sent after the window and menu have been resized, however.
+mimic `preOpenStack`/`openStack`. The messages are sent after the window and menu group have been resized, however.
 A parameter specifying whether or not the stack has been opened during the current sessions is also sent.
 `PreOpenView`/`OpenView` mimic `preOpenCard`/`openCard` except that a parameter specifying whether
 or not the stack has been opened during the current sessions is also sent.
@@ -73,10 +73,10 @@ will be true if the stack has been opened at least once in the current session, 
 `OpenWindow`: Sent to the current card when the stack opens. The first parameter passed to the handler
 will be true if the stack has been opened at least once in the current session, false if it has not.
 
-`PreOpenVew`: Sent to a card right before it opens. The first parameter passed to the handler
+`PreOpenView`: Sent to a card right before it opens. The first parameter passed to the handler
 will be true if the card has been opened at least once in the current session, false if it has not.
 
-`OpenVew`: Sent to a card when it opens. The first parameter passed to the handler
+`OpenView`: Sent to a card when it opens. The first parameter passed to the handler
 will be true if the card has been opened at least once in the current session, false if it has not.
 
 `ResizeView`: Sent to the current card when the card controls should be resized. This will be sent more often than `resizeStack`.
@@ -200,7 +200,7 @@ This handler should be called when closing a managed stack that has `destroyStac
 
 The Window Manager library uses properties assigned to a stack to determine
 whether or not the library is managed by the library. The properties are stored
-in the uWindowManager custom proprty set. This handler accesses that property set.
+in the uWindowManager custom property set. This handler accesses that property set.
 
 
 <br>
@@ -491,7 +491,7 @@ This handler requires the Preferences helper.
 
 | Name | Description |
 |:---- |:----------- |
-| `pMode` |  The mode stack must have. |
+| `pMode` |  An integer representing the mode the stack must have. See the `mode` propery for stacks in the dictionary for more information. |
 
 **Description**:
 

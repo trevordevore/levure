@@ -85,7 +85,7 @@ Returns: mixed
 Description:
 The Window Manager library uses properties assigned to a stack to determine
 whether or not the library is managed by the library. The properties are stored
-in the uWindowManager custom proprty set. This handler accesses that property set.
+in the uWindowManager custom property set. This handler accesses that property set.
 */
 function windowGetProperty pStackName, pProperty
   if pStackName is empty then put the short name of the owner of the target into pStackName
@@ -139,7 +139,7 @@ end windowTopMostWindowWithModeOfCeiling
 /**
 Summary: Returns the name of the frontmost stack with a mode of pMode.
 
-pMode: The mode stack must have.
+pMode: An integer representing the mode the stack must have. See the `mode` propery for stacks in the dictionary for more information.
 
 Returns: Stack name or empty
 
