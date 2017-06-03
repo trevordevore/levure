@@ -2591,7 +2591,7 @@ end readFileContents
 
 
 private function _printArray pArray, pDimension, pFullData
-  local tKeys, tKey, tText, tTempArray
+  local tKeys, tKey, tText
 
   if pDimension is empty then put 0 into pDimension
 
@@ -2601,8 +2601,7 @@ private function _printArray pArray, pDimension, pFullData
   repeat for each line tKey in tKeys
     if pArray[tKey] is an array then
       put _printCharXTimes(space, pDimension * 3) & tKey & cr after tText
-      put pArray[tKey] into tTempArray
-      put _printArray(tTempArray, pDimension + 1, pFullData) after tText
+      put _printArray(pArray[tKey], pDimension + 1, pFullData) after tText
     else
       if pFullData then
         put _printCharXTimes(space, pDimension * 3) &  tKey & ":" && pArray[tKey] & cr after tText
@@ -2614,6 +2613,7 @@ private function _printArray pArray, pDimension, pFullData
 
   return tText
 end _printArray
+
 
 private function _printCharXTimes pChar, pTimes
   local tStr
