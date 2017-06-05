@@ -874,13 +874,13 @@ command levureShutdownApplication
   if tCurrentState is "running" then
     dispatch "PreShutdownApplication" to stack kAppStackName
 
-    appSavePrefs "user"
+    prefsSave "user"
     put the result into tError
     if tError is not empty then
       answer "An error occurred while saving user preferences:" && tError & "."
     end if
 
-    appSavePrefs "shared"
+    prefsSave "shared"
     put the result into tError
     if tError is not empty then
       answer "An error occurred while saving shared preferences:" && tError & "."
