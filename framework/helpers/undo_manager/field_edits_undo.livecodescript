@@ -61,13 +61,70 @@ on enterInField
 end enterInField
 
 
-## We override the memento restorer so we can log first input logging
-command undoTextRestoreMementoExtended @pUndoObjectA, @pInverseUndoObjectA
-  undoTextRestoreMemento pUndoObjectA, pInverseUndoObjectA
+/**
+Summary: Stores a memento for a field prior to changes being made.
+*/
+command undoStoreMemento pUndoStack, @pMementoA
+  if pUndoStack is not "edit field" then pass undoStoreMemento
+
+  if pMementoA["control selected chunk"] is empty then
+    put word 1 to 4 of the selectedchunk into pMementoA["control selected chunk"]
+  end if
+
+  local tControl
+
+  put pMementoA["control"] into tControl
+  put compress(the htmltext of tControl) into pMementoA["value"]
+end undoStoreMemento
+
+
+/**
+Summary: Restores mementos for a field edit.
+*/
+command undoRestoreMementos pUndoStack, @pMementosA
+  local tControl, tChunk, i, e
+
+  # Only process messages sent to this stack script
+  if pUndoStack is not "edit field" then pass undoRestoreMementos
+
+  lock screen
+
+  repeat with i = 1 to the number of elements of pMementosA
+    put pMementosA[i]["control"] into tControl
+    if there is not a tControl then next repeat
+
+
+    set the htmltext of tControl to decompress(pMementosA[i]["value"])
+    put pMementosA[i]["control selected chunk"] into tChunk
+
+    try
+      if tChunk is not empty then
+        select char (word 2 of tChunk) to (word 4 of tChunk) of tControl
+      else
+        select after the last char of tControl
+      end if
+    catch e
+      ## Seen this error before.
+      ## Don't know cause though
+      --      Type: Chunk: can't select object that isn't open
+
+      --      Object: stack "lib.glx.UndoManager"
+
+      --      Line: select char (word 2 of tChunk) to (word 4 of tChunk) of tControl
+
+      --      Line No: 627
+      --      Hint: undoTextRestoreMemento
+      put param(0) && e
+    end try
+
+    dispatch "TextChanged" to tControl ## let control know that content was updated.
+  end repeat
+
+  unlock screen
 
   ## Start watching text input again
   put true into sWatchForFirstInput
-end undoTextRestoreMementoExtended
+end undoRestoreMementos
 
 
 ## This handler will log an undo if there is a selectedChunk or if the text entry is the first in the field

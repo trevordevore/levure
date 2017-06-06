@@ -37,7 +37,8 @@ command undoRegisterEditFieldType
   undoReset "edit field"
 
   insert script of stack "Undo Manager Field Edits Undo Frontscript" into front
-  undoRegisterType "edit field", "undoTextSaveMemento", "undoTextRestoreMementoExtended", empty, the long id of stack "Undo Manager Field Edits Undo Frontscript"
+
+  undoSetTargetForStackCallbacks "edit field", the long id of stack "Undo Manager Field Edits Undo Frontscript"
   return empty
 end undoRegisterEditFieldType
 
@@ -451,7 +452,7 @@ end undoCleanupStack
 
 
 private function _validateUndoStackString pUndoStack
-  if _FieldEditingIsRegistered() and _FocusedObjectIsFieldEdit() and the uEnableFieldUndo of the selectedField is not "false" then
+  if _FieldEditingIsActive() and _FocusedObjectIsFieldEdit() and the uEnableFieldUndo of the selectedField is not "false" then
     put "edit field" into pUndoStack
   else if pUndoStack is empty then
     put "default" into pUndoStack
@@ -460,9 +461,9 @@ private function _validateUndoStackString pUndoStack
 end _validateUndoStackString
 
 
-private function _FieldEditingIsRegistered
-  return "edit field" is among the keys of sUndoStructure
-end _FieldEditingIsRegistered
+private function _FieldEditingIsActive
+  return "edit field" is among the keys of sUndoLogA
+end _FieldEditingIsActive
 
 
 private function _FocusedObjectIsFieldEdit
@@ -563,64 +564,6 @@ private function _uniqueName pControl
 
   return tStr
 end _uniqueName
-
-
-# Mementos (Default Text)
-
-/**
-Summary: Stores a memento for a field prior to changes being made.
-*/
-command undoTextSaveMemento @pUndoA
-  put word 1 to 4 of the selectedchunk into pUndoA["mementos"]["control selected chunk"]
-  if not pUndoA["mementos"]["is set"] then
-    local tControl
-
-    put pUndoA["mementos"]["control"] into tControl
-    put compress(the htmltext of tControl) into pUndoA["mementos"]["value"]
-    put true into pUndoA["mementos"]["is set"]
-  end if
-end undoTextSaveMemento
-
-
-/**
-Summary: Restore text in a field to the value stored in the undo entry.
-*/
-command undoTextRestoreMemento pUndoA, @pInverseUndoA
-  local tControl, tChunk
-
-  put pUndoA["mementos"]["control"] into tControl
-  if there is not a tControl then exit undoTextRestoreMemento
-
-  ## Store memento in inverse structure
-  put compress(the htmltext of tControl) into pInverseUndoA["mementos"]["value"]
-
-  lock screen
-  set the htmltext of tControl to decompress(pUndoA["mementos"]["value"])
-  put pUndoA["mementos"]["control selected chunk"] into tChunk
-
-  try
-    if tChunk is not empty then
-      select char (word 2 of tChunk) to (word 4 of tChunk) of tControl
-    else
-      select after the last char of tControl
-    end if
-  catch e
-    ## Seen this error before.
-    ## Don't know cause though
-    --      Type: Chunk: can't select object that isn't open
-
-    --      Object: stack "lib.glx.UndoManager"
-
-    --      Line: select char (word 2 of tChunk) to (word 4 of tChunk) of tControl
-
-    --      Line No: 627
-    --      Hint: undoTextRestoreMemento
-    put param(0) && e
-  end try
-
-  dispatch "TextChanged" to tControl ## let control know that content was updated.
-  unlock screen
-end undoTextRestoreMemento
 
 
 private function _printArray pArray, pDimension, pFullData
