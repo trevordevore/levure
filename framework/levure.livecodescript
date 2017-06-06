@@ -2775,41 +2775,39 @@ command YAMLToArray pYaml
          -- clean whitespace
          put word 1 to -1 of tLine into tLine
 
-         if tLine is not empty then
-            -- referenced element
-            local tRef
-            if tLine begins with "&" then
-               put word 1 of tLine into tRef
-               put "*" into char 1 of tRef
-               delete word 1 of tLine
-            else
-               put empty into tRef
-            end if
+         -- referenced element
+         local tRef
+         if tLine begins with "&" then
+            put word 1 of tLine into tRef
+            put "*" into char 1 of tRef
+            delete word 1 of tLine
+         else
+            put empty into tRef
+         end if
 
-            -- check for referenced element
-            if word 1 of tLine is among the keys of tReferences then
-               put tArray[tReferences[word 1 of tLine]] into tLine
-            end if
+         -- check for referenced element
+         if tLine is not empty and word 1 of tLine is among the keys of tReferences then
+            put tArray[tReferences[word 1 of tLine]] into tLine
+         end if
 
-            -- store referenced element
-            if tRef is not empty then
-               put tPath into tReferences[tRef]
-            end if
+         -- store referenced element
+         if tRef is not empty then
+            put tPath into tReferences[tRef]
+         end if
 
-            -- ignore explicit typing
-            if tLine begins with "!" then
-               delete word 1 of tLine
-            end if
+         -- ignore explicit typing
+         if tLine begins with "!" then
+            delete word 1 of tLine
+         end if
 
-            if tLine is "|" then
-               put kMultiLineModeLiteral into tMultiLineMode
-               put empty into tMultiLine
-            else if tLine is ">" then
-               put kMultiLineModeFolded into tMultiLineMode
-               put empty into tMultiLine
-            else
-               __AddToArray tLine, tArray[tPath]
-            end if
+         if tLine is "|" then
+            put kMultiLineModeLiteral into tMultiLineMode
+            put empty into tMultiLine
+         else if tLine is ">" then
+            put kMultiLineModeFolded into tMultiLineMode
+            put empty into tMultiLine
+         else
+            __AddToArray tLine, tArray[tPath]
          end if
       else
          __AddToArray tLine, tArray[tPath]
