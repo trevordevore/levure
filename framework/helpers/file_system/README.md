@@ -70,12 +70,12 @@ file extensions:
   GIF file: gif
 ```
 
-Once you've defined your extensions you can use the `appFileExtensionsForTypes()` function to return all extensions with a given type.
+Once you've defined your extensions you can use the `fileSystemFileExtensionsForTypes()` function to return all extensions with a given type.
 
 Example:
 
 ```
-put appFileExtensionsForTypes("jpeg file") into tExtensions
+put fileSystemFileExtensionsForTypes("jpeg file") into tExtensions
 ```
 
 `tExtensions` now contain a CR delimited list of extensions:
@@ -88,7 +88,7 @@ jpg|JPEG
 You can also generate a type filter string for use with `ask file with type`.
 
 ```
-put appFileDialogTypeFilterFromExtension("jpeg file") into tFilterStr
+put fileSystemFileDialogTypeFilterFromExtension("jpeg file") into tFilterStr
 ask file "Select a JPEG file" with type tFilterStr
 ```
 
@@ -118,7 +118,7 @@ file extension groups:
 Once you have defined your groups and categories it is simple to generate filter strings for use with `answer file with type`.
 
 ```
-put appFileDialogTypeFilterFromGroup("Media Files") into tFilterStr
+put fileSystemFileDialogTypeFilterFromGroup("Media Files") into tFilterStr
 ```
 
 `tFilterStr` now contains the following value:
@@ -138,7 +138,7 @@ answer file "Select a media file" with type tFilterStr
 You can also get a list of all extensions in a group or a group category:
 
 ```
-put appFileExtensionGroupExtensions("Media Files") into tExtensions
+put fileSystemFileExtensionGroupExtensions("Media Files") into tExtensions
 ```
 
 `tExtensions` now contains the following value:
@@ -153,10 +153,10 @@ mp4
 mp3
 ```
 
-If you want extensions for a particular category use `appFileExtensionGroupExtensionsForCategory`:
+If you want extensions for a particular category use `fileSystemFileExtensionGroupExtensionsForCategory`:
 
 ```
-put appFileExtensionGroupExtensionsForCategory("Medai Files", "Audio Files") into tExtensions
+put fileSystemFileExtensionGroupExtensionsForCategory("Medai Files", "Audio Files") into tExtensions
 ```
 
 `tExtensions` now contains the following value:
@@ -177,7 +177,7 @@ url protocols:
   my-application: "My Application Protocol"
 ```
 
-Each time your application starts up on Windows the helper will call `appRegisterURLProtocol` to make sure that your application is registered to handle the protocol.
+Each time your application starts up on Windows the helper will call `fileSystemRegisterURLProtocol` to make sure that your application is registered to handle the protocol.
 
 Note: On OS X you need to manually add your protocol to the `Info.plist` file.
 
@@ -201,14 +201,14 @@ By configuring `file extensions` the File System helper can help you process req
 1. Creates a list of supported files that were passed to the application on the command line.
 2. Sends the `ProcessFiles` message to `app.yml` whenever the operating system requests that your application open a supported file.
 
-When an application is launched the command line parameters will be checked for files with supported extensions. A CR-delimited list of files is stored and will be accessible via the `appFilesToProcessOnOpen()` function. You can then check this function in the `OpenApplication` message. Here is an example:
+When an application is launched the command line parameters will be checked for files with supported extensions. A CR-delimited list of files is stored and will be accessible via the `fileSystemFilesToProcessOnOpen()` function. You can then check this function in the `OpenApplication` message. Here is an example:
 
 ```
 # app.yml
 
 command OpenApplication
-  if appFilesToProcessOnOpen() is not empty then
-    ProcessMyFiles appFilesToProcessOnOpen()
+  if fileSystemFilesToProcessOnOpen() is not empty then
+    ProcessMyFiles fileSystemFilesToProcessOnOpen()
   end if
 end OpenApplication
 ```
@@ -225,15 +225,15 @@ end ProcessFiles
 
 A similiar function and message exist for URLs.
 
-`appURLsToProcessOnOpen()` example:
+`fileSystemURLsToProcessOnOpen()` example:
 
 
 ```
 # app.yml
 
 command OpenApplication
-  if appURLsToProcessOnOpen() is not empty then
-    ProcessMyURL appURLsToProcessOnOpen()
+  if fileSystemURLsToProcessOnOpen() is not empty then
+    ProcessMyURL fileSystemURLsToProcessOnOpen()
   end if
 end OpenApplication
 ```
@@ -258,42 +258,42 @@ The File System helper API provides handlers to help manage lists of recent file
 Add a file to a list of recently opened files:
 
 ```
-answer file "Select file to open:" with type appFileDialogTypeFilterFromGroup("Articles")
+answer file "Select file to open:" with type fileSystemFileDialogTypeFilterFromGroup("Articles")
 put it into tFilename
 if tFilename is empty then exit to top
 
-# appAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
-appAddToRecentlyOpened "articles", tFilename, empty, empty
+# fileSystemAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
+fileSystemAddToRecentlyOpened "articles", tFilename, empty, empty
 
-put appRecentlyOpenedMenuText("articles") into tRecentFilesMenu
+put fileSystemRecentlyOpenedMenuText("articles") into tRecentFilesMenu
 # Now add tRecentFilesMenu to your File menu...
 ```
 
-To list the recently opened files without any formatting applied for displaying in a menu use `appRecentlyOpened()`. It takes a second parameter that if true will truncate the file paths to their shortest unique length.
+To list the recently opened files without any formatting applied for displaying in a menu use `fileSystemRecentlyOpened()`. It takes a second parameter that if true will truncate the file paths to their shortest unique length.
 
 ```
-# appRecentlyOpened pCategory, pShortVersion
+# fileSystemRecentlyOpened pCategory, pShortVersion
 put true into tShortVersion
-put appRecentlyOpened("articles", tShortVersion) into tRecentFiles
+put fileSystemRecentlyOpened("articles", tShortVersion) into tRecentFiles
 ```
 
-To remove a file from a list call `appRemoveFromRecentlyOpened`.
+To remove a file from a list call `fileSystemRemoveFromRecentlyOpened`.
 
 ```
-appRemoveFromRecentlyOpened "articles", tFilename
+fileSystemRemoveFromRecentlyOpened "articles", tFilename
 ```
 
-You can specify the maximum number of files to be stored in a list using `appSetMaxRecentFiles`:
+You can specify the maximum number of files to be stored in a list using `fileSystemSetMaxRecentFiles`:
 
 ```
-appSetMaxRecentFiles 15
+fileSystemSetMaxRecentFiles 15
 ```
 
-If you are working in a sandboxed environment and need the security bookmark to open a file then use the `appSecurityBookmarkForRecentlyOpenedFile()` function:
+If you are working in a sandboxed environment and need the security bookmark to open a file then use the `fileSystemSecurityBookmarkForRecentlyOpenedFile()` function:
 
 ```
-# appSecurityBookmarkForRecentlyOpenedFile pCategory, pTag
-put appSecurityBookmarkForRecentlyOpenedFile("articles", tFilename) into tSecurityBookmark
+# fileSystemSecurityBookmarkForRecentlyOpenedFile pCategory, pTag
+put fileSystemSecurityBookmarkForRecentlyOpenedFile("articles", tFilename) into tSecurityBookmark
 
 # Use tSecurityBookmark to generate a security scoped filename...
 ```
