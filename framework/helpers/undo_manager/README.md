@@ -213,11 +213,18 @@ end undoRestoreMementos
 
 **Of interest:** When moving an undo action from the undo queue to the redo queue (or vice versa) the Undo Manager reverses the sequence of elements in the `mementos` array. For example, if you pass in two memento arrays when creating an undo action then key "2" will become key "1" and key "1" will become key "2" when the undo action is moved to the redo queue.
 
+## Adding undo functionality to field edits
+
+The Undo Manager has built in support for edits made during a single field editing session. The undo stack covers any edits made in a field after openField and before closeField/exitField. To turn this feature on call `undoRegisterEditFieldType` when your app starts up. After calling `undoRegisterEditFieldType` any calls to handlers such as `undoCanUndo` and `undoUndo` will automatically target the "edit field" undo stack if the user is currently editing text in a field. Once focus leaves the field then calls to handlers such as `undoCanUndo` will target the specified undo stack.
+
 <br>
 
 ## API
 
-- [undoAddAction](#undoAddAction)
+- [undoRestoreMementos](#undoRestoreMementos)
+- [undoStoreMemento](#undoStoreMemento)
+- [undoRestoreMementos](#undoRestoreMementos)
+- [undoStoreMemento](#undoStoreMemento)- [undoAddAction](#undoAddAction)
 - [undoCanRedo](#undoCanRedo)
 - [undoCanUndo](#undoCanUndo)
 - [undoCleanupStack](#undoCleanupStack)
@@ -235,13 +242,53 @@ end undoRestoreMementos
 - [undoSetMaxUndos](#undoSetMaxUndos)
 - [undoSetTargetForStackCallbacks](#undoSetTargetForStackCallbacks)
 >
-- [undoTextRestoreMemento](#undoTextRestoreMemento)
-- [undoTextSaveMemento](#undoTextSaveMemento)
 - [undoUndo](#undoUndo)
 - [undoUndoActionName](#undoUndoActionName)
 
 
 <br>
+
+## <a name="undoRestoreMementos"></a>undoRestoreMementos
+
+**Type**: command
+
+**Syntax**: `undoRestoreMementos <pUndoStack>,<pMementosA>`
+
+**Summary**: Restores mementos for a field edit.
+
+
+<br>
+
+## <a name="undoStoreMemento"></a>undoStoreMemento
+
+**Type**: command
+
+**Syntax**: `undoStoreMemento <pUndoStack>,<pMementoA>`
+
+**Summary**: Stores a memento for a field prior to changes being made.
+
+
+
+
+## <a name="undoRestoreMementos"></a>undoRestoreMementos
+
+**Type**: command
+
+**Syntax**: `undoRestoreMementos <pUndoStack>,<pMementosA>`
+
+**Summary**: Restores mementos for a field edit.
+
+
+<br>
+
+## <a name="undoStoreMemento"></a>undoStoreMemento
+
+**Type**: command
+
+**Syntax**: `undoStoreMemento <pUndoStack>,<pMementoA>`
+
+**Summary**: Stores a memento for a field prior to changes being made.
+
 
 ## <a name="undoAddAction"></a>undoAddAction
 
@@ -547,28 +594,6 @@ Cleanup callbacks will be sent for any undo actions in the stack.
 
 If a callback target control is set for an undo stack then any undo type
 which doesn't specify a contorl will send to the undo stack control.
-
-
-<br>
-
-## <a name="undoTextRestoreMemento"></a>undoTextRestoreMemento
-
-**Type**: command
-
-**Syntax**: `undoTextRestoreMemento <pUndoA>,<pInverseUndoA>`
-
-**Summary**: Restore text in a field to the value stored in the undo entry.
-
-
-<br>
-
-## <a name="undoTextSaveMemento"></a>undoTextSaveMemento
-
-**Type**: command
-
-**Syntax**: `undoTextSaveMemento <pUndoA>`
-
-**Summary**: Stores a memento for a field prior to changes being made.
 
 
 <br>
