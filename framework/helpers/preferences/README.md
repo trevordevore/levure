@@ -7,7 +7,7 @@ On Macintosh OS X an external is used so you can set preferences using the OS X 
 ## Contents
 
 * [Activate the preferences framework helper](#activate-the-preferences-framework-helper)
-* [Specify the preferences file name](#specify-the-preferences-file-name)
+* [Set the preferences file name](#set-the-preferences-file-name)
 * [Set default preferences values](#set-default-preferences-values)
 * [Set a preference to a value](#set-a-preference-to-a-value)
 * [Get a preference value](#get-a-preference-value)
@@ -25,9 +25,9 @@ helpers:
   - filename: "[[FRAMEWORK]]/helpers/preferences"
 ```
 
-## Specify the preferences file name
+## Set the preferences file name
 
-You specify the preferences file name for the platforms your application supports in `app.yml`. You can provide an optional default file name for all platforms and then override it for specific platforms.
+You set the preferences file name for the platforms your application supports in `app.yml`. You can provide an optional default file name for all platforms and then override it for specific platforms.
 
 The preferences file is stored in the folder returned by `levureApplicationDataFolder()` on all platforms except macOS, where it is stored in `~/Library/Preferences`, so you should specify only the name of the preferences file without any other path information.
 

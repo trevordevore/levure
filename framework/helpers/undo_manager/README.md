@@ -86,7 +86,7 @@ The Undo Manager helper provides an API that coordinates the storing and process
 
 What the helper does do is manage undo actions. Here is a description of the life of an undo action:
 
-1. When the user performs an action the developer adds an undo action to an undo stack. The undo action has a barebones `mementos` key associated with it.
+1. When the user performs an action the developer adds an undo action to an undo stack. The undo action has a bare bones `mementos` key associated with it.
 2. The `undoStoreMemento` message is dispatched to `the target`, once for each memento array in the `mementos` of the undo action, when an undo action is added. In the `undoStoreMemento` handler the developer generates the memento necessary to reverse the action. The Undo Manager will store this memento for use later on.
 3. When the user chooses to undo an action and `undoUndo` is called the Undo Manager dispatches `undoRestoreMementos` to `the target`. The message handler is responsible for using the undo action's mementos to restore the application to the correct state. The undo action is moved to the redo queue and each memento is assigned the inverse of it's current `type`. E.g. if the memento's type is `create` then it would be set to `delete`.
 
@@ -108,7 +108,7 @@ Mementos for an undo action will be populated primarily in the `undoStoreMemento
 
 An undo action is added to the undo queue using the `undoAddAction` command. The undo action can then be processed when the user undoes or redoes the action. Each time the the user undoes or redoes the action the undo action memento(s) needs to be updated. Because of this need to update the memento(s) throughout the life of the undo action the memento(s) is updated using the `undoStoreMemento` callback.
 
-The `undoStoreMemento` callback is first called by `undoAddAction`. The callback will subsequently be called when calling `undoUndo` and `undoRedo`. The mementos array that you pass to `undoAddAction` should containt the minimum amount of information necessary for `undoStoreMemento` callback to store the actual memento. For example, you could just pass in a reference to a LiveCode control if you are changing properties on the control. The `undoStoreMemento` callback would use the control reference to store the current state of the properties.
+The `undoStoreMemento` callback is first called by `undoAddAction`. The callback will subsequently be called when calling `undoUndo` and `undoRedo`. The mementos array that you pass to `undoAddAction` should contain the minimum amount of information necessary for `undoStoreMemento` callback to store the actual memento. For example, you could just pass in a reference to a LiveCode control if you are changing properties on the control. The `undoStoreMemento` callback would use the control reference to store the current state of the properties.
 
 ## Restoring mementos
 
@@ -125,12 +125,12 @@ Here is an example of how you would add a single memento array to an undo action
 ...
 
 # Create the memento array used to reverse the undo action. Since the code is creating content the
-# memento array will use the `delete` type. Store the minimum amount of information
+# memento array will use the `create` type – you will undo a creation action. Store the minimum amount of information
 # that the `undoStoreMemento` callback will need to fill in the memento.
 # In this case the callback just needs the id of the content that was created.
 local tMementoA, tMementosA
 
-put "delete" into tMementoA["type"]
+put "create" into tMementoA["type"]
 put tContentIds into tMementoA["ids"]
 
 put tMementoA into tMementosA[1]
@@ -144,62 +144,63 @@ No that an undo action has been added to the "document 1" undo stack, let's look
 **Important!** Be aware of when you are calling `undoAddAction` in your code. If the user is deleting an object and you delete the object before calling `undoAddAction` then your application may not be able to generate a memento because the object doesn't exist. In such cases call `undoAddAction` before you delete the object. If an error occurs while deleting the object you can use `undoRemoveLatest` to remove the undo action from the undo stack.
 
 ```
-command undoStoreMemento @pMementoA
+command undoStoreMemento pUndoStack, @pMementoA
   local i
 
   switch pMementoA["type"]
     case "create"
-      # Add keys to memento array necessary to recreate the content.
-      _StoreMementoForCreate pMementoA
+      # Add keys to memento array necessary to undo the create action
+      _StoreMementoToUndoCreateAction pMementoA
       break
 
     case "delete"
-      # Add keys to memento array that will be required to delete it.
-      _StoreMementoForDelete pMementoA
+      # Add keys to memento array that will be required to undo the delete action
+      _StoreMementoToUndoDeleteAction pMementoA
       break
 
     case "update"
       # Add keys to memento array that will allow the code to restore properties.
-      _StoreMementoForUpdate pMementoA
+      _StoreMementoToUndoUpdateAction pMementoA
       break
 
   end switch
 end undoStoreMemento
 
 
-private command _StoreMementoForCreate @pMementoA
-  # TODO: Add keys to pMementoA necessary to recreate the content.
-end _StoreMementoForCreate
+private command _StoreMementoToUndoCreateAction @pMementoA
+  # TODO: Add keys to pMementoA necessary to delete the content created
+end _StoreMementoToUndoCreateAction
 
 
-private command _StoreMementoForDelete @pMementoA
-  # TODO: Add keys to pMementoA that will be required to delete the content.
-end _StoreMementoForDelete
+private command _StoreMementoToUndoDeleteAction @pMementoA
+  # TODO: Add keys to pMementoA that will be required to create the content that was deleted
+end _StoreMementoToUndoDeleteAction
 
 
-private command _StoreMementoForUpdate @pMementoA
+private command _StoreMementoToUndoUpdateAction @pMementoA
   # TODO: Add keys to pMementoA that will allow the code to restore properties.
-end _StoreMementoForUpdate
+end _StoreMementoToUndoUpdateAction
 
 
-command undoRestoreMementos @pMementosA
+command undoRestoreMementos pUndoStack, @pMementosA
+  # Lock screen so that all UI updates appear at once
   lock screen
 
   # Use the information in the mementos to reverse the action and update the UI.
   repeat with i = 1 to the number of elements of pMementosA
     switch pMementosA[i]["type"]
       case "create"
-        # Recreate the content and update the UI
+        # Undo the create action
         ...
         break
 
       case "delete"
-        # Delete the content and update the UI
+        # Undo the delete action
         ...
         break
 
       case "update"
-        # Update the content and update the UI
+        # Undo the update action
         ...
         break
 
