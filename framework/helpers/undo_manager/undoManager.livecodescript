@@ -279,7 +279,7 @@ command undoAddAction pUndoStack, pActionName, pMementosA
 
     put sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][1]["type"] into tType
     put _getTargetForMessages(pUndoStack, tType) into tTarget
-    dispatch "undoStoreMemento" to tTarget with sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][i]
+    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][i]
   end repeat
 
   ## Redos are wiped out. "cleanup handler" is called so program
@@ -531,12 +531,12 @@ private command _reverseAction pUndoStack, pTargetQueue, pIndex
     put tType into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"]
 
     put _getTargetForMessages(pUndoStack, tType) into tTarget
-    dispatch "undoStoreMemento" to tTarget with sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]
+    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]
   end repeat
 
   ## Run the undo
   put _getTargetForMessages(pUndoStack) into tTarget
-  dispatch "undoRestoreMementos" to tTarget with sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"]
+  dispatch "undoRestoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"]
 
   delete local sUndoLogA[pUndoStack][pTargetQueue][pIndex]
 
