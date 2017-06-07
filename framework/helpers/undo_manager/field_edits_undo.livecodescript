@@ -67,9 +67,10 @@ Summary: Stores a memento for a field prior to changes being made.
 command undoStoreMemento pUndoStack, @pMementoA
   if pUndoStack is not "edit field" then pass undoStoreMemento
 
-  if pMementoA["control selected chunk"] is empty then
-    put word 1 to 4 of the selectedchunk into pMementoA["control selected chunk"]
+  if pMementoA["control"] is empty then
+    put the long id of the selectedField into pMementoA["control"]
   end if
+  put word 1 to 4 of the selectedchunk into pMementoA["control selected chunk"]
 
   local tControl
 
@@ -144,7 +145,11 @@ end _logUndoIfNecessary
 # Returns: empty
 command undoLogEditFieldUndo pMsg
   ## text is selected
-  undoAddActionToUndoStack "edit field", "edit field", pMsg, "control:" & _longIDWithoutHierarchy(the long id of the selectedfield), "control selected chunk:" & the selectedchunk
+  local theMementoA
+
+  put "update" into theMementoA["type"]
+  put _longIDWithoutHierarchy(the long id of the selectedfield) into theMementoA["contorl"]
+  undoAddAction "edit field", pMsg, _Array("1", theMementoA)
   put false into sWatchForFirstInput
 end undoLogEditFieldUndo
 
