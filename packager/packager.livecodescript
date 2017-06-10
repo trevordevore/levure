@@ -176,7 +176,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
           set the scriptonly of stack tTargetStackFilename to false
           set the uAppA of stack tTargetStackFilename to tAppA
-          set the password of stack tTargetStackFilename to sPassword
+          _setPassword tTargetStackFilename, sPassword
           save stack tTargetStackFilename with newest format
           put _errorMsg("saving app stack", the result) into tError
           put the result into tError
@@ -269,6 +269,17 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile" to stack pStandaloneStackFilename in 10 milliseconds
 end packagerPackageApplication
+
+
+private command _setPassword pStackName, pPassword
+  if revLicenseType() is not "community" then
+    log "  Encrypting stack" && pStackName
+    set the password of stack pStackName to pPassword
+  else
+    log "  Skipping encryption in Community edition" && pStackName
+  end if
+  return empty
+end _setPassword
 
 
 private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, @xAppA, pPlatform, pOutputFolder
@@ -1175,16 +1186,14 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
       if the scriptonly of stack tFile then
         set the scriptonly of stack tFile to false
         if pPassword is not empty AND tFile is not among the lines of pExclusions then
-          log "  Encrypting stack" && tFile
-          set the password of stack tFile to pPassword
+          _setPassword tFile, pPassword
         end if
         save stack tFile as tFile with newest format
         put the result into tError
       else
         if pPassword is not empty AND tFile is not among the lines of pExclusions \
               AND the password of stack tFile is empty then
-          set the password of stack tFile to pPassword
-          log "  Encrypting stack" && tFile
+          _setPassword tFile, pPassword
           save stack tFile as tFile with newest format
           put the result into tError
         end if
@@ -1337,7 +1346,7 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       create invisible stack tStackName
 
       if sPassword is not empty then
-        set the password of stack tStackName to sPassword
+        _setPassword tStackName, sPassword
       end if
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
@@ -1398,7 +1407,7 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       create invisible stack tStackName
 
       if sPassword is not empty then
-        set the password of stack tStackName to sPassword
+        _setPassword tStackName, sPassword
       end if
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
