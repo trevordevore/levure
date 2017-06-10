@@ -798,7 +798,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
   local i, tProfile, tFilename, tFiledata, tFoldersA
   local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
 
-  if pTargetPlatform is not among the items of "package folder,all platforms,macos,windows,linux,ios,android,updat,emscripten" then \
+  if pTargetPlatform is not among the items of "package folder,all platforms,macos,windows,linux,ios,android,update,emscripten" then \
         throw "invalid target platform for copy files action:" && pTargetPlatform
 
   put tolower(pBuildProfile) into pBuildProfile
