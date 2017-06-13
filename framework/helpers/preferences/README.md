@@ -31,7 +31,7 @@ You set the preferences file name for the platforms your application supports in
 
 The preferences file is stored in the folder returned by `levureApplicationDataFolder()` on all platforms except macOS, where it is stored in `~/Library/Preferences`, so you should specify only the name of the preferences file without any other path information.
 
-IMPORTANT: Do not use quote marks around your strings in `app.yml`.
+Do not use quote marks around your `preferences filename` value in `app.yml`.
 
 ```
 # app.yml
@@ -80,11 +80,13 @@ Note that in this example the `default:` preferences file name is used for all p
 
 ## Set default preferences values
 
-You set default preferences values in a `prefs.yml` file that sits alongside `app.yml` in your `app` folder. You specify the default values by entering them as `name: value` pairs, one preference per line.
+You can set default preferences values in a `prefs.yml` file that sits alongside `app.yml` in your `app` folder. You specify the default values by entering them as `name: value` pairs, one preference per line.
 
-IMPORTANT: Do not use quote marks around your strings in `prefs.yml`.
+Do not use quote marks around your default preferences values in `prefs.yml`.
 
 ```
+# prefs.yml
+
 my preference 1: my preference 1 default value
 my preference 2: 100
 my preference 3: true
@@ -95,6 +97,7 @@ my preference 3: true
 While your application is running you can set an application preference to a value with the `prefsSetPref` command. If the preference does not already exist, it will be created and set to the value.
 
 ```
+# prefsSetPref examples
 prefsSetPref "my preference 1", "a string value"
 prefsSetPref "my preference 2", 80
 prefsSetPref "my preference 3", false
@@ -105,6 +108,7 @@ prefsSetPref "my preference 3", false
 While your application is running you can get a preference value with the `prefsGetPref` function.
 
 ```
+# prefsGetPref example
 put prefsGetPref("my preference name") into tPreferenceValue
 ```
 
