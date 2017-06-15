@@ -7,6 +7,7 @@ constant kAppStackName = "app"
 constant kApplicationExternals = "levureAppExternals"
 constant kLiveCodeExtensions = "livecode,livecodescript"
 constant kLiveCodeModule = "lcm"
+constant kLevureErr = "levureerr,"
 
 local sAppFolder              # Folder where the `app` stack resides
 local sAppA
@@ -564,7 +565,10 @@ function levureApplicationDataFolder pUserOrShared
 
   if pUserOrShared is not "shared" then put "user" into pUserOrShared
 
-  if platformApplicationDataFolder(pUserOrShared) is empty then return empty
+  if platformApplicationDataFolder(pUserOrShared) is empty then
+    throw kLevureErr & param(0) && ": the" && quote & "application data folder" & quote \
+          && "property has not been set for the current platform in app.yml."
+  end if
 
   if pUserOrShared is not "shared" then
     switch the platform
@@ -727,7 +731,7 @@ function levureAppGet pProp
   if pProp is an array or pProp is among the keys of sAppA then
     return sAppA[pProp]
   else
-    throw "invalid levure app property:" && pProp
+    throw kLevureErr & "invalid levure app property:" && pProp
   end if
 end levureAppGet
 
@@ -756,7 +760,7 @@ command levureAppSet pProp, pValue
   if pProp is an array or pProp is among the keys of sAppA then
     put pValue into sAppA[pProp]
   else
-    throw "invalid levure app property:" && pProp
+    throw kLevureErr & "invalid levure app property:" && pProp
   end if
   return empty for error
 end levureAppSet
@@ -1093,7 +1097,7 @@ private command loadAppStackIntoMemory
   if there is not a stack kAppStackName then
     if there is not a stack (sAppFolder & "/app.livecodescript") then
       if there is not a stack (sAppFolder & "/app.livecode") then
-        throw "app stack not found"
+        throw kLevureErr & "app stack not found"
       end if
     end if
   end if
@@ -1138,7 +1142,7 @@ private command loadApplicationStack
     end if
   end if
 
-  if sAppFolder is empty then throw "app stack not found"
+  if sAppFolder is empty then throw kLevureErr & "app stack not found"
 
   # Make sure app stack is in memory
   loadAppStackIntoMemory
