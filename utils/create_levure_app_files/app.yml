@@ -4,7 +4,6 @@ build: 1
 encrypt stacks: false
 multiple instances: false
 relaunch in background: false
-shutdown when all windows are closed: false
 creator code:
 application data folder:
   user:
