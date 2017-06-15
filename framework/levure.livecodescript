@@ -567,7 +567,7 @@ function levureApplicationDataFolder pUserOrShared
 
   if platformApplicationDataFolder(pUserOrShared) is empty then
     throw kLevureErr & param(0) && ": the" && quote & "application data folder" & quote \
-          && "property has not been set for the current platform in app.yml."
+          && "property has not been set for the current platform in app.yml"
   end if
 
   if pUserOrShared is not "shared" then

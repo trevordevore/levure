@@ -1,4 +1,6 @@
 script "Preferences Library"
+constant kPrefsErr = "prefserr,"
+
 local sUseExternal, sUseBroadcaster
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA
@@ -12,7 +14,7 @@ on libraryStack
 
   _loadDefaultPreferences
   if the result is not empty then
-    throw "error loading default preferences:" && the result
+    throw kPrefsErr & "unable to load default preferences:" && the result
   end if
 end libraryStack
 
@@ -81,6 +83,12 @@ private function prefFilenameForPlatform pUserOrShared, pPlatform
   put levureAppGet(tA) into tPrefName
 
   if tPrefName is empty then put tDefaultPrefName into tPrefName
+
+  if tPrefName is empty then
+    throw kPrefsErr & param(0) && ": the" && quote & "preferences filename" & quote \
+          && "property has not been set for" && pPlatform && "in app.yml"
+  end if
+
   return tPrefName
 end prefFilenameForPlatform
 
@@ -425,14 +433,14 @@ private command _ensurePrefsAreLoaded pUserOrShared
           try
             put arrayDecode(tData) into sPrefsA[pUserOrShared]
           catch e
-            throw "error loading preferences:" && e
+            throw kPrefsErr & "error loading preferences:" && e
           end try
         else
           put empty into sPrefsA[pUserOrShared]
         end if
         return true
       else
-        throw "error loading preferences:" && tError
+        throw kPrefsErr & "error loading preferences:" && tError
       end if
     else
       # create "user" or "shared" key as an array type
