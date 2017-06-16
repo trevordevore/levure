@@ -2,7 +2,7 @@ script "Font Loader Library"
 on libraryStack
   if the target is not me then pass libraryStack
 
-  if levurePropExists("fonts") then
+  if levureAppHasProperty("fonts") then
     local tFontsA, i
 
     put levureAppGet("fonts") into tFontsA
@@ -20,7 +20,7 @@ end libraryStack
 on releaseStack
   if the target is not me then pass releaseStack
 
-  if levurePropExists("fonts") then
+  if levureAppHasProperty("fonts") then
     local tFontsA, i
 
     put levureAppGet("fonts") into tFontsA

@@ -696,13 +696,19 @@ end levureAppGetENV
 
 
 /**
-Summary: Use to check if a property is defined in the application configuration array.
+Summary: Use to check if a property name is among the keys in the application configuration array.
 
 Returns: True/False
+
+Description:
+This handler targets the internal array that was created when the app.yml file was loaded. If it is possible
+that an application property doesn't exist then use this function before calling `levureAppGet()` or
+`levureAppSet`. Both handlers will throw an error if the target property doesn't exist.
+exist
 */
-function levurePropExists pProp
+function levureAppHasProperty pProp
   return pProp is among the keys of sAppA
-end levurePropExists
+end levureAppHasProperty
 
 
 /**
