@@ -11,7 +11,7 @@ on libraryStack
 
   local tListA, tProtocol
 
-  if levurePropExists("url protocols") then
+  if levureAppHasProperty("url protocols") then
     put levureAppGet("url protocols") into tListA
     repeat for each key tProtocol in tListA
       if word 1 to -1 of line 1 of tProtocol is not empty and word 1 to -1 of line 1 of tListA[tProtocol] is not empty then
