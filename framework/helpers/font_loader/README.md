@@ -27,7 +27,7 @@ You configure fonts by adding a `fonts` key to the `app.yml` file. The following
 # app.yml
 
 fonts:
-  - filename: resources/PasswordEntry.ttf
+  - filename: assets/PasswordEntry.ttf
     global: false
 ```
 
