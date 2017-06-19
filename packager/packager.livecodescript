@@ -1,15 +1,15 @@
 script "Levure Framework Application Packager"
 constant kStandaloneBuilderPlatforms = "MacOSX x86-32,MacOSX x86-64,Windows,Linux,Linux x64,Linux armv6-hf,iOS,Android,Emscripten"
 constant kPlatformsThatCantTest = "iOS,Android,Emscripten"
-local sAppA, sPassword, sBuildLogFile
+local sAppA, sPassword, sBuildLogFile, sCallbackStacksA
 
 on libraryStack
-  pass libraryStack
+  if the target is not me then pass libraryStack
 end libraryStack
 
 
 on releaseStack
-  pass releaseStack
+  if the target is not me then pass releaseStack
 end releaseStack
 
 
@@ -109,6 +109,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       if not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
 
       put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
+      if tPlatform is "macos" and the platform is not "macos" then next repeat
 
       # Create folder for copy files
       log "packaging for platform:" && tPlatform
@@ -117,7 +118,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       put sAppA into tAppA
 
       if tError is empty then
-        _fileCreateAllFoldersInPath tCopyFilesTempFolder, tTempFolder
+        packagerCreateAllFoldersInPath tCopyFilesTempFolder, tTempFolder
         put _errorMsg("creating copy files temp folder [" & tCopyFilesTempFolder & "] [" & tTempFolder & "]", the result) into tError
       end if
 
@@ -135,18 +136,13 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       # Process instructions for all platform
       if tError is empty then
-        _copyFiles pBuildProfile, "all platforms", sAppA, tAppFolder, tCopyFilesTempFolder
+        _copyFiles pBuildProfile, "all platforms", tAppA, tAppFolder, tCopyFilesTempFolder
         put the result into tError
       end if
 
       # Prune and move in app stack
       if tError is empty then
         local tSourceStackFilename, tTargetStackFilename, isReloaded
-        local tURLsA
-
-        # This is for Windows
-        _autoUpdateURLs pBuildProfile, tAppA, tURLsA
-        put tURLsA["build profile"] & "/update.txt" into tAppA["auto update url"]
 
         _pruneAppArray tAppA, pBuildProfile, tPlatform
 
@@ -220,32 +216,19 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     end repeat
   end if
 
-  # Process "all platforms" and "update" keys in "copy files"
+  # Process "package folder" key in "copy files"
   if tBuildStandalone then
     if tError is empty then
       _copyFiles pBuildProfile, "package folder", sAppA, tAppFolder, tOutputFolder
       put the result into tError
     end if
-    if tError is empty then
-      _copyFiles pBuildProfile, "update", sAppA, tAppFolder, tOutputFolder & "/update"
-      put the result into tError
-    end if
 
     # dispatch and then sign macos bundle
     if tError is empty then
-      log "Dispatching final build"
       _dispatchFinalizeBuild pBuildProfile, sAppA, tOutputFolder
 
       _signMacOSApplication pBuildProfile, sAppA, tOutputFolder
       put the result into tError
-    end if
-
-    # prepare auto update files for Sparkle
-    if tError is empty then
-      if sAppA["build profiles"]["all profiles"]["root auto update url"] is not empty then
-        _prepareAutoUpdateFiles pBuildProfile, sAppA, tOutputFolder
-        put the result into tError
-      end if
     end if
 
     if tError is empty then
@@ -259,6 +242,16 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
     end if
   end if
+
+  # Remove callback stacks from memory
+  local tCallbackStacks
+
+  repeat for each key tFilename in sCallbackStacksA
+    if there is a stack tFilename then
+      delete stack tFilename
+    end if
+  end repeat
+  put empty into sCallbackStacksA
 
   if tError is not empty then
     log "Done packaging application with error:" && tError
@@ -346,8 +339,10 @@ end _createCopyFilesListFromFolder
 private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   local tKeysToDelete
   local tFilename
+  local tCallbackStacks
 
-  put _postBuildScriptStackFile(xAppA, pBuildProfile) into tFilename
+  # Build callbacks
+  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
 
   delete local xAppA["password"]
   delete local xAppA["build folder"]
@@ -356,6 +351,7 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   delete local xAppA["creator code"]
   delete local xAppA["externals packages to verify"]
   delete local xAppA["externals to load"]
+  delete local xAppA["packager callbacks stackfiles"]
 
   switch pPlatform
     case "windows"
@@ -380,9 +376,12 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
     delete local xAppA["preferences filename"]["shared"][tKey]
   end repeat
 
-  if tFilename is not empty then
+  # Send callbacks
+  repeat for each line tFilename in tCallbackStacks
+    log "Dispatching pruneAppArray to stack" && tFilename
+
     dispatch "pruneAppArray" to stack tFilename with pBuildProfile, xAppA
-  end if
+  end repeat
 
   return empty for error
 end _pruneAppArray
@@ -398,32 +397,42 @@ private function _toArray
 end _toArray
 
 
-private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
-  local tFilename
+private function _packagerCallbackStacks pAppA, pBuildProfile
+  local tCallbackStacks
 
-  put _postBuildScriptStackFile(pAppA, pBuildProfile) into tFilename
-  if tFilename is not empty then
-    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile, \
-          _toArray( \
-          "output folder", pOutputFolder, \
-          "autoupdate binaries folder", pOutputFolder & "/update/" & _versionStringForFilenames() \
-          )
+  put sAppA["packager callbacks stackfiles"] into tCallbackStacks
+  if _packagerCallbacksStackFile(pAppA, pBuildProfile) is not empty then
+    put _packagerCallbacksStackFile(pAppA, pBuildProfile) into line (the number of lines of tCallbackStacks + 1) of tCallbackStacks
   end if
+
+  return tCallbackStacks
+end _packagerCallbackStacks
+
+
+private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
+  local tCallbackStacks, tFilename
+
+  # Send callbacks
+  put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
+  repeat for each line tFilename in tCallbackStacks
+    log "Dispatching finalizePackageForBuildProfile to stack" && tFilename
+
+    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile, pOutputFolder
+    put "" into sCallbackStacksA[ tFilename ]
+  end repeat
 end _dispatchFinalizeBuild
 
 
 private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
-  local tFilename
+  local tCallbackStacks, tFilename
 
-  put _postBuildScriptStackFile(pAppA, pBuildProfile) into tFilename
-  if tFilename is not empty then
-    dispatch "finishedBuildingPackageForBuildProfile" to stack tFilename with pBuildProfile, \
-          _toArray( \
-          "output folder", pOutputFolder, \
-          "autoupdate binaries folder", pOutputFolder & "/update/" & _versionStringForFilenames() \
-          )
-    delete stack tFilename
-  end if
+  # Send callbacks
+  put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
+  repeat for each line tFilename in tCallbackStacks
+    log "Dispatching postPackagForBuildProfile to stack" && tFilename
+
+    dispatch "postPackagForBuildProfile" to stack tFilename with pBuildProfile, pOutputFolder
+  end repeat
 end _dispatchPostBuild
 
 
@@ -533,7 +542,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     end if
 
     if there is not a folder tOutputFolder then
-      _fileCreateAllFoldersInPath tOutputFolder, levureBuildFolder()
+      packagerCreateAllFoldersInPath tOutputFolder, levureBuildFolder()
       put _errorMsg("creating folder [" & tOutputFolder & "]", the result) into tError
     end if
 
@@ -712,12 +721,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
 end packagerBuildStandalones
 
 
-private function _postBuildScriptStackFile pAppA, pBuildProfile
+private function _packagerCallbacksStackFile pAppA, pBuildProfile
   local tFilename
 
-  put pAppA["build profiles"][pBuildProfile]["post build script"] into tFilename
+  put pAppA["build profiles"][pBuildProfile]["packager callbacks stackfile"] into tFilename
   if tFilename is empty then
-    put pAppA["build profiles"]["all profiles"]["post build script"] into tFilename
+    put pAppA["build profiles"]["all profiles"]["packager callbacks stackfile"] into tFilename
   end if
 
   if tFilename is not empty then
@@ -726,7 +735,7 @@ private function _postBuildScriptStackFile pAppA, pBuildProfile
   else
     return empty for value
   end if
-end _postBuildScriptStackFile
+end _packagerCallbacksStackFile
 
 
 private function _buildPlatformToLevurePlatform pBuildPlatform
@@ -750,26 +759,6 @@ private function _buildPlatformToLevurePlatform pBuildPlatform
     throw param(0) && "invalid build platform:" && pBuildPlatform
   end switch
 end _buildPlatformToLevurePlatform
-
-
-private command _autoUpdateURLs pBuildProfile, pAppA, @rURLsA
-  put tolower(pBuildProfile) into pBuildProfile
-
-  # Auto Update URLs
-  put pAppA["build profiles"][pBuildProfile]["root auto update url"] into rURLsA["root"]
-  if rURLsA["root"] is empty then
-    put pAppA["build profiles"]["all profiles"]["root auto update url"] into rURLsA["root"]
-  end if
-  if rURLsA["root"] is not empty then
-    set the itemdelimiter to "/"
-
-    put rURLsA["root"] & "/" & pBuildProfile into rURLsA["build profile"]
-    put rURLsA["build profile"] & "/" & _versionStringForFilenames() into rURLsA["version"]
-    put rURLsA["version"] & "/" & the last item of levureStandaloneFilename() & ".zip" into rURLsA["osx"]
-  end if
-
-  return empty
-end _autoUpdateURLs
 
 
 private function _errorMsg pPrefix, pError
@@ -796,88 +785,84 @@ Returns: Error message
 private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, pDestinationFolder
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
-  local tURLsA, tBuildProfileAutoUpdateURL, tAutoUpdateURL
 
-  if pTargetPlatform is not among the items of "package folder,all platforms,macos,windows,linux,ios,android,update,emscripten" then \
+  if pTargetPlatform is not among the items of "package folder,all platforms,macos,windows,linux,ios,android,emscripten" then \
         throw "invalid target platform for copy files action:" && pTargetPlatform
 
   put tolower(pBuildProfile) into pBuildProfile
 
-  _autoUpdateURLs pBuildProfile, pAppA, tURLsA
-
-  log "ROOT_AUTOUPDATE_URL:" && tURLsA["root"]
-  log "BUILDPROFILE_AUTOUPDATE_URL:" && tURLsA["build profile"]
-  log "BUILD_AUTOUPDATE_URL:" && tURLsA["version"]
-
   set the itemdelimiter to "/"
 
-  # Create Update Folder
   if tError is empty then
-    if pTargetPlatform is "update" and pAppA["build profiles"]["all profiles"]["root auto update url"] is not empty then
-      local tUpdaterFolder
-
-      # make sure "update" folder exists
-      _fileCreateAllFoldersInPath pDestinationFolder, item 1 to -2 of pDestinationFolder
-      put _errorMsg("creating folder" && tUpdaterFolder, the result) into tError
-
-      if tError is empty then
-        put pDestinationFolder & "/" & _versionStringForFilenames() into tUpdaterFolder
-        _fileCreateAllFoldersInPath tUpdaterFolder, item 1 to -2 of pDestinationFolder
-        put _errorMsg("creating folder" && tUpdaterFolder, the result) into tError
-      end if
-    end if
-  end if
-
-  if tError is empty then
-    local tDestination
+    local tDestination, tFilesA, tKey, tIndex
 
     repeat for each item tProfile in "all profiles/" & pBuildProfile
-      repeat with i = 1 to the number of elements of pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform]
-        # Don't process an empty entry
-        if pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform][i]["filename"] is empty then next repeat
+      # Build list of files to copy over. Start with known files for target platform.
+      put pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform] into tFilesA
+      put the number of elements of tFilesA into tIndex
 
-        put _resolveRelativeFilenameReference(pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform][i]["filename"], \
-              pRootFolder) into tFilename
+      # Now add in any "copy files" registered components that target this platform
+      repeat for each key tKey in pAppA["registered components"]["copy files"]
+        if pAppA["registered components"]["copy files"][tKey]["target platform"] is pTargetPlatform then
+          repeat with i = 1 to the number of elements of pAppA["build profiles"][tProfile]["copy files"][tKey]
+            add 1 to tIndex
+            put pAppA["build profiles"][tProfile]["copy files"][tKey][i] into tFilesA[tIndex]
+            put pAppA["registered components"]["copy files"][tKey]["callback stackfile"] into tFilesA[tIndex]["callback stackfile"]
+            put pAppA["registered components"]["copy files"][tKey]["destination"] into tFilesA[tIndex]["destination"]
+          end repeat
+        end if
+      end repeat
+
+      repeat with i = 1 to the number of elements of tFilesA
+        # Don't process an empty entry
+        if tFilesA[i]["filename"] is empty then next repeat
+
+        put _resolveRelativeFilenameReference(tFilesA[i]["filename"], pRootFolder) into tFilename
 
         # Figure out destination
-        put pAppA["build profiles"][tProfile]["copy files"][pTargetPlatform][i]["destination"] into tDestination
+        put tFilesA[i]["destination"] into tDestination
         if tDestination is empty then
           put pDestinationFolder into tDestination
         else
           put pDestinationFolder & "/" & tDestination into tDestination
+
+          packagerCreateAllFoldersInPath tDestination, pDestinationFolder
+          put _errorMsg("creating folder" && tDestination, the result) into tError
         end if
 
         # Copy file or folder
-        if there is a file tFilename then
-          put URL("binfile:" & tFilename) into tFiledata
+        if tError is empty then
+          if there is a file tFilename then
+            put URL("binfile:" & tFilename) into tFiledata
 
-          replace textEncode("[[VERSION]]", "utf8") with levureAppGet("version") in tFiledata
-          replace textEncode("[[BUILD]]", "utf8") with levureAppGet("build") in tFiledata
-          replace textEncode("[[ENGINE_VERSION]]", "utf8") with the version & "." & the buildNumber in tFiledata
-          replace textEncode("[[BUILD_PROFILE]]", "utf8") with pBuildProfile in tFiledata
-          replace textEncode("[[APP_BUNDLE]]", "utf8") with pDestinationFolder & "/macos/" & the last item of levureStandaloneFilename() in tFiledata
-          replace textEncode("[[ROOT_AUTOUPDATE_URL]]", "utf8") with tURLsA["root"] in tFiledata
-          replace textEncode("[[BUILDPROFILE_AUTOUPDATE_URL]]", "utf8") with tURLsA["build profile"] in tFiledata
-          replace textEncode("[[BUILD_AUTOUPDATE_URL]]", "utf8") with tURLsA["version"] in tFiledata
+            # Send callbacks
+            if tFilesA[i]["callback stackfile"] is not empty then
+              log "Dispatching processCopyFilesFile to stack" && tFilesA[i]["callback stackfile"]
 
-          replace textEncode("[[INTERNET_DATE]]", "utf8") with the internet date in tFiledata
+              dispatch "processCopyFilesFile" to stack tFilesA[i]["callback stackfile"] \
+                    with pBuildProfile, tFiledata, tDestination, the last item of tFilename, tFilesA[i]
 
-          put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
-          put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
-        else if there is a folder tFilename then
-          local tTargetFolder
+              # Store for unloading at end of packaging
+              put "" into sCallbackStacksA[ tFilesA[i]["callback stackfile"] ]
+            end if
 
-          put tDestination & "/" & the last item of tFilename into tTargetFolder
+            put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
+            put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
+          else if there is a folder tFilename then
+            local tTargetFolder
 
-          if there is a folder tTargetFolder then
-            _copyFilesAndFolders tFilename, tTargetFolder
-            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+            put tDestination & "/" & the last item of tFilename into tTargetFolder
+
+            if there is a folder tTargetFolder then
+              _copyFilesAndFolders tFilename, tTargetFolder
+              put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+            else
+              _fileCopyFolder tFilename, tTargetFolder
+              put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+            end if
           else
-            _fileCopyFolder tFilename, tTargetFolder
-            put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+            put "unable to locate file [" & tFilename & "]" into tError
           end if
-        else
-          put "unable to locate file [" & tFilename & "]" into tError
         end if
 
         if tError is not empty then exit repeat
@@ -919,9 +904,14 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
       put pOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tDestFolder
       put pExecutableOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tExecutableDestFolder
 
+      if xAppA["helpers"][i]["distribute"] is false then
+        log "  Skipping helper:" && xAppA["helpers"][i]["filename"]
+        next repeat
+      end if
+
       log "  Adding helper:" && xAppA["helpers"][i]["filename"]
 
-      _fileCreateAllFoldersInPath tDestFolder, tRootFolder
+      packagerCreateAllFoldersInPath tDestFolder, tRootFolder
       put the result into tError
 
       if tError is empty then
@@ -958,7 +948,7 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
               log "  Adding external helper file:" && xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
               log "    to folder:" && tExecutableDestFolder
 
-              _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+              packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
               put the result into tError
 
               if tError is empty then
@@ -986,7 +976,7 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
             log "  Adding extension helper file:" && xAppA["helpers"][i]["extensions"][j]["filename"]
             log "    to folder:" && tExecutableDestFolder
 
-            _fileCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+            packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
             put the result into tError
 
             if tError is empty then
@@ -1137,7 +1127,7 @@ private command _packageFiles @xAppA, pOutputFolder
           put xAppA[tKey][i]["filename"] into tFilename
           replace levureAppFolder() with pOutputFolder in tFilename
 
-          _fileCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
+          packagerCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
           put _errorMsg("creating folder" && item 1 to -2 of xAppA[tKey][i]["filename"], the result) into tError
 
           if tError is empty then
@@ -1486,41 +1476,6 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForPlatform, pB
 
   return tError for error
 end _copyExecutablesAndSupportingFilesToFolder
-
-
-private function _versionStringForFilenames
-  return levureAppGet("version") & "-" & levureAppGet("build")
-end _versionStringForFilenames
-
-
-private command _prepareAutoUpdateFiles pBuildProfile, pAppA, pOutputFolder
-  local tError, tUpdaterFolder
-
-  set the itemdelimiter to "/"
-
-  put pOutputFolder & "/update/" & _versionStringForFilenames() into tUpdaterFolder
-
-  if tError is empty then
-    local tAppBundle, tCmd
-
-    put pOutputFolder & "/macos/" & the last item of levureStandaloneFilename() into tAppBundle
-    if there is a folder tAppBundle then
-      _fileCreateAllFoldersInPath tUpdaterFolder, pOutputFolder
-      put the result into tError
-
-      put format("cd \"%s\";ditto -ck --rsrc --keepParent \"%s\" \"%s\"", item 1 to -2 of tAppBundle, \
-            the last item of tAppBundle, tUpdaterFolder & "/" & the last item of tAppBundle & ".zip") into tCmd
-      get shell(tCmd)
-      if the result > 0 then
-        put it into tError
-      end if
-    end if
-  end if
-
-  # TODO: Windows once we get Sparkle working for it
-
-  return tError for error
-end _prepareAutoUpdateFiles
 
 
 private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath, pBuildForDistribution
@@ -2313,7 +2268,7 @@ private command _fileCopyFolder pSrcFolder, pDestFolder
 end _fileCopyFolder
 
 
-private command _fileCreateAllFoldersInPath pPath, pRootPath
+command packagerCreateAllFoldersInPath pPath, pRootPath
   local tCheck, tError, tPathSegment
 
   ## Watch for double slashes /Folder/To//Something//
@@ -2379,14 +2334,14 @@ private command _fileCreateAllFoldersInPath pPath, pRootPath
       end if
 
       if tError is empty then
-        _fileCreateAllFoldersInPath pPath, tPathSegment
+        packagerCreateAllFoldersInPath pPath, tPathSegment
         put the result into tError
       end if
     end if
   end if
 
   return tError
-end _fileCreateAllFoldersInPath
+end packagerCreateAllFoldersInPath
 
 
 private function _fileIsFolder pPath
