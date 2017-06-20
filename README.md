@@ -13,8 +13,7 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 # Screencasts
 
-- [Thoughts on using script only stacks and levure framework](https://www.youtube.com/watch?v=e1p_FTRi1-Q)
-- [Creating Script Only Behaviors with LiveCode 9](https://www.youtube.com/watch?v=eyggLzIbeSU)
+You will find screencasts about Levure on [Trevor DeVore's YouTube channel](https://www.youtube.com/channel/UCluXVDvheCjGSJmCMssc0fw).
 
 # Learn How To Use Levure
 
