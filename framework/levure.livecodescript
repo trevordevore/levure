@@ -1037,11 +1037,33 @@ command levureLoadAppConfig
             case "files"
               if tKey is not among the keys of sAppA["registered components"][tKind] then
                 put empty into sAppA["registered components"][tKind][tKey]
-                put sAppA["helpers"][i]["register components"][tKeyIndex]["callback stack"] into sAppA["registered components"][tKind][tKey]["callback stack"]
+                put sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+              end if
+              break
+            case "copy files"
+              # Copy files are only loaded in development
+              if the environment is "development" then
+                if tKey is not among the keys of sAppA["registered components"][tKind] then
+                  put empty into sAppA["registered components"][tKind][tKey]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] into sAppA["registered components"][tKind][tKey]["target platform"]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] into sAppA["registered components"][tKind][tKey]["destination"]
+                  put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
+                        into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+                end if
               end if
               break
           end switch
         end repeat
+
+        # Register callbacks defined in helper
+        if the environment is "development" then
+          if sAppA["helpers"][i]["packager callbacks stackfile"] is not empty then
+            put resolveFilenameReference(sAppA["helpers"][i]["packager callbacks stackfile"], sAppA["helpers"][i]["filename"]) \
+                  into line (the number of lines of sAppA["packager callbacks stackfiles"] + 1) \
+                  of sAppA["packager callbacks stackfiles"]
+          end if
+        end if
+
       end repeat
 
       ##########
@@ -1420,7 +1442,7 @@ Returns: error
 private command _loadRegisteredKeyFiles pKey
   local tError, tCallbackStack, i
 
-  put sAppA["registered components"]["files"][pKey]["callback stack"] into tCallbackStack
+  put sAppA["registered components"]["files"][pKey]["callback stackfile"] into tCallbackStack
 
   if tCallbackStack is not empty then
     repeat with i = 1 to the number of elements of sAppA[pKey]
