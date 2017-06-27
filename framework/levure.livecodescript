@@ -138,13 +138,13 @@ The build profile that you pass in is the value that will be returned by `levure
 running the standalones.
 
 When packaging the application stacks will be encrypted if A) the `encrypted stacks` property is true in the `app.yml`
-file and a password can be located. The password can be stored in the `app.yml` file (not advisable if you store your
+file and B) a password can be located. The password can be stored in the `app.yml` file (not advisable if you store your
 project in a version control system) or in the `.env` file that sits alongside the `app.yml` file (add a PASSWORD=VALUE line).
 
 During the packaging process any properties defined in the `build profiles` > `all profiles` and `build profiles` > `pBuildProfile`
 sections of your `app.yml` file will affect how the application is packaged. Below is a description of properties you can define.
 
-The `post build script` property points to a stack that will receive the `finalizePackageForBuildProfile pBildProfile, pSettings`
+The `post build script` property points to a stack that will receive the `finalizePackageForBuildProfile pBuildProfile, pSettings`
 and `finishedBuildingPackageForBuildProfile pBuildProfile, pSettingsA` messages. `pSettingsA` has an `output folder` key that
 contains the path to the folder where all of the packaged files are located.
 
@@ -704,7 +704,6 @@ Description:
 This handler targets the internal array that was created when the app.yml file was loaded. If it is possible
 that an application property doesn't exist then use this function before calling `levureAppGet()` or
 `levureAppSet`. Both handlers will throw an error if the target property doesn't exist.
-exist
 */
 function levureAppHasProperty pProp
   return pProp is among the keys of sAppA
@@ -727,7 +726,6 @@ put levureAppGet("multiple instances")
 put "preferences filename" into tLookupA[1]
 put "shared" into tLookupA[2]
 put "macos" into tLookupA[3]
-put "filename" into tLookupA[4]
 put levureAppGet(tLookupA)
 
 Returns: Mixed as it depends on property value
@@ -757,7 +755,6 @@ levureAppSet "multiple instances", true
 put "preferences filename" into tLookupA[1]
 put "shared" into tLookupA[2]
 put "macos" into tLookupA[3]
-put "filename" into tLookupA[4]
 levureAppSet tLookupA, "com.mycompanyname.myapp-shared"
 
 Returns: Empty
@@ -2528,7 +2525,7 @@ end fileListing
 
 
 /**
-Summary: Returns a list of externals that are loaded into memory and availalbe in the message path.
+Summary: Returns a list of externals that are loaded into memory and available in the message path.
 
 Example:
 set the wholematches to true

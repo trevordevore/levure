@@ -34,9 +34,9 @@ You configure the Logger helper by specifying two settings:
 
 ### Specifying which types of messages to log
 
-You can specify which categories of messages will be logged. The categories are `developer`, `network`, `msg`, and `extensions`.
+You can specify which types of messages will be logged. The types are `developer`, `network`, `msg`, and `extensions`.
 
-|  Category  |  Description  |
+|  Type  |  Description  |
 |------------|---------------|
 | `developer` | messages logged with `loggerLogMsg`|
 | `network` | messages logged by libURL |
@@ -142,7 +142,7 @@ You can see what the current filters are by calling the `loggerGetNetworkTraffic
 
 **Summary**: Returns the current target where log messages are sent.
 
-**Returns**: empty, `console`, <filename>, or field reference
+**Returns**: empty, `console`, `<filename>`, or field reference
 
 <br>
 
@@ -230,7 +230,7 @@ You can set network traffic log filters to remove sensitive data from logs that 
 
 | Name | Description |
 |:---- |:----------- |
-| `pTarget` |  `console`, <filename>, or field reference (e.g. <the long id field>). |
+| `pTarget` |  `console`, `<filename>`, or field reference (e.g. `<the long id field>`). |
 
 **Description**:
 

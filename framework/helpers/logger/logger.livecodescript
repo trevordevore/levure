@@ -24,7 +24,7 @@ end releaseStack
 /**
 Summary: Sets the field where log messages will be sent.
 
-pTarget: `console`, <filename>, or field reference (e.g. <the long id field>).
+pTarget: `console`, `<filename>`, or field reference (e.g. `<the long id field>`).
 
 Description:
 You can target the "console", a file, or a field. "console" writes the log message to `stdout`.
@@ -60,7 +60,7 @@ end loggerSetTarget
 /**
 Summary: Returns the current target where log messages are sent.
 
-Returns: empty, `console`, <filename>, or field reference
+Returns: empty, `console`, `<filename>`, or field reference
 */
 function loggerGetTarget
   return sLogTarget
