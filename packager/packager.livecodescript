@@ -1707,7 +1707,7 @@ private command _updateStandaloneVersionInfo pStackFilename
   set the cRevStandaloneSettings["Windows,productversion3"] of stack pStackFilename to tRevision
   set the cRevStandaloneSettings["Windows,productversion4"] of stack pStackFilename to tBuild
 
-  ## -- OS X
+  ## -- macOS
   if the cRevStandaloneSettings["OSX,plist"] of stack pStackFilename is not empty then
     local tPlist
 
@@ -1740,6 +1740,14 @@ private command _updateStandaloneVersionInfo pStackFilename
     set the cRevStandaloneSettings["OSX,longVersion"] of stack pStackFilename \
           to format("%u.%u.%u (%u)", tMajor, tMinor, tRevision, tBuild)
   end if
+
+  ## -- iOS
+  set the cRevStandaloneSettings["ios,bundle version"] of stack pStackFilename to format("%u.%u.%u", tMajor, tMinor, tRevision)
+  set the cRevStandaloneSettings["ios,bundle build"] of stack pStackFilename to tBuild
+
+  ## -- Android
+  set the cRevStandaloneSettings["android,version name"] of stack pStackFilename to format("%u.%u.%u", tMajor, tMinor, tRevision)
+  set the cRevStandaloneSettings["android,version code"] of stack pStackFilename to tBuild
 
   return tError for error
 end _updateStandaloneVersionInfo
