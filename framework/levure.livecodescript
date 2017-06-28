@@ -1034,7 +1034,7 @@ command levureLoadAppConfig
             case "files"
               if tKey is not among the keys of sAppA["registered components"][tKind] then
                 put empty into sAppA["registered components"][tKind][tKey]
-                if sAppA["registered components"][tKind][tKey]["callback stackfile"] is not empty then
+                if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
                   put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
                           into sAppA["registered components"][tKind][tKey]["callback stackfile"]
                 end if
