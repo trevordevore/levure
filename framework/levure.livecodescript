@@ -618,7 +618,7 @@ Returns a value of `loading`, `running`, or `shutting down`. These values reflec
 internal state of the Levure application.
 
 While Levure is loading application files at startup
-the state is `running`.
+the state is `loading`.
 
 When Levure has begun to shut down the application (e.g. the user quit the application) then
 the state is `shutting down`.
