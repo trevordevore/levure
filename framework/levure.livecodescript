@@ -1034,10 +1034,6 @@ command levureLoadAppConfig
             case "files"
               if tKey is not among the keys of sAppA["registered components"][tKind] then
                 put empty into sAppA["registered components"][tKind][tKey]
-                if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
-                  put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
-                          into sAppA["registered components"][tKind][tKey]["callback stackfile"]
-                end if
               end if
               break
             case "copy files"
@@ -1047,12 +1043,15 @@ command levureLoadAppConfig
                   put empty into sAppA["registered components"][tKind][tKey]
                   put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] into sAppA["registered components"][tKind][tKey]["target platform"]
                   put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] into sAppA["registered components"][tKind][tKey]["destination"]
-                  put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
-                        into sAppA["registered components"][tKind][tKey]["callback stackfile"]
                 end if
               end if
               break
           end switch
+
+          if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
+            put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
+                    into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+          end if
         end repeat
 
         # Register callbacks defined in helper
