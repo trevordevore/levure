@@ -1321,14 +1321,11 @@ private command _packageAssetStacks @xAppA, pOutputFolder
   local tError, i
   local tStacksToLoad
   local tStackName, tFilename
-  local tUnprotectedStackName
 
   lock messages
 
   # behaviors
   if tError is empty then
-    put empty into tUnprotectedStackName
-
     if the number of elements of xAppA["behaviors"] > 0 then
       log "Packaging behaviors"
 
@@ -1340,21 +1337,16 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
-        if xAppA["behaviors"][i]["encrypt"] is false then
-          put "Levure Application Unencrypted Behaviors" into tUnprotectedStackName
-          create invisible stack tUnprotectedStackName
-          exit repeat
+        if xAppA["behaviors"][i]["encrypt"] is not false and sPassword is not empty then
+          # Just in case there are duplicate entries in array
+          if the password of stack xAppA["behaviors"][i]["filename"] is empty then
+            set the scriptOnly of stack xAppA["behaviors"][i]["filename"] to false
+            _setPassword xAppA["behaviors"][i]["filename"], sPassword
+          end if
         end if
-      end repeat
 
-      repeat with i = 1 to the number of elements of xAppA["behaviors"]
-        if xAppA["behaviors"][i]["encrypt"] is false and tUnprotectedStackName is not empty then
-          log "  Adding unprotected behavior stack:" && xAppA["behaviors"][i]["filename"]
-          set the mainstack of stack xAppA["behaviors"][i]["filename"] to tUnprotectedStackName
-        else
-          log "  Adding behavior stack:" && xAppA["behaviors"][i]["filename"]
-          set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
-        end if
+        log "  Adding behavior stack:" && xAppA["behaviors"][i]["filename"]
+        set the mainstack of stack xAppA["behaviors"][i]["filename"] to tStackName
       end repeat
 
       log "Saving behavior stack:" && pOutputFolder & "/behaviors.livecode"
@@ -1363,22 +1355,9 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       put the result into tError
       delete stack tStackName
 
-      if tError is empty AND tUnprotectedStackName is not empty then
-        log "Saving unprotected behavior stack:" && pOutputFolder & "/behaviors_.livecode"
-
-        save stack tUnprotectedStackName as (pOutputFolder & "/behaviors_.livecode") with newest format
-        put _errorMsg("saving unprotected behavior stack [" & pOutputFolder & "/behaviors_.livecode" & "]", the result) into tError
-
-        delete stack tUnprotectedStackName
-      end if
-
       if tError is empty then
         put empty into xAppA["behaviors"]
         put "behaviors.livecode" into xAppA["behaviors"][1]["filename"]
-
-        if tUnprotectedStackName is not empty then
-          put "behaviors_.livecode" into xAppA["behaviors"][2]["filename"]
-        end if
       end if
     end if
   end if
@@ -1388,7 +1367,6 @@ private command _packageAssetStacks @xAppA, pOutputFolder
     local tProp
 
     repeat for each item tAssetType in "frontscripts,backscripts,libraries"
-      put empty into tUnprotectedStackName
       put empty into tStacksToLoad
 
       if the number of elements of xAppA[tAssetType] is 0 then next repeat
@@ -1401,21 +1379,16 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
-        if xAppA[tAssetType][i]["encrypt"] is false then
-          put "Levure Application Unencrypted" && toupper(char 1 of tAssetType) & char 2 to -1 of tAssetType into tUnprotectedStackName
-          create invisible stack tUnprotectedStackName
-          exit repeat
+        if xAppA[tAssetType][i]["encrypt"] is not false and sPassword is not empty then
+          # Just in case there are duplicate entries in array
+          if the password of stack xAppA[tAssetType][i]["filename"] is empty then
+            set the scriptOnly of stack xAppA[tAssetType][i]["filename"] to false
+            _setPassword xAppA[tAssetType][i]["filename"], sPassword
+          end if
         end if
-      end repeat
 
-      repeat with i = 1 to the number of elements of xAppA[tAssetType]
-        if xAppA[tAssetType][i]["encrypt"] is false and tUnprotectedStackName is not empty then
-          log "  Adding unprotected" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
-          set the mainstack of stack xAppA[tAssetType][i]["filename"] to tUnprotectedStackName
-        else
-          log "  Adding" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
-          set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
-        end if
+        log "  Adding" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
+        set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
 
         repeat for each key tProp in xAppA[tAssetType][i]
           if tProp is "filename" then
@@ -1433,20 +1406,9 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       put _errorMsg("saving" && tAssetType && "stack [" & pOutputFolder & "/" & tAssetType & ".livecode" & "]", the result) into tError
       delete stack tStackName
 
-      if tError is empty AND tUnprotectedStackName is not empty then
-        log "Saving unprotected" && tAssetType && "stack:" && pOutputFolder & "/" & tAssetType & "_.livecode"
-        save stack tUnprotectedStackName as (pOutputFolder & "/" & tAssetType & "_.livecode") with newest format
-        put _errorMsg("saving unprotected" && tAssetType && "stack [" & pOutputFolder & "/" & tAssetType & "_.livecode" & "]", the result) into tError
-        delete stack tUnprotectedStackName
-      end if
-
       if tError is empty then
         put empty into xAppA[tAssetType]
         put tAssetType & ".livecode" into xAppA[tAssetType][1]["filename"]
-
-        if tUnprotectedStackName is not empty then
-          put tAssetType & "_.livecode" into xAppA[tAssetType][2]["filename"]
-        end if
       end if
     end repeat
   end if
