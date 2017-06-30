@@ -122,9 +122,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         put _errorMsg("creating copy files temp folder [" & tCopyFilesTempFolder & "] [" & tTempFolder & "]", the result) into tError
       end if
 
+      _dispatchFinalizePackagedAssets pBuildProfile, tAppA
+
       # Copy over all files
       if tError is empty then
-        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, tAppA, tPlatform, tCopyFilesTempFolder
+        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tAppA, tPlatform, tCopyFilesTempFolder
         put the result into tError
       end if
 
@@ -275,7 +277,7 @@ private command _setPassword pStackName, pPassword
 end _setPassword
 
 
-private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, @xAppA, pPlatform, pOutputFolder
+private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, @xAppA, pPlatform, pOutputFolder
   local tError
 
   # Behaviors, Libraries, Frontscripts, Backscripts
@@ -297,7 +299,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Move straight across.
   # Convert script only stacks to regular stacks
   if tError is empty then
-    _packageUI xAppA, pOutputFolder
+    _packageUI pBuildProfile, xAppA, pOutputFolder
     put the result into tError
   end if
 
@@ -306,7 +308,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Convert any script only stacks to stacks
   # Remove helper.yml file.
   if tError is empty then
-    _packageHelpers xAppA, pPlatform, pOutputFolder, pOutputFolder
+    _packageHelpers pBuildProfile, xAppA, pPlatform, pOutputFolder, pOutputFolder
     put the result into tError
   end if
 
@@ -421,6 +423,20 @@ private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizeBuild
+
+
+private command _dispatchFinalizePackagedAssets pBuildProfile, @xAppA
+  local tCallbackStacks, tFilename
+
+  # Send callbacks
+  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
+  repeat for each line tFilename in tCallbackStacks
+    log "Dispatching finalizePackagedAssets to stack" && tFilename
+
+    dispatch "finalizePackagedAssets" to stack tFilename with pBuildProfile, xAppA
+    put "" into sCallbackStacksA[ tFilename ]
+  end repeat
+end _dispatchFinalizePackagedAssets
 
 
 private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
@@ -876,7 +892,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
 end _copyFiles
 
 
-private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOutputFolder
+private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder, pExecutableOutputFolder
   local tError, i
   local tPlatformKey, tKey
 
@@ -1047,7 +1063,7 @@ private command _packageHelpers @xAppA, pPlatform, pOutputFolder, pExecutableOut
 end _packageHelpers
 
 
-private command _packageUI @xAppA, pOutputFolder
+private command _packageUI pBuildProfile, @xAppA, pOutputFolder
   local tError
   local tCompsA, tKey, i
   local tComponentFolder
@@ -1074,18 +1090,37 @@ private command _packageUI @xAppA, pOutputFolder
           log "  Adding component:" && xAppA[tKey][i]["filename"]
 
           put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
-          _fileCopyFolder tComponentFolder, tDestFolder
-          put _errorMsg("copying folder" && tComponentFolder && "to" && tDestFolder, the result) into tError
 
-          if tError is empty then
-            local tExclusions
+          # If two entries in array are in same folder only copy and process the folder once.
+          if there is not a folder tDestFolder then
+            _fileCopyFolder tComponentFolder, tDestFolder
+            put _errorMsg("copying folder" && tComponentFolder && "to" && tDestFolder, the result) into tError
 
-            if xAppA[tKey][i]["encrypt"] is false then
-              put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tExclusions
+            if tError is empty then
+              local tExclusions
+
+              if xAppA[tKey][i]["encrypt"] is false then
+                put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tExclusions
+              end if
+
+              _processStacksInFolder tDestFolder, sPassword, tExclusions
+              put the result into tError
             end if
 
-            _processStacksInFolder tDestFolder, sPassword, tExclusions
-            put the result into tError
+            # Send callbacks
+            if tError is empty then
+              if xAppA["registered components"]["ui"][tKey]["callback stackfile"] is not empty then
+                log "Dispatching postUIAssetPackaged to stack" && xAppA["registered components"]["ui"][tKey]["callback stackfile"]
+
+                dispatch "postUIAssetPackaged" to stack xAppA["registered components"]["ui"][tKey]["callback stackfile"] \
+                      with pBuildProfile, tDestFolder
+
+                # Store for unloading at end of packaging
+                put "" into sCallbackStacksA[ xAppA["registered components"]["ui"][tKey]["callback stackfile"] ]
+              end if
+            end if
+          else
+            beep
           end if
 
           put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[i]["filename"]
