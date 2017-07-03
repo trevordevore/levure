@@ -144,11 +144,10 @@ project in a version control system) or in the `.env` file that sits alongside t
 During the packaging process any properties defined in the `build profiles` > `all profiles` and `build profiles` > `pBuildProfile`
 sections of your `app.yml` file will affect how the application is packaged. Below is a description of properties you can define.
 
-The `post build script` property points to a stack that will receive the `finalizePackageForBuildProfile pBuildProfile, pSettings`
-and `finishedBuildingPackageForBuildProfile pBuildProfile, pSettingsA` messages. `pSettingsA` has an `output folder` key that
-contains the path to the folder where all of the packaged files are located.
+The `packager callback stackfiles` property in `app.yml` points to a stack that will receive the `finalizePackagedAssets pBuildProfile, @xAppA`,
+`finalizePackage pBuildProfile, pOutputFolder`, and `packagingComplete pBuildProfile, pOutputFolder` messages.
 
-The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on OS X.
+The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on macOS.
 The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
 and with `3rd Party Mac Developer Application:` for apps being distributed through the Mac App Store. The packager assumes you are
 distributing through the Mac App Store if the name of pBuildProfile is "mas" or "mac app store".
@@ -1428,7 +1427,7 @@ end loadAppAssets
 Summary: Sends message to helpers that need to process a registered key.
 
 Description:
-Dispatches the `LoadRegisteredKeyFile` message to the stack specified by the helper
+Dispatches the `loadRegisteredKeyFile` message to the stack specified by the helper
 in the `register component` > `callback stack` setting. The message allows the helper
 to process the file in some way. For example, if the helper works with yaml files
 then the helper can read the yaml files when this message is sent.
@@ -1445,7 +1444,7 @@ private command _loadRegisteredKeyFiles pKey
 
   if tCallbackStack is not empty then
     repeat with i = 1 to the number of elements of sAppA[pKey]
-      dispatch "LoadRegisteredKeyFile" to stack tCallbackStack with sAppA[pKey][i]
+      dispatch "loadRegisteredKeyFile" to stack tCallbackStack with sAppA[pKey][i]
       put the result into tError
 
       if tError is not empty then exit repeat

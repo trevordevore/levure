@@ -343,9 +343,6 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   local tFilename
   local tCallbackStacks
 
-  # Build callbacks
-  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
-
   delete local xAppA["password"]
   delete local xAppA["build folder"]
   delete local xAppA["encrypt stacks"]
@@ -376,13 +373,6 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
   repeat for each item tKey in tKeysToDelete
     delete local xAppA["preferences filename"]["user"][tKey]
     delete local xAppA["preferences filename"]["shared"][tKey]
-  end repeat
-
-  # Send callbacks
-  repeat for each line tFilename in tCallbackStacks
-    log "Dispatching pruneAppArray to stack" && tFilename
-
-    dispatch "pruneAppArray" to stack tFilename with pBuildProfile, xAppA
   end repeat
 
   return empty for error
@@ -417,9 +407,9 @@ private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
   # Send callbacks
   put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
   repeat for each line tFilename in tCallbackStacks
-    log "Dispatching finalizePackageForBuildProfile to stack" && tFilename
+    log "Dispatching finalizePackage to stack" && tFilename
 
-    dispatch "finalizePackageForBuildProfile" to stack tFilename with pBuildProfile, pOutputFolder
+    dispatch "finalizePackage" to stack tFilename with pBuildProfile, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizeBuild
@@ -445,9 +435,9 @@ private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
   # Send callbacks
   put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
   repeat for each line tFilename in tCallbackStacks
-    log "Dispatching postPackagForBuildProfile to stack" && tFilename
+    log "Dispatching packagingComplete to stack" && tFilename
 
-    dispatch "postPackagForBuildProfile" to stack tFilename with pBuildProfile, pOutputFolder
+    dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder
   end repeat
 end _dispatchPostBuild
 
@@ -1110,9 +1100,9 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
             # Send callbacks
             if tError is empty then
               if xAppA["registered components"]["ui"][tKey]["callback stackfile"] is not empty then
-                log "Dispatching postUIAssetPackaged to stack" && xAppA["registered components"]["ui"][tKey]["callback stackfile"]
+                log "Dispatching finalizePackagedUIAsset to stack" && xAppA["registered components"]["ui"][tKey]["callback stackfile"]
 
-                dispatch "postUIAssetPackaged" to stack xAppA["registered components"]["ui"][tKey]["callback stackfile"] \
+                dispatch "finalizePackagedUIAsset" to stack xAppA["registered components"]["ui"][tKey]["callback stackfile"] \
                       with pBuildProfile, tDestFolder
 
                 # Store for unloading at end of packaging
