@@ -102,6 +102,47 @@ end loggerSetTypes
 
 
 /**
+Summary: Opens a palette stack that displays log messages.
+
+Description:
+Use the log monitor to aid in debugging. It can be used in the IDE or in a standalone. For
+example, if you want to open the logger whenever running a `test` standalone add the following
+script to `InitializeApplication`:
+
+```
+command InitializeApplication
+  if levureBuildProfile() is "test" then
+    loggerOpenLogMonitor
+  end if
+
+  #...
+InitializeApplication
+```
+
+Returns: Empty
+*/
+command loggerOpenLogMonitor
+  local tFilename, msgsAreLocked
+
+  put the lockmessages into msgsAreLocked
+  lock messages
+
+  put the filename of me into tFilename
+  set the itemDelimiter to "/"
+  put "logger_monitor.livecodescript" into the last item of tFilename
+  set the width of stack tFilename to 450
+  set the height of stack tFilename to 600
+  set the loc of stack tFilename to the screenloc
+
+  set the lockMessages to msgsAreLocked
+
+  palette stack tFilename
+
+  return empty
+end loggerOpenLogMonitor
+
+
+/**
 Summary: Start logging a specific message type.
 
 pType: `developer`, `network`, `msg`, `extensions`.
