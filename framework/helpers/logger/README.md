@@ -1,5 +1,7 @@
 # logger
 
+# logger
+
 The Logger helper provides an API for managing how debug messages are logged in an application. It provides the following features:
 
 * Sends log output to `console`, a file, or a field.
@@ -11,6 +13,8 @@ The Logger helper provides an API for managing how debug messages are logged in 
 * [Activate the logger framework helper](#activate-the-logger-framework-helper)
 * [Configuring Logging](#configuring-logging)
 * [Logging your own messages](#logging-your-own-messages)
+* [Filtering network traffic](#filtering-network-traffic)
+* [Monitoring log messages while debugging](#monitoring-log-messages-while-debugging)
 * [API](#api)
 
 ## Activate the Logger framework helper
@@ -88,6 +92,10 @@ loggerSetNetworkTrafficFilters tFilter
 
 You can see what the current filters are by calling the `loggerGetNetworkTrafficFilters()` function.
 
+## Monitoring log messages while debugging
+
+The [`loggerOpenLogMonitor`](#loggerOpenLogMonitor) command will open a palette that displays all log messages. This can be helpful when you need to see log messages in order to debug something in the IDE or while running in a standalone.
+
 <br>
 
 ## API
@@ -98,10 +106,22 @@ You can see what the current filters are by calling the `loggerGetNetworkTraffic
 - [loggerGetTypes](#loggerGetTypes)
 - [loggerLogMsg](#loggerLogMsg)
 >
+- [loggerOpenLogMonitor](#loggerOpenLogMonitor)
 - [loggerRemoveType](#loggerRemoveType)
 - [loggerSetNetworkTrafficFilters](#loggerSetNetworkTrafficFilters)
 - [loggerSetTarget](#loggerSetTarget)
 - [loggerSetTypes](#loggerSetTypes)
+- [loggerAddType](#loggerAddType)
+- [loggerGetNetworkTrafficFilters](#loggerGetNetworkTrafficFilters)
+- [loggerGetTarget](#loggerGetTarget)
+- [loggerGetTypes](#loggerGetTypes)
+- [loggerLogMsg](#loggerLogMsg)
+>
+- [loggerOpenLogMonitor](#loggerOpenLogMonitor)
+- [loggerRemoveType](#loggerRemoveType)
+- [loggerSetNetworkTrafficFilters](#loggerSetNetworkTrafficFilters)
+- [loggerSetTarget](#loggerSetTarget)
+- [loggerSetTypes](#loggerSetTypes
 
 
 <br>
@@ -173,6 +193,221 @@ You can see what the current filters are by calling the `loggerGetNetworkTraffic
 | Name | Description |
 |:---- |:----------- |
 | `pMsg` |  The message to log. |
+
+<br>
+
+## <a name="loggerOpenLogMonitor"></a>loggerOpenLogMonitor
+
+**Type**: command
+
+**Syntax**: `loggerOpenLogMonitor `
+
+**Summary**: Opens a palette stack that displays log messages.
+
+**Returns**: Empty
+
+**Description**:
+
+Use the log monitor to aid in debugging. It can be used in the IDE or in a standalone. For
+example, if you want to open the logger whenever running a `test` standalone add the following
+script to `InitializeApplication`:
+
+```
+command InitializeApplication
+  if levureBuildProfile() is "test" then
+    loggerOpenLogMonitor
+  end if
+
+  #...
+InitializeApplication
+```
+
+<br>
+
+## <a name="loggerRemoveType"></a>loggerRemoveType
+
+**Type**: command
+
+**Syntax**: `loggerRemoveType <pType>`
+
+**Summary**: Stop logging a specific message type.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+
+<br>
+
+## <a name="loggerSetNetworkTrafficFilters"></a>loggerSetNetworkTrafficFilters
+
+**Type**: command
+
+**Syntax**: `loggerSetNetworkTrafficFilters <pFilters>`
+
+**Summary**: Registers regex filters that will be applied to libURL messages that are logged.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pFilters` |  A CR-delimited list of filters to apply to libURL messages. Each line is a tab-delimited list where item 1 is a regex pattern and item 2 is the value to use as a replacement. |
+
+**Description**:
+
+You can set network traffic log filters to remove sensitive data from logs that you generate.
+
+<br>
+
+## <a name="loggerSetTarget"></a>loggerSetTarget
+
+**Type**: command
+
+**Syntax**: `loggerSetTarget <pTarget>`
+
+**Summary**: Sets the field where log messages will be sent.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pTarget` |  `console`, `<filename>`, or field reference (e.g. `<the long id field>`). |
+
+**Description**:
+
+You can target the "console", a file, or a field. "console" writes the log message to `stdout`.
+
+<br>
+
+## <a name="loggerSetTypes"></a>loggerSetTypes
+
+**Type**: command
+
+**Syntax**: `loggerSetTypes <pTypes>`
+
+**Summary**: Set the type of messages to log.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pTypes` |  A comma-delimited list of types to log. `developer`, `network`, `msg`, `extensions`. |
+
+**Description**:
+
+Use this command to filter the types of messages that are logged.
+
+`developer`: Any message logged using `loggerLogMsg`.
+`network`: Messages logged by libURL.
+`msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
+`extensions`: Messages logged by an extension using the `log` command in LiveCode Builder.
+
+
+
+## <a name="loggerAddType"></a>loggerAddType
+
+**Type**: command
+
+**Syntax**: `loggerAddType <pType>`
+
+**Summary**: Start logging a specific message type.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+
+<br>
+
+## <a name="loggerGetNetworkTrafficFilters"></a>loggerGetNetworkTrafficFilters
+
+**Type**: function
+
+**Syntax**: `loggerGetNetworkTrafficFilters()`
+
+**Summary**: Returns the list of filters that are being applied to libURL messages.
+
+<br>
+
+## <a name="loggerGetTarget"></a>loggerGetTarget
+
+**Type**: function
+
+**Syntax**: `loggerGetTarget()`
+
+**Summary**: Returns the current target where log messages are sent.
+
+**Returns**: empty, `console`, `<filename>`, or field reference
+
+<br>
+
+## <a name="loggerGetTypes"></a>loggerGetTypes
+
+**Type**: function
+
+**Syntax**: `loggerGetTypes()`
+
+**Summary**: Returns the types of messages that are being logged.
+
+**Returns**: Comma-delimited list
+
+<br>
+
+## <a name="loggerLogMsg"></a>loggerLogMsg
+
+**Type**: command
+
+**Syntax**: `loggerLogMsg <pMsg>`
+
+**Summary**: Logs a message. The message is of type `developer`.
+
+**Returns**: Error message
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMsg` |  The message to log. |
+
+<br>
+
+## <a name="loggerOpenLogMonitor"></a>loggerOpenLogMonitor
+
+**Type**: command
+
+**Syntax**: `loggerOpenLogMonitor `
+
+**Summary**: Opens a palette stack that displays log messages.
+
+**Returns**: Empty
+
+**Description**:
+
+Use the log monitor to aid in debugging. It can be used in the IDE or in a standalone. For
+example, if you want to open the logger whenever running a `test` standalone add the following
+script to `InitializeApplication`:
+
+```
+command InitializeApplication
+  if levureBuildProfile() is "test" then
+    loggerOpenLogMonitor
+  end if
+
+  #...
+InitializeApplication
+```
 
 <br>
 
