@@ -297,7 +297,7 @@ end ulLogIt
 # Message Box
 on msgChanged
   if sLogA["msg"] then
-    _log "Message box" & cr & "Object:" && messageBoxLastObject() & cr & "Message:" && msg
+    _log "Message box" & cr & "Message:" && msg
   end if
   pass msgChanged
 end msgChanged
