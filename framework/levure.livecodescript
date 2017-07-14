@@ -165,7 +165,7 @@ command levurePackageApplication pBuildProfile
   if the environment is not "development" then put "can only be run in development environment" into tError
 
   if tError is empty then
-    _initializePackaging tStackFilename
+    _initializePackaging pBuildProfile, tStackFilename
     put the result into tError
   end if
 
@@ -237,7 +237,7 @@ command levureBuildStandalonesForTesting
   if the environment is not "development" then return "can only be run in development environment"
 
   if tError is empty then
-    _initializePackaging tStackFilename
+    _initializePackaging empty, tStackFilename
     put the result into tError
   end if
 
@@ -253,12 +253,12 @@ command levureBuildStandalonesForTesting
 end levureBuildStandalonesForTesting
 
 
-private command _initializePackaging @rPackagerFilename
+private command _initializePackaging pBuildProfile, @rPackagerFilename
   local tError
   if sAppA is not an array then
     start using me
 
-    levureLoadAppConfig
+    levureLoadAppConfig pBuildProfile
     put the result into tError
   end if
 
@@ -427,7 +427,7 @@ command levureInitializeFramework
   end if
 
   if tError is empty then
-    levureLoadAppConfig
+    levureLoadAppConfig levureBuildProfile()
     put the result into tError
   end if
 
@@ -918,6 +918,8 @@ end levureShutdownApplication
 /**
 Summary: Loads the app configuration data into memory and resolves all file references in it.
 
+pBuildProfile: This will be used to filter out assets using the "build profiles filter" property of each asset.
+
 Description:
 When calling this command in the IDE the app.yml file will be read into memory.
 When calling this command in a standalone the configuration information is stored as a
@@ -932,7 +934,7 @@ answer levureAppGet("name")
 
 Returns: Error message
 */
-command levureLoadAppConfig
+command levureLoadAppConfig pBuildProfile
   local tError
   local tSource
   local tKey
@@ -940,26 +942,31 @@ command levureLoadAppConfig
   # set sAppFolder and load kAppStackName into memory
   loadApplicationStack
 
+  put empty into sAppA["filtered out filenames"]
+
   if (the environment is not "development") and (the uAppA of stack kAppStackName is an array) then
     # Packaged application: app stack is already in memory and all folders have been expanded
+    # All "filenames" need to be expanded. It would probably speed things up to write a specific
+    # handler that searched through all assets, found "filename" properties and expanded them.
+    # Checking build profiles, uniqueness of files, etc. does not need to be done.
     put the uAppA of stack kAppStackName into sAppA
 
-    put expandMessagePathAssetsFileReferenceArray(sAppA["extensions"], sAppFolder, kLiveCodeModule) into sAppA["extensions"]
+    put expandMessagePathAssetsFileReferenceArray(pBuildProfile, sAppA["extensions"], sAppFolder, kLiveCodeModule) into sAppA["extensions"]
 
     repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
-      put expandMessagePathAssetsFileReferenceArray(sAppA[tSource], sAppFolder, kLiveCodeExtensions) into sAppA[tSource]
+      put expandMessagePathAssetsFileReferenceArray(pBuildProfile, sAppA[tSource], sAppFolder, kLiveCodeExtensions) into sAppA[tSource]
     end repeat
 
     repeat for each key tKey in sAppA["registered components"]["ui"]
-      put expandUIAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
+      put expandUIAssetsFileReferenceArray(pBuildProfile, sAppA[tKey], sAppFolder) into sAppA[tKey]
     end repeat
 
     repeat for each key tKey in sAppA["registered components"]["files"]
-      put expandFileAssetsFileReferenceArray(sAppA[tKey], sAppFolder) into sAppA[tKey]
+      put expandFileAssetsFileReferenceArray(pBuildProfile, sAppA[tKey], sAppFolder) into sAppA[tKey]
     end repeat
 
-    put expandHelperAssetsFileReferenceArray(sAppA["helpers"], sAppFolder) into sAppA["helpers"]
-    resolveHelperAssets
+    put expandHelperAssetsFileReferenceArray(pBuildProfile, sAppA["helpers"], sAppFolder) into sAppA["helpers"]
+    resolveHelperAssets pBuildProfile
     put the result into tError
 
   else
@@ -996,7 +1003,7 @@ command levureLoadAppConfig
           else
             put kLiveCodeExtensions into tExtensions
           end if
-          put expandMessagePathAssetsFileReferenceArray(tFilesA, sAppFolder, tExtensions) into sAppA[tSource]
+          put expandMessagePathAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder, tExtensions) into sAppA[tSource]
         end if
       end repeat
 
@@ -1012,8 +1019,8 @@ command levureLoadAppConfig
       end repeat
 
       if the number of elements of tFilesA > 0 then
-        put expandHelperAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA["helpers"]
-        resolveHelperAssets
+        put expandHelperAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA["helpers"]
+        resolveHelperAssets pBuildProfile
         put the result into tError
       end if
 
@@ -1079,7 +1086,7 @@ command levureLoadAppConfig
         end repeat
 
         if the number of elements of tFilesA > 0 then
-          put expandUIAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+          put expandUIAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
         end if
       end repeat
 
@@ -1096,11 +1103,14 @@ command levureLoadAppConfig
         end repeat
 
         if the number of elements of tFilesA > 0 then
-          put expandFileAssetsFileReferenceArray(tFilesA, sAppFolder) into sAppA[tKey]
+          put expandFileAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
         end if
       end repeat
     end if
   end if
+
+  # Cleanup
+  delete local sAppA["filtered out filenames"]
 
   if tError is empty then
     if sAppA is not an array then
@@ -1608,7 +1618,7 @@ command levureBuildExtensions
   if sAppA is not an array then
     start using me
 
-    levureLoadAppConfig
+    levureLoadAppConfig levureBuildProfile()
     put the result into tError
   end if
 
@@ -1723,14 +1733,14 @@ private function shellFormat pArg, pSwitch
 end shellFormat
 
 
-private command resolveHelperAssets
+private command resolveHelperAssets pBuildProfile
   local tError, tConfigA, i
   local tExternalPackagesInMemory
 
   put levureExternalsLoadedInMemory() into tExternalPackagesInMemory
 
   repeat with i = 1 to the number of elements of sAppA["helpers"]
-    resolveHelperFolderAssets sAppA["helpers"][i], tExternalPackagesInMemory
+    resolveHelperFolderAssets pBuildProfile, sAppA["helpers"][i], tExternalPackagesInMemory
     put the result into tError
 
     if tError is not empty then exit repeat
@@ -1745,55 +1755,14 @@ private command resolveHelperAssets
 end resolveHelperAssets
 
 
-private command resolveHelperFolderAssets @xHelperA, pExternalPackagesInMemory
+private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPackagesInMemory
   local tError
-  local tConfigA, tKeys, tAlreadyFilledIn
+  local tConfigA
 
-  # When packaged the array will already be filled in.
-  put the keys of xHelperA into tKeys
-  set the wholematches to true
-  repeat for each item tKey in "libraries,backscripts,frontscripts,behaviors,ui,extensions,externals"
-    if tKey is among the lines of tKeys then
-      put true into tAlreadyFilledIn
-      exit repeat
-    end if
-  end repeat
-
-  if not tAlreadyFilledIn then
-    if there is a file (xHelperA["filename"] & "/helper.yml") then
-      put yamlFileToArray(xHelperA["filename"] & "/helper.yml") into tConfigA
-      put the result into tError
-    else
-      # Load up any ui stacks
-      local tFile, tIsAStack, j
-
-      put 0 into j
-      put empty into tConfigA
-      set the itemDelimiter to "/"
-
-      repeat for each line tFile in fileListing(xHelperA["filename"])
-        put there is a stack tFile into tIsAStack
-        if tIsAStack then
-          add 1 to j
-
-          put the short name of stack tFile into tConfigA["ui"][j]["name"]
-          put the last item of tFile into tConfigA["ui"][j]["filename"]
-          delete stack tFile
-        end if
-      end repeat
-
-      set the itemdelimiter to ","
-    end if
-  else
-    put xHelperA into tConfigA
-  end if
+  put xHelperA into tConfigA
 
   if tError is empty then
     local tPlatform, tTargetPlatform
-
-    put xHelperA["filename"] into tConfigA["filename"]
-    put xHelperA["preload"] is true into tConfigA["preload"]
-    put xHelperA["encrypt"] is not false into tConfigA["encrypt"]
 
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["ui"]
@@ -2108,7 +2077,7 @@ function levureFrameworkFilename
 end levureFrameworkFilename
 
 
-private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder, pExtensions
+private function expandMessagePathAssetsFileReferenceArray pBuildProfile, pFilesA, pRootFolder, pExtensions
   local tFilesA, i, j, tPropsA, tProp
 
   replaceVariablesInPaths pFilesA
@@ -2119,14 +2088,14 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder,
     if pFilesA[i]["folder"] is not empty then
       put resolveFilenameReference(pFilesA[i]["folder"], pRootFolder) into pFilesA[i]["folder"]
 
-      repeat for each item tProp in "distribute,encrypt,autoload"
+      repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
         if tProp is among the keys of pFilesA[i] then
           put pFilesA[i][tProp] into tPropsA[tProp]
         end if
       end repeat
 
       # expand the folder listing. Assume every file is a file to load.
-      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, tPropsA, pExtensions
+      addFolderToFilesArray pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["folder"], tFilesA, tPropsA, pExtensions
 
       put the number of elements of tFilesA into j
 
@@ -2134,7 +2103,8 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder,
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
             into pFilesA[i]["filename"]
 
-      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+      if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) \
+            and isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
 
@@ -2142,7 +2112,7 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder,
           put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
                 into tFilesA[j]["source"]
         end if
-        repeat for each item tProp in "distribute,encrypt,autoload"
+        repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
           if tProp is among the keys of pFilesA[i] then
             put pFilesA[i][tProp] into tFilesA[j][tProp]
           end if
@@ -2155,7 +2125,7 @@ private function expandMessagePathAssetsFileReferenceArray pFilesA, pRootFolder,
 end expandMessagePathAssetsFileReferenceArray
 
 
-private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
+private function expandFileAssetsFileReferenceArray pBuildProfile, pFilesA, pRootFolder
   local tFilesA, i, j, tPropsA, tProp
 
   replaceVariablesInPaths pFilesA
@@ -2173,7 +2143,7 @@ private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
       end repeat
 
       # expand the folder listing. Assume every file is a file to load.
-      addFolderToFilesArray pFilesA[i]["folder"], tFilesA, tPropsA
+      addFolderToFilesArray pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["folder"], tFilesA, tPropsA
 
       put the number of elements of tFilesA into j
 
@@ -2181,7 +2151,8 @@ private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
             into pFilesA[i]["filename"]
 
-      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+      if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) \
+            and isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
         add 1 to j
 
         # Move over all defined keys (filename will be included)
@@ -2196,8 +2167,10 @@ private function expandFileAssetsFileReferenceArray pFilesA, pRootFolder
 end expandFileAssetsFileReferenceArray
 
 
-private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
-  local tFilesA, i, j
+private function expandHelperAssetsFileReferenceArray pBuildProfile, pFilesA, pRootFolder
+  local tError, tFilesA, tFileA, i, j, tProp
+
+  set the wholematches to true
 
   replaceVariablesInPaths pFilesA
 
@@ -2209,32 +2182,114 @@ private function expandHelperAssetsFileReferenceArray pFilesA, pRootFolder
       local tFile
 
       repeat for each line tFile in folderListing(pFilesA[i]["folder"])
-        if isFilenameUniqueInFilesArray(tFile, tFilesA) then
-          add 1 to j
-          put tFile into tFilesA[j]["filename"]
-          if "preload" is among the keys of pFilesA[i] then
-            put pFilesA[i]["preload"] into tFilesA[j]["preload"]
+        if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], tFile) \
+              and isFilenameUniqueInFilesArray(tFile, tFilesA) then
+          put empty into tFileA
+          put tFile into tFileA["filename"]
+
+          # Merge in helper config information
+          loadHelperConfigurationFile tFileA
+          put the result into tError
+
+          if tError is empty then
+            # Should it be packaged up?
+            if _isFileIncludedInBuildProfile(pBuildProfile, tFileA["build profiles filter"], tFile) then
+              add 1 to j
+              put tFileA into tFilesA[j]
+            end if
           end if
         end if
       end repeat
     else if pFilesA[i]["filename"] is not empty then
       put resolveFilenameReference(pFilesA[i]["filename"], pRootFolder) \
             into pFilesA[i]["filename"]
-      if isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
-        add 1 to j
-        put pFilesA[i] into tFilesA[j]
-        if "preload" is among the keys of pFilesA[i] then
-          put pFilesA[i]["preload"] into tFilesA[j]["preload"]
+
+      if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) \
+            and isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        # Merge in helper config information
+        loadHelperConfigurationFile pFilesA[i]
+        put the result into tError
+
+        if tError is empty then
+          # Should it be packaged up?
+          if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) then
+            add 1 to j
+            put pFilesA[i] into tFilesA[j]
+          end if
         end if
       end if
     end if
   end repeat
 
-  return tFilesA
+  if tError is not empty then
+    return tError for error
+  else
+    return tFilesA for value
+  end if
 end expandHelperAssetsFileReferenceArray
 
 
-private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
+/**
+Summary: Fill in a helper using the helper.yml file
+*/
+private command loadHelperConfigurationFile @xHelperA
+  local tError, tKeys, tKey, tAlreadyFilledIn, tConfigA
+
+  # When packaged the array will already be filled in.
+  put the keys of xHelperA into tKeys
+  set the wholematches to true
+  repeat for each item tKey in "libraries,backscripts,frontscripts,behaviors,ui,extensions,externals"
+    if tKey is among the lines of tKeys then
+      put true into tAlreadyFilledIn
+      exit repeat
+    end if
+  end repeat
+
+  if not tAlreadyFilledIn then
+    if there is a file (xHelperA["filename"] & "/helper.yml") then
+      put yamlFileToArray(xHelperA["filename"] & "/helper.yml") into tConfigA
+      put the result into tError
+    else
+      # Load up any ui stacks
+      local tFile, tIsAStack, j
+
+      put 0 into j
+      put empty into tConfigA
+      set the itemDelimiter to "/"
+
+      repeat for each line tFile in fileListing(xHelperA["filename"])
+        put there is a stack tFile into tIsAStack
+        if tIsAStack then
+          add 1 to j
+
+          put the short name of stack tFile into tConfigA["ui"][j]["name"]
+          put the last item of tFile into tConfigA["ui"][j]["filename"]
+          delete stack tFile
+        end if
+      end repeat
+    end if
+  else
+    put xHelperA into tConfigA
+  end if
+
+  # Move properties defined in app.yml into array created from helper.yml
+  put xHelperA["filename"] into tConfigA["filename"]
+  put xHelperA["preload"] is true into tConfigA["preload"]
+  put xHelperA["encrypt"] is not false into tConfigA["encrypt"]
+
+  # Merge user defined "build profiles filter" with any defined profiles in helper.yml
+  if xHelperA["build profiles filter"] is not empty then
+    put xHelperA["build profiles filter"] into \
+          item (the number of items of tConfigA["build profiles filter"]) + 1 of tConfigA["build profiles filter"]
+  end if
+
+  put tConfigA into xHelperA
+
+  return tError for error
+end loadHelperConfigurationFile
+
+
+private function expandUIAssetsFileReferenceArray pBuildProfile, pFilesA, pRootFolder
   local tFilesA, i, j
   local tProp, tPropsA
 
@@ -2249,14 +2304,14 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
       # expand the folder listing. Assume every folder is a ui to load.
       local tFolder
 
-      repeat for each item tProp in "distribute,encrypt"
+      repeat for each item tProp in "distribute,build profiles filter,encrypt"
         if tProp is among the keys of pFilesA[i] then
           put pFilesA[i][tProp] into tPropsA[tProp]
         end if
       end repeat
 
       repeat for each line tFolder in folderListing(pFilesA[i]["folder"])
-        addUIStacksToFilesArray tFolder, tFilesA, tPropsA
+        addUIStacksToFilesArray pBuildProfile, pFilesA[i]["build profiles filter"], tFolder, tFilesA, tPropsA
       end repeat
       put the number of elements of tFilesA into j
 
@@ -2267,22 +2322,24 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
       # If filename points to a folder then load up the entire folder
       # Otherwise the target is a single file within the ui folder. Probably using different encryption setting.
       if there is a folder pFilesA[i]["filename"] then
-        repeat for each item tProp in "distribute,encrypt"
+        repeat for each item tProp in "distribute,build profiles filter,encrypt"
           if tProp is among the keys of pFilesA[i] then
             put pFilesA[i][tProp] into tPropsA[tProp]
           end if
         end repeat
-        addUIStacksToFilesArray pFilesA[i]["filename"], tFilesA, tPropsA
+        addUIStacksToFilesArray pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"], tFilesA, tPropsA
         put the number of elements of tFilesA into j
       else
         # points directly to a stack file
         put ensureStackNameIsPresent(pFilesA[i]) into pFilesA[i]
 
-        if pFilesA[i]["name"] is not empty AND isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
+        if pFilesA[i]["name"] is not empty \
+              and _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) \
+              and isFilenameUniqueInFilesArray(pFilesA[i]["filename"], tFilesA) then
           add 1 to j
           put pFilesA[i]["filename"] into tFilesA[j]["filename"]
           put pFilesA[i]["name"] into tFilesA[j]["name"]
-          repeat for each item tProp in "distribute,encrypt"
+          repeat for each item tProp in "distribute,build profiles filter,encrypt"
             if tProp is among the keys of pFilesA[i] then
               put pFilesA[i][tProp] into tFilesA[j][tProp]
             end if
@@ -2296,7 +2353,7 @@ private function expandUIAssetsFileReferenceArray pFilesA, pRootFolder
 end expandUIAssetsFileReferenceArray
 
 
-private command addFolderToFilesArray pFolder, @xFilesA, pPropsA, pExtensions
+private command addFolderToFilesArray pBuildProfile, pBuildProfilesFilter, pFolder, @xFilesA, pPropsA, pExtensions
   local tFolder, tFiles, tFile, tProp, i
 
   put the number of elements of xFilesA into i
@@ -2307,7 +2364,8 @@ private command addFolderToFilesArray pFolder, @xFilesA, pPropsA, pExtensions
   end if
 
   repeat for each line tFile in tFiles
-    if isFilenameUniqueInFilesArray(tFile, xFilesA) then
+    if _isFileIncludedInBuildProfile(pBuildProfile, pBuildProfilesFilter, tFile) \
+          and isFilenameUniqueInFilesArray(tFile, xFilesA) then
       add 1 to i
       put tFile into xFilesA[i]["filename"]
       repeat for each key tProp in pPropsA
@@ -2317,14 +2375,14 @@ private command addFolderToFilesArray pFolder, @xFilesA, pPropsA, pExtensions
   end repeat
 
   repeat for each line tFolder in folderListing(pFolder)
-    addFolderToFilesArray tFolder, xFilesA, pPropsA, pExtensions
+    addFolderToFilesArray pBuildProfile, pBuildProfilesFilter, tFolder, xFilesA, pPropsA, pExtensions
   end repeat
 
   return empty for value
 end addFolderToFilesArray
 
 
-private command addUIStacksToFilesArray pFolder, @xFilesA, pPropsA
+private command addUIStacksToFilesArray pBuildProfile, pBuildProfilesFilter, pFolder, @xFilesA, pPropsA
   local tError, tFiles, tFile, tFileA, tKey, i
 
   put the number of elements of xFilesA into i
@@ -2333,7 +2391,8 @@ private command addUIStacksToFilesArray pFolder, @xFilesA, pPropsA
   filter tFiles with regex pattern regExForFileExtensions(kLiveCodeExtensions)
 
   repeat for each line tFile in tFiles
-    if not isFilenameUniqueInFilesArray(tFile, xFilesA) then
+    if not _isFileIncludedInBuildProfile(pBuildProfile, pBuildProfilesFilter, tFile) \
+          or not isFilenameUniqueInFilesArray(tFile, xFilesA) then
       next repeat
     end if
 
@@ -2522,6 +2581,46 @@ private function fileListing pFilename
 
   return tFullPathFiles for value
 end fileListing
+
+
+/**
+Summary: Returns true if pString passes pFilter
+*/
+private function _isFileIncludedInBuildProfile pString, pFilter, pTargetFilename
+  set the wholematches to true
+  if pTargetFilename is among the lines of sAppA["filtered out filenames"] then return false
+
+  if pFilter is empty then return true
+
+  local tFilter
+  local tPerformedAPositiveMatchCheck = "false"
+
+  repeat for each item tFilter in pFilter
+    if char 1 of tFilter is "!" then
+      # Match means false
+      if pString is char 2 to -1 of tFilter then
+        put pTargetFilename & cr after sAppA["filtered out filenames"]
+        return false
+      end if
+    else
+      # Match means true
+      if pString is tFilter then
+        return true
+      else
+        put true into tPerformedAPositiveMatchCheck
+      end if
+    end if
+  end repeat
+
+  # If nothing matched but a check for a positive match was performed then
+  # return false. Otherwise return true.
+  if tPerformedAPositiveMatchCheck then
+    put pTargetFilename & cr after sAppA["filtered out filenames"]
+    return false
+  else
+    return true
+  end if
+end _isFileIncludedInBuildProfile
 
 
 /**

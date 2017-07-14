@@ -47,7 +47,9 @@ Returns: Empty
 */
 command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   local tError, tBuildProfile, tBuildStandalone, tStandaloneBuilderPlatforms
-  local tSubFolder, tOutputFolder, tAppFolder, tStandaloneFolder
+  local tSubFolder, tOutputFolder, tAppFolder, tPlatformFilter
+
+  levureLoadAppConfig pBuildProfile
 
   put levureAppGetConfig() into sAppA
   put pBuildProfile into tBuildProfile
@@ -64,6 +66,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put true into tBuildStandalone
     put kStandaloneBuilderPlatforms into tStandaloneBuilderPlatforms
   end if
+
+  put sAppA["build profiles"][pBuildProfile]["platform filter"] into tPlatformFilter
 
   _performPackagingPrechecks pStandaloneStackFilename, pBuildProfile
   put the result into tError
@@ -106,10 +110,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     put the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename into tExtensionsBuiltIntoStandalone
 
     repeat for each item tBuildPlatform in tStandaloneBuilderPlatforms
-      if not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
-
       put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
+
+      if not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
       if tPlatform is "macos" and the platform is not "macos" then next repeat
+      if not _shouldBuildForPlatform(tPlatform, tPlatformFilter) then next repeat
 
       # Create folder for copy files
       log "packaging for platform:" && tPlatform
@@ -204,7 +209,21 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       if tError is empty then
         # Refresh after having unloaded for standalone builder
-        levureLoadAppConfig
+        levureLoadAppConfig pBuildProfile
+
+        _dispatchFinalizeBuildForPlatform pBuildProfile, tPlatform, sAppA, tAppFolder, tOutputFolder & "/" & tPlatform
+
+        # dispatch and then sign macos bundle
+        if tPlatform is "macos" then
+          _signMacOSApplication pBuildProfile, sAppA, tOutputFolder & "/" & tPlatform
+          put the result into tError
+        end if
+
+        if tPlatform is "macos" and pBuildProfile is "mac app store" then
+          log "Packaging for Mac App Store"
+          _packageForMAS sAppA, tOutputFolder & "/" & tPlatform
+          put the result into tError
+        end if
       end if
 
       # If not building standalone then leave folder in place. We are building for a simulator.
@@ -284,14 +303,14 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Create single stack for each and move all as substacks of single stack.
   # For libraries, frontscripts, and backscripts store a custom property with order to load them in.
   if tError is empty then
-    _packageAssetStacks xAppA, pOutputFolder
+    _packageAssetStacks pBuildProfile, xAppA, pOutputFolder
     put the result into tError
   end if
 
   # Extensions
   # Move straight across
   if tError is empty then
-    _packageExtensions xAppA, pOutputFolder, the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename
+    _packageExtensions pBuildProfile, xAppA, pOutputFolder, the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename
     put the result into tError
   end if
 
@@ -315,7 +334,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Files
   # Move straight over
   if tError is empty then
-    _packageFiles xAppA, pOutputFolder
+    _packageFiles pBuildProfile, xAppA, pOutputFolder
     put the result into tError
   end if
 
@@ -822,6 +841,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
       repeat with i = 1 to the number of elements of tFilesA
         # Don't process an empty entry
         if tFilesA[i]["filename"] is empty then next repeat
+        if not _doesStringPassFilter(pBuildProfile, tFilesA[i]["build profiles filter"]) then next repeat
 
         put _resolveRelativeFilenameReference(tFilesA[i]["filename"], pRootFolder) into tFilename
 
@@ -883,10 +903,8 @@ end _copyFiles
 
 
 private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder, pExecutableOutputFolder
-  local tError, i
-  local tPlatformKey, tKey
-
-  set the itemdelimiter to "/"
+  local tError, i, tIndex, tHelpersA
+  local tPlatformKey, tRootFolder
 
   if the number of elements of xAppA["helpers"] > 0 then
     if pPlatform is "win32" then put "windows" into tPlatformKey
@@ -894,174 +912,247 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
 
     log "Packaging Helpers for platform" && pPlatform
 
-    local tDestFolder, tExecutableDestFolder, tFolder
-    local j, k
-    local tRootFolder, tExclusions
-
-    # When creating all folders make sure we work from a common root folder
-    if pExecutableOutputFolder ends with ".app/Contents/MacOS" then
-      put item 1 to -3 of pOutputFolder into tRootFolder
-    else
-      put pOutputFolder into tRootFolder
-    end if
-
     repeat with i = 1 to the number of elements of xAppA["helpers"]
-      put empty into tExclusions
-      put pOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tDestFolder
-      put pExecutableOutputFolder & "/helpers/" & the last item of xAppA["helpers"][i]["filename"] into tExecutableDestFolder
-
-      if xAppA["helpers"][i]["distribute"] is false then
+      if not _shouldAssetBeDistributed(xAppA["helpers"][i], pBuildProfile) then
         log "  Skipping helper:" && xAppA["helpers"][i]["filename"]
         next repeat
       end if
 
-      log "  Adding helper:" && xAppA["helpers"][i]["filename"]
-
-      packagerCreateAllFoldersInPath tDestFolder, tRootFolder
+      _packageHelper pBuildProfile, xAppA["helpers"][i], pOutputFolder, pExecutableOutputFolder, tPlatformKey
       put the result into tError
 
+      # Create new array with excluded elements removed
       if tError is empty then
-
-        # ui, libraries, frontscripts, backscripts, and behaviors
-        repeat for each item tKey in "ui/libraries/frontscripts/backscripts/behaviors"
-          repeat with j = 1 to the number of elements of xAppA["helpers"][i][tKey]
-            log "  Adding" && tKey && "helper file:" && xAppA["helpers"][i][tKey][j]["filename"]
-            log "    to folder:" && tDestFolder
-
-            _fileCopyFile xAppA["helpers"][i][tKey][j]["filename"], tDestFolder
-            put the result into tError
-
-            if tError is empty then
-              if xAppA["helpers"][i]["encrypt"] is false OR xAppA["helpers"][i][tKey][j]["encrypt"] is false then
-                put tDestFolder & "/" & the last item of xAppA["helpers"][i][tKey][j]["filename"] & cr after tExclusions
-              end if
-
-              replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i][tKey][j]["filename"]
-            end if
-
-            if tError is not empty then exit repeat
-          end repeat
-
-          if tError is not empty then exit repeat
-        end repeat
-
-        # externals
-        repeat for each key tKey in xAppA["helpers"][i]["externals"]
-          if tKey is not tPlatformKey then
-            delete local xAppA["helpers"][i]["externals"][tKey]
-          else
-            repeat with j = 1 to the number of elements of xAppA["helpers"][i]["externals"][tPlatformKey]
-              log "  Adding external helper file:" && xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
-              log "    to folder:" && tExecutableDestFolder
-
-              packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
-              put the result into tError
-
-              if tError is empty then
-                if there is a file xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"] then
-                  _fileCopyFile xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"], tExecutableDestFolder
-                else
-                  _fileCopyFolder xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"], \
-                      tExecutableDestFolder & "/" & the last item of xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
-                end if
-                put the result into tError
-              end if
-
-              if tError is empty then
-                replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["externals"][tPlatformKey][j]["filename"]
-              end if
-
-              if tError is not empty then exit repeat
-            end repeat
-          end if
-        end repeat
-
-        # extensions
-        if tError is empty then
-          repeat with j = 1 to the number of elements of xAppA["helpers"][i]["extensions"]
-            log "  Adding extension helper file:" && xAppA["helpers"][i]["extensions"][j]["filename"]
-            log "    to folder:" && tExecutableDestFolder
-
-            packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
-            put the result into tError
-
-            if tError is empty then
-              _fileCopyFile xAppA["helpers"][i]["extensions"][j]["filename"], tExecutableDestFolder
-              put the result into tError
-            end if
-
-            if tError is empty then
-              if xAppA["helpers"][i]["extensions"][j]["resource folder"] is not empty then
-                log "  Adding extension helper resource folder:" && xAppA["helpers"][i]["extensions"][j]["resource folder"]
-                log "    to folder:" && tDestFolder
-
-                _fileCopyFolder xAppA["helpers"][i]["extensions"][j]["resource folder"], tDestFolder
-                put the result into tError
-
-                if tError is empty then
-                  replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["extensions"][j]["resource folder"]
-                end if
-              end if
-            end if
-
-            if tError is empty then
-              replace (xAppA["helpers"][i]["filename"] & "/") with empty in xAppA["helpers"][i]["extensions"][j]["filename"]
-            end if
-
-            if tError is not empty then exit repeat
-          end repeat
-        end if
-
-        # Move over any other files and folders
-        repeat for each line tFolder in _folderListing(xAppA["helpers"][i]["filename"])
-          if not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
-            log "  Adding extension helper additional folder:" && tFolder
-            log "    to folder:" && tDestFolder & "/" & the last item of tFolder
-
-            _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
-            put the result into tError
-          end if
-
-          if tError is not empty then exit repeat
-        end repeat
-
-        repeat for each line tFile in _fileListing(xAppA["helpers"][i]["filename"])
-          if there is not a file (tDestFolder & "/" & the last item of tFile) then
-            log "  Adding extension helper additional file:" && tFile
-            log "    to folder:" && tDestFolder
-
-            _fileCopyFile tFile, tDestFolder
-            put the result into tError
-          end if
-
-          if tError is not empty then exit repeat
-        end repeat
-
-        if tError is empty then
-          _processStacksInFolder tDestFolder, sPassword, tExclusions
-          put the result into tError
-        end if
+        add 1 to tIndex
+        put xAppA["helpers"][i] into tHelpersA[tIndex]
       end if
-
-      put "helpers/" & the last item of xAppA["helpers"][i]["filename"] into xAppA["helpers"][i]["filename"]
 
       if tError is not empty then exit repeat
     end repeat
+
+    # Store reindexed version of array
+    put tHelpersA into xAppA["helpers"]
   end if
 
   return tError for error
 end _packageHelpers
 
 
+private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecutableOutputFolder, pPlatform
+  local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFolder
+  local tKey, i
+  local tRootFolder
+  local tIndex, tHelpersA
+
+  set the itemdelimiter to "/"
+
+  put pOutputFolder & "/helpers/" & the last item of xHelperA["filename"] into tDestFolder
+  put pExecutableOutputFolder & "/helpers/" & the last item of xHelperA["filename"] into tExecutableDestFolder
+
+  # When creating all folders make sure we work from a common root folder
+  if pExecutableOutputFolder ends with ".app/Contents/MacOS" then
+    put item 1 to -3 of pOutputFolder into tRootFolder
+  else
+    put pOutputFolder into tRootFolder
+  end if
+
+  log "  Adding helper:" && xHelperA["filename"]
+
+  packagerCreateAllFoldersInPath tDestFolder, tRootFolder
+  put the result into tError
+
+  if tError is empty then
+
+    # ui, libraries, frontscripts, backscripts, and behaviors
+    repeat for each item tKey in "ui/libraries/frontscripts/backscripts/behaviors"
+      put empty into tHelpersA
+      put 0 into tIndex
+
+      repeat with i = 1 to the number of elements of xHelperA[tKey]
+        if not _shouldAssetBeDistributed(xHelperA[tKey][i], pBuildProfile) then
+          log "  Skipping helper" && tKey && ":" && xHelperA[tKey]["filename"]
+          next repeat
+        end if
+
+        log "  Adding" && tKey && "helper file:" && xHelperA[tKey][i]["filename"]
+        log "    to folder:" && tDestFolder
+
+        _fileCopyFile xHelperA[tKey][i]["filename"], tDestFolder
+        put the result into tError
+
+        if tError is empty then
+          if xHelperA["encrypt"] is false OR xHelperA[tKey][i]["encrypt"] is false then
+            put tDestFolder & "/" & the last item of xHelperA[tKey][i]["filename"] & cr after tExclusions
+          end if
+
+          replace (xHelperA["filename"] & "/") with empty in xHelperA[tKey][i]["filename"]
+
+          # Create new array with excluded elements removed
+          add 1 to tIndex
+          put xHelperA[tKey][i] into tHelpersA[tIndex]
+        end if
+
+        if tError is not empty then exit repeat
+      end repeat
+
+      # Store reindexed version of array
+      if tError is empty then
+        put tHelpersA into xHelperA[tKey]
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    # externals
+    repeat for each key tKey in xHelperA["externals"]
+      if tKey is not pPlatform then
+        delete local xHelperA["externals"][tKey]
+      else
+        put empty into tHelpersA
+        put 0 into tIndex
+
+        repeat with i = 1 to the number of elements of xHelperA["externals"][pPlatform]
+          if not _shouldAssetBeDistributed(xHelperA["externals"][pPlatform][i], pBuildProfile) then
+            log "  Skipping helper external:" && xHelperA["externals"][pPlatform][i]["filename"]
+            next repeat
+          end if
+
+          log "  Adding external helper file:" && xHelperA["externals"][pPlatform][i]["filename"]
+          log "    to folder:" && tExecutableDestFolder
+
+          packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+          put the result into tError
+
+          if tError is empty then
+            if there is a file xHelperA["externals"][pPlatform][i]["filename"] then
+              _fileCopyFile xHelperA["externals"][pPlatform][i]["filename"], tExecutableDestFolder
+            else
+              _fileCopyFolder xHelperA["externals"][pPlatform][i]["filename"], \
+                  tExecutableDestFolder & "/" & the last item of xHelperA["externals"][pPlatform][i]["filename"]
+            end if
+            put the result into tError
+          end if
+
+          if tError is empty then
+            replace (xHelperA["filename"] & "/") with empty in xHelperA["externals"][pPlatform][i]["filename"]
+
+            # Create new array with excluded elements removed
+            add 1 to tIndex
+            put xHelperA["externals"][pPlatform][i] into tHelpersA[tIndex]
+          end if
+
+          if tError is not empty then exit repeat
+        end repeat
+
+        # Store reindexed version of array
+        if tError is empty then
+          put tHelpersA into xHelperA["externals"][pPlatform]
+        end if
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    # extensions
+    if tError is empty then
+      put empty into tHelpersA
+      put 0 into tIndex
+
+      repeat with i = 1 to the number of elements of xHelperA["extensions"]
+        if not _shouldAssetBeDistributed(xHelperA["extensions"][i], pBuildProfile) then
+          log "  Skipping helper extension:" && xHelperA["extensions"][i]["filename"]
+          next repeat
+        end if
+
+        log "  Adding extension helper file:" && xHelperA["extensions"][i]["filename"]
+        log "    to folder:" && tExecutableDestFolder
+
+        packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
+        put the result into tError
+
+        if tError is empty then
+          _fileCopyFile xHelperA["extensions"][i]["filename"], tExecutableDestFolder
+          put the result into tError
+        end if
+
+        if tError is empty then
+          if xHelperA["extensions"][i]["resource folder"] is not empty then
+            log "  Adding extension helper resource folder:" && xHelperA["extensions"][i]["resource folder"]
+            log "    to folder:" && tDestFolder
+
+            _fileCopyFolder xHelperA["extensions"][i]["resource folder"], tDestFolder
+            put the result into tError
+
+            if tError is empty then
+              replace (xHelperA["filename"] & "/") with empty in xHelperA["extensions"][i]["resource folder"]
+            end if
+          end if
+        end if
+
+        if tError is empty then
+          replace (xHelperA["filename"] & "/") with empty in xHelperA["extensions"][i]["filename"]
+
+          # Create new array with excluded elements removed
+          add 1 to tIndex
+          put xHelperA["extensions"][i] into tHelpersA[tIndex]
+        end if
+
+        if tError is not empty then exit repeat
+      end repeat
+
+      # Store reindexed version of array
+      if tError is empty then
+        put tHelpersA into xHelperA["extensions"]
+      end if
+    end if
+
+    # Move over any other files and folders
+    repeat for each line tFolder in _folderListing(xHelperA["filename"])
+      if not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
+        log "  Adding extension helper additional folder:" && tFolder
+        log "    to folder:" && tDestFolder & "/" & the last item of tFolder
+
+        _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
+        put the result into tError
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    repeat for each line tFile in _fileListing(xHelperA["filename"])
+      if there is not a file (tDestFolder & "/" & the last item of tFile) then
+        log "  Adding extension helper additional file:" && tFile
+        log "    to folder:" && tDestFolder
+
+        _fileCopyFile tFile, tDestFolder
+        put the result into tError
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    if tError is empty then
+      _processStacksInFolder tDestFolder, sPassword, tExclusions
+      put the result into tError
+    end if
+  end if
+
+  put "helpers/" & the last item of xHelperA["filename"] into xHelperA["filename"]
+
+  return tError
+end _packageHelper
+
+
 private command _packageUI pBuildProfile, @xAppA, pOutputFolder
   local tError
-  local tCompsA, tKey, i
+  local tCompsA, tIndex, tKey, i
   local tComponentFolder
 
   set the itemdelimiter to "/"
 
   repeat for each key tKey in xAppA["registered components"]["ui"]
     put empty into tCompsA
+    put 0 into tIndex
 
     if the number of elements of xAppA[tKey] > 0 then
       log "Packaging" && tKey
@@ -1073,7 +1164,10 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
         local tDestFolder
 
         repeat with i = 1 to the number of elements of xAppA[tKey]
-          if xAppA[tKey][i]["distribute"] is false then next repeat
+          if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
+            log "  Skipping ui asset" && tKey && ":" && xAppA[tKey][i]["filename"]
+            next repeat
+          end if
 
           put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
 
@@ -1113,8 +1207,9 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
             beep
           end if
 
-          put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[i]["filename"]
-          put xAppA[tKey][i]["name"] into tCompsA[i]["name"]
+          add 1 to tIndex
+          put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[tIndex]["filename"]
+          put xAppA[tKey][i]["name"] into tCompsA[tIndex]["name"]
 
           if tError is not empty then exit repeat
         end repeat
@@ -1130,7 +1225,7 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
 end _packageUI
 
 
-private command _packageFiles @xAppA, pOutputFolder
+private command _packageFiles pBuildProfile, @xAppA, pOutputFolder
   local tError
   local tCompsA, tKey, tProp, i
   local tComponentFolder
@@ -1140,14 +1235,17 @@ private command _packageFiles @xAppA, pOutputFolder
   repeat for each key tKey in xAppA["registered components"]["files"]
     put empty into tCompsA
 
-    if xAppA["registered components"]["files"][tKey]["distribute"] is not false and the number of elements of xAppA[tKey] > 0 then
+    if _shouldAssetBeDistributed(xAppA["registered components"]["files"][tKey], pBuildProfile) and the number of elements of xAppA[tKey] > 0 then
       log "Packaging" && tKey
 
       if tError is empty then
         local tFilename
 
         repeat with i = 1 to the number of elements of xAppA[tKey]
-          if xAppA[tKey][i]["distribute"] is false then next repeat
+          if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
+            log "  Skipping file asset" && tKey && ":" && xAppA[tKey][i]["filename"]
+            next repeat
+          end if
 
           put xAppA[tKey][i]["filename"] into tFilename
           replace levureAppFolder() with pOutputFolder in tFilename
@@ -1182,6 +1280,49 @@ private command _packageFiles @xAppA, pOutputFolder
 
   return tError
 end _packageFiles
+
+
+private function _shouldAssetBeDistributed pAssetA, pBuildProfile
+  if pAssetA["distribute"] is false then return false
+  else return true
+end _shouldAssetBeDistributed
+
+
+private function _shouldBuildForPlatform pPlatform, pFilter
+  return _doesStringPassFilter(pPlatform, pFilter)
+end _shouldBuildForPlatform
+
+
+/**
+Summary: Returns true if pString passes pFilter
+*/
+private function _doesStringPassFilter pString, pFilter
+  if pFilter is empty then return true
+
+  local tFilter
+
+  repeat for each item tFilter in pFilter
+    if char 1 of tFilter is "!" then
+      # Match means false
+      if pString is char 2 to -1 of tFilter then
+        return false
+      end if
+    else
+      # Match means true
+      if pString is tFilter then
+        return true
+      end if
+    end if
+  end repeat
+
+  # If nothing matched but a check for a positive match was performed then
+  # return false. Otherwise return true.
+  if tPerformedAPositiveMatchCheck then
+    return false
+  else
+    return true
+  end if
+end _doesStringPassFilter
 
 
 private command _processStacksInFolder pFolder, pPassword, pExclusions
@@ -1253,9 +1394,9 @@ private command _unloadStackAndStackFiles pStack
 end _unloadStackAndStackFiles
 
 
-private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
+private command _packageExtensions pBuildProfile, @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
   local tError
-  local tExtsA, i, j
+  local tExtsA, tIndex, i
 
   set the itemdelimiter to "/"
   set the wholematches to true
@@ -1266,7 +1407,7 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
     repeat with i = 1 to the number of elements of xAppA["extensions"]
       # We don't need to add extensions that are being built with the standalone
       if _getKindFromExtensionFile(xAppA["extensions"][i]["filename"]) is not among the lines of pExtensionsBuiltIntoStandalone \
-          and xAppA["extensions"][i]["distribute"] is not false then
+            and _shouldAssetBeDistributed(xAppA["extensions"][i], pBuildProfile) then
         if there is not a folder (pOutputFolder & "/extensions") then
           create folder (pOutputFolder & "/extensions")
           put _errorMsg("creating the extensions folder [" & pOutputFolder & "/extensions" & "]", the result) into tError
@@ -1275,15 +1416,14 @@ private command _packageExtensions @xAppA, pOutputFolder, pExtensionsBuiltIntoSt
           end if
         end if
 
-        add 1 to j
-
         log "  Adding extension:" && xAppA["extensions"][i]["filename"]
 
         _fileCopyFile xAppA["extensions"][i]["filename"], pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"]
         put _errorMsg("copying file [" & xAppA["extensions"][i]["filename"] & "] to [" & pOutputFolder & "/extensions/" & the last item of xAppA["extensions"][i]["filename"] & "]", the result) into tError
 
         if tError is empty then
-          put "extensions/" & the last item of xAppA["extensions"][i]["filename"] into tExtsA[j]["filename"]
+          add 1 to tIndex
+          put "extensions/" & the last item of xAppA["extensions"][i]["filename"] into tExtsA[tIndex]["filename"]
 
           if xAppA["extensions"][i]["resource folder"] is not empty then
             # TODO: need to copy the resource folder and make sure it has a unique name
@@ -1342,7 +1482,7 @@ private function _getKindFromExtensionFile pFilename
 end _getKindFromExtensionFile
 
 
-private command _packageAssetStacks @xAppA, pOutputFolder
+private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
   local tError, i
   local tStacksToLoad
   local tStackName, tFilename
@@ -1362,6 +1502,8 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
+        if not _shouldAssetBeDistributed(xAppA["behaviors"][i], pBuildProfile) then next repeat
+
         if xAppA["behaviors"][i]["encrypt"] is not false and sPassword is not empty then
           # Just in case there are duplicate entries in array
           if the password of stack xAppA["behaviors"][i]["filename"] is empty then
@@ -1404,6 +1546,8 @@ private command _packageAssetStacks @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
+        if not _shouldAssetBeDistributed(xAppA[tAssetType][i], pBuildProfile) then next repeat
+
         if xAppA[tAssetType][i]["encrypt"] is not false and sPassword is not empty then
           # Just in case there are duplicate entries in array
           if the password of stack xAppA[tAssetType][i]["filename"] is empty then
