@@ -47,7 +47,7 @@ behaviors:
 build folder: ../builds
 build profiles:
   all profiles:
-    post build script:
+    packager callbacks stackfile:
     certificates:
       macos:
         name:
