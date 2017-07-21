@@ -1979,7 +1979,10 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
     put pOutputFolder & "/" & tFolder & "/" & the last item of levureStandaloneFilename() into tAppBundle
     if there is not a folder tAppBundle then next repeat
 
-    put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
+    put pAppA["build profiles"][pBuildProfile]["certificates"]["macos"]["name"] into tCertName
+    if tCertName is empty then
+      put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
+    end if
 
     if tCertName is not empty then
       local isMAS
