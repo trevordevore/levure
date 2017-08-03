@@ -308,7 +308,9 @@ command levureLoadExternalEditorServer pPort
   put tStackPath into the last item of tStackFilename
   if there is a stack tStackFilename then
     if pPort is not an integer then
-      put levureAppGetENV("EXTERNAL_EDITOR_PORT") into pPort
+      local tEnvA
+      put levureAppGetENV() into tEnvA
+      put tEnvA["EXTERNAL_EDITOR_PORT"] into pPort
     end if
     dispatch "levureExternalEditorStartServer" to stack tStackFilename with pPort
   else
