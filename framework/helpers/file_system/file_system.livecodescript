@@ -606,7 +606,7 @@ command fileSystemAddToRecentlyOpened pCategory, pFile, pTag, pSecurityBookmark
   end if
 
   prefsSetPref "recently opened:" && pCategory, tFilesA
-  prefsSavePrefs
+  prefsSave
   put the result into tError
 
   return tError
@@ -644,7 +644,7 @@ command fileSystemRemoveFromRecentlyOpened pCategory, pFile
   end if
 
   prefsSetPref "recently opened:" && pCategory, tFilesA
-  prefsSavePrefs
+  prefsSave
   put the result into tError
 
   return tError
