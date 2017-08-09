@@ -922,8 +922,14 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
         next repeat
       end if
 
-      _packageHelper pBuildProfile, xAppA["helpers"][i], pOutputFolder, pExecutableOutputFolder, tPlatformKey
-      put the result into tError
+      if there is not a folder xAppA["helpers"][i]["filename"] then
+        put "helper folder not found:" && xAppA["helpers"][i]["filename"] into tError
+      end if
+
+      if tError is empty then
+        _packageHelper pBuildProfile, xAppA["helpers"][i], pOutputFolder, pExecutableOutputFolder, tPlatformKey
+        put the result into tError
+      end if
 
       # Create new array with excluded elements removed
       if tError is empty then
