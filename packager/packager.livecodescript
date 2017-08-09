@@ -823,7 +823,9 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
   set the itemdelimiter to "/"
 
   if tError is empty then
-    local tDestination, tFilesA, tKey, tIndex
+    local tDestination, tFilesA, tKey, tIndex, tMaintainFilenameFolderStructure
+
+    log "Copying files for" && pTargetPlatform
 
     repeat for each item tProfile in "all profiles/" & pBuildProfile
       # Build list of files to copy over. Start with known files for target platform.
@@ -847,22 +849,31 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
         if tFilesA[i]["filename"] is empty then next repeat
         if not _doesStringPassFilter(pBuildProfile, tFilesA[i]["build profiles filter"]) then next repeat
 
-        put _resolveRelativeFilenameReference(tFilesA[i]["filename"], pRootFolder) into tFilename
+        put not (tFilesA[i]["filename"] begins with "../") into tMaintainFilenameFolderStructure
 
         # Figure out destination
         put tFilesA[i]["destination"] into tDestination
         if tDestination is empty then
-          put pDestinationFolder into tDestination
+          # If filename is not relative and contains a folder reference then use same folder structure when moving to destination.
+          if tMaintainFilenameFolderStructure and the number of items of tFilesA[i]["filename"] > 1 then
+            put pDestinationFolder & "/" & item 1 to -2 of tFilesA[i]["filename"] into tDestination
+          else
+            put pDestinationFolder into tDestination
+          end if
         else
           put pDestinationFolder & "/" & tDestination into tDestination
-
-          packagerCreateAllFoldersInPath tDestination, pDestinationFolder
-          put _errorMsg("creating folder" && tDestination, the result) into tError
         end if
+
+        packagerCreateAllFoldersInPath tDestination, pDestinationFolder
+        put _errorMsg("creating folder" && tDestination, the result) into tError
 
         # Copy file or folder
         if tError is empty then
+          put _resolveRelativeFilenameReference(tFilesA[i]["filename"], pRootFolder) into tFilename
+
           if there is a file tFilename then
+            log "  Copying file" && tFilename && "to" && tDestination
+
             put URL("binfile:" & tFilename) into tFiledata
 
             # Send callbacks
