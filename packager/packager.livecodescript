@@ -1008,6 +1008,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
     # externals
     repeat for each key tKey in xHelperA["externals"]
       if tKey is not pPlatform then
+        log "  Skipping helper external platform" && tKey && ", target platform:" && pPlatform
         delete local xHelperA["externals"][tKey]
       else
         put empty into tHelpersA
