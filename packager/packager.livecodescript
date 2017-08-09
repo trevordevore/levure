@@ -127,8 +127,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         put _errorMsg("creating copy files temp folder [" & tCopyFilesTempFolder & "] [" & tTempFolder & "]", the result) into tError
       end if
 
-      _dispatchFinalizePackagedAssets pBuildProfile, tAppA
-
       # Copy over all files
       if tError is empty then
         _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tAppA, tPlatform, tCopyFilesTempFolder
@@ -145,6 +143,10 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       if tError is empty then
         _copyFiles pBuildProfile, "all platforms", tAppA, tAppFolder, tCopyFilesTempFolder
         put the result into tError
+      end if
+
+      if tError is empty then
+        _dispatchFinalizePackagedAssets pBuildProfile, tAppA
       end if
 
       # Prune and move in app stack
