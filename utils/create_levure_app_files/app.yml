@@ -62,3 +62,4 @@ build profiles:
       android:
   release:
   beta:
+  development:
