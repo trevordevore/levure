@@ -1119,18 +1119,6 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
       if tError is not empty then exit repeat
     end repeat
 
-    repeat for each line tFile in _fileListing(xHelperA["filename"])
-      if there is not a file (tDestFolder & "/" & the last item of tFile) then
-        log "  Adding extension helper additional file:" && tFile
-        log "    to folder:" && tDestFolder
-
-        _fileCopyFile tFile, tDestFolder
-        put the result into tError
-      end if
-
-      if tError is not empty then exit repeat
-    end repeat
-
     if tError is empty then
       _processStacksInFolder tDestFolder, sPassword, tExclusions
       put the result into tError
