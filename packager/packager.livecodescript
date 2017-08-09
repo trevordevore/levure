@@ -289,8 +289,10 @@ end packagerPackageApplication
 
 private command _setPassword pStackName, pPassword
   if revLicenseType() is not "community" then
-    log "  Encrypting stack" && pStackName
-    set the password of stack pStackName to pPassword
+    if pPassword is not empty then
+      log "  Encrypting stack" && pStackName
+      set the password of stack pStackName to pPassword
+    end if
   else
     log "  Skipping encryption in Community edition" && pStackName
   end if
