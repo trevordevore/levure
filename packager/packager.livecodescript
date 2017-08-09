@@ -1106,10 +1106,10 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
       end if
     end if
 
-    # Move over any other files and folders
+    # Move over any other folders
     repeat for each line tFolder in _folderListing(xHelperA["filename"])
-      if not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
-        log "  Adding extension helper additional folder:" && tFolder
+      if not (the last item of tFolder begins with ".") AND not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
+        log "  Adding helper additional folder:" && tFolder
         log "    to folder:" && tDestFolder & "/" & the last item of tFolder
 
         _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
