@@ -419,7 +419,7 @@ put tA["version"]
 
 Returns: Error message
 */
-command levureInitializeFramework pRootFolder
+command levureInitializeFramework
   local tError
 
   if the long id of me is the long id of this me OR word 1 of the long id of me is not "stack" then
