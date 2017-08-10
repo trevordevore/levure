@@ -198,7 +198,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         local tCopyFiles
         put _createCopyFilesListFromFolder(tCopyFilesTempFolder) into tCopyFiles
 
-        log "copy files list for platform" && tPlatform & ":" & cr & tCopyFiles
+        log "Build: copy files list for platform" && tPlatform & ":" & cr & tCopyFiles
 
         if tBuildStandalone then
           packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, pBuildProfile, \
@@ -676,7 +676,6 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
 
     set the cRevStandaloneSettings["files"] of stack tTempStandaloneStack to pCopyFiles
 
-    log "Build: copy files list:" & cr & pCopyFiles
     log "Build: Saving temporary stack with IDE call"
 
     revIDESaveStack the long id of stack tTempStandaloneStack
