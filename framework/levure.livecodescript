@@ -2031,6 +2031,7 @@ function levureStandaloneFilename
       case "macos"
         put specialFolderPath("engine") into tFilename
         delete item -2 to -1 of tFilename # /Contents/MacOS
+        put the last item of tFilename into tFilename
         break
       case "win32"
       case "linux"
