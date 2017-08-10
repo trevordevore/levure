@@ -1294,7 +1294,7 @@ end createSubfolders
 
 private command loadEarlyHelpers
   local tError
-  local tStackFiles
+  local tStackFiles, tLoaded
   local i, j
 
   put the stackFiles of stack kAppStackName into tStackFiles
@@ -1315,6 +1315,10 @@ private command loadEarlyHelpers
       if tError is empty then
         repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
           put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
+
+          if sAppA["helpers"][i]["ui"][j]["autoload"] then
+            put there is a stack sAppA["helpers"][i]["ui"][j]["filename"] into tLoaded
+          end if
         end repeat
       end if
 
@@ -1333,7 +1337,7 @@ private command loadAppAssets
   local tError
   local tRenameAnswerDialog = "false"
   local tRenameAskDialog = "false"
-  local tStackFiles, i
+  local tStackFiles, tLoaded, i
 
   # "registered components.ui"
   if tError is empty then
@@ -1346,6 +1350,10 @@ private command loadAppAssets
       repeat with i = 1 to the number of elements of sAppA[tKey]
         put sAppA[tKey][i]["name"] & "," & \
               sAppA[tKey][i]["filename"] & cr after tStackFiles
+
+        if sAppA[tKey][i]["autoload"] then
+          put there is a stack sAppA[tKey][i]["filename"] into tLoaded
+        end if
 
         # If app uses custom Ask/Answer dialogs then rename LiveCode ones
         if sAppA[tKey][i]["name"] is "Answer Dialog" then
@@ -1366,6 +1374,9 @@ private command loadAppAssets
       if sAppA["helpers"][i]["preload"] then next repeat
       repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
         put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
+        if sAppA["helpers"][i]["ui"][j]["autoload"] then
+          put there is a stack sAppA["helpers"][i]["ui"][j]["filename"] into tLoaded
+        end if
       end repeat
     end repeat
 
@@ -2304,7 +2315,7 @@ private function expandUIAssetsFileReferenceArray pBuildProfile, pFilesA, pRootF
       # expand the folder listing. Assume every folder is a ui to load.
       local tFolder
 
-      repeat for each item tProp in "distribute,build profiles filter,encrypt"
+      repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
         if tProp is among the keys of pFilesA[i] then
           put pFilesA[i][tProp] into tPropsA[tProp]
         end if
@@ -2322,7 +2333,7 @@ private function expandUIAssetsFileReferenceArray pBuildProfile, pFilesA, pRootF
       # If filename points to a folder then load up the entire folder
       # Otherwise the target is a single file within the ui folder. Probably using different encryption setting.
       if there is a folder pFilesA[i]["filename"] then
-        repeat for each item tProp in "distribute,build profiles filter,encrypt"
+        repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
           if tProp is among the keys of pFilesA[i] then
             put pFilesA[i][tProp] into tPropsA[tProp]
           end if
@@ -2339,7 +2350,7 @@ private function expandUIAssetsFileReferenceArray pBuildProfile, pFilesA, pRootF
           add 1 to j
           put pFilesA[i]["filename"] into tFilesA[j]["filename"]
           put pFilesA[i]["name"] into tFilesA[j]["name"]
-          repeat for each item tProp in "distribute,build profiles filter,encrypt"
+          repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
             if tProp is among the keys of pFilesA[i] then
               put pFilesA[i][tProp] into tFilesA[j][tProp]
             end if
