@@ -1220,6 +1220,7 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
           add 1 to tIndex
           put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[tIndex]["filename"]
           put xAppA[tKey][i]["name"] into tCompsA[tIndex]["name"]
+          put xAppA[tKey][i]["autoload"] into tCompsA[tIndex]["autoload"]
 
           if tError is not empty then exit repeat
         end repeat
