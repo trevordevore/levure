@@ -676,6 +676,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
 
     set the cRevStandaloneSettings["files"] of stack tTempStandaloneStack to pCopyFiles
 
+    log "Build: copy files list:" & cr & pCopyFiles
     log "Build: Saving temporary stack with IDE call"
 
     revIDESaveStack the long id of stack tTempStandaloneStack
@@ -1171,7 +1172,7 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
       put _errorMsg("creating folder" && pOutputFolder & "/" & tKey, the result) into tError
 
       if tError is empty then
-        local tDestFolder
+        local tDestFolder, tExclusions
 
         repeat with i = 1 to the number of elements of xAppA[tKey]
           if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
@@ -1179,6 +1180,7 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
             next repeat
           end if
 
+          put empty into tExclusions
           put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
 
           log "  Adding component:" && xAppA[tKey][i]["filename"]
@@ -1191,8 +1193,6 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
             put _errorMsg("copying folder" && tComponentFolder && "to" && tDestFolder, the result) into tError
 
             if tError is empty then
-              local tExclusions
-
               if xAppA[tKey][i]["encrypt"] is false then
                 put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tExclusions
               end if
