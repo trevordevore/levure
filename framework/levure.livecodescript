@@ -144,8 +144,8 @@ project in a version control system) or in the `.env` file that sits alongside t
 During the packaging process any properties defined in the `build profiles` > `all profiles` and `build profiles` > `pBuildProfile`
 sections of your `app.yml` file will affect how the application is packaged. Below is a description of properties you can define.
 
-The `packager callback stackfiles` property in `app.yml` points to a stack that will receive the `finalizePackagedAssets pBuildProfile, @xAppA`,
-`finalizePackage pBuildProfile, pOutputFolder`, and `packagingComplete pBuildProfile, pOutputFolder` messages.
+The `packager callback stackfiles` property in `app.yml` points to a stack that will receive the `finalizePackagedAssets pBuildProfile, pBuildProfile, @xAppA`,
+`finalizePackageForPlatform pBuildProfile, pPlatform, pOutputFolder`, and `packagingComplete pBuildProfile, pOutputFolder` messages.
 
 The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on macOS.
 The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
