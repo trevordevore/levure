@@ -76,19 +76,14 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   log "[" & the system date & "] Packaging app using profile" && pBuildProfile
 
   if tError is empty then
-    local tOutputAppFolder, tExtensionsBuiltIntoStandalone, tTempFolder, tCopyFilesTempFolder
+    local tExtensionsBuiltIntoStandalone, tTempFolder, tCopyFilesTempFolder
 
     put levureAppFolder() into tAppFolder
-    put levureStandaloneFolder() into tStandaloneFolder
 
     put the temporary folder into tTempFolder
     put tTempFolder & "/levure-copy-files-" & the milliseconds into tCopyFilesTempFolder
 
     if tBuildStandalone then
-      put tAppFolder into tOutputAppFolder
-      replace tStandaloneFolder with empty in tOutputAppFolder
-      if tOutputAppFolder begins with "/" then delete char 1 of tOutputAppFolder
-
       put levureAppGet("version") & "-" & levureAppGet("build") into tSubFolder
       put levureBuildFolder() & "/" & pBuildProfile & "/" & tSubFolder into tOutputFolder
 
@@ -146,7 +141,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
 
       if tError is empty then
-        _dispatchFinalizePackagedAssets pBuildProfile, tAppA
+        _dispatchFinalizePackagedAssets pBuildProfile, tPlatform, tAppA
       end if
 
       # Prune and move in app stack
@@ -246,19 +241,11 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       put the result into tError
     end if
 
-    # dispatch and then sign macos bundle
-    if tError is empty then
-      _dispatchFinalizeBuild pBuildProfile, sAppA, tOutputFolder
-
-      _signMacOSApplication pBuildProfile, sAppA, tOutputFolder
-      put the result into tError
-    end if
-
     if tError is empty then
       log "Dispatching post build message"
-      _dispatchPostBuild pBuildProfile, sAppA, tOutputFolder
+      _dispatchPackagingComplete pBuildProfile, sAppA, tOutputFolder
 
-      if pBuildProfile is "mas" or pBuildProfile is "Mac App Store" then
+      if pBuildProfile is "mas" or pBuildProfile is "mac app store" then
         log "----------" & cr & "Packaging for MAS" & cr & "----------"
         _packageForMAS sAppA, tOutputFolder
         put the result into tError
@@ -424,21 +411,21 @@ private function _packagerCallbackStacks pAppA, pBuildProfile
 end _packagerCallbackStacks
 
 
-private command _dispatchFinalizeBuild pBuildProfile, pAppA, pOutputFolder
+private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pAppA, pOutputFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
   put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
   repeat for each line tFilename in tCallbackStacks
-    log "Dispatching finalizePackage to stack" && tFilename
+    log "Dispatching finalizePackageForPlatform to stack" && tFilename
 
-    dispatch "finalizePackage" to stack tFilename with pBuildProfile, pOutputFolder
+    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
-end _dispatchFinalizeBuild
+end _dispatchFinalizeBuildForPlatform
 
 
-private command _dispatchFinalizePackagedAssets pBuildProfile, @xAppA
+private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA
   local tCallbackStacks, tFilename
 
   # Send callbacks
@@ -446,13 +433,13 @@ private command _dispatchFinalizePackagedAssets pBuildProfile, @xAppA
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching finalizePackagedAssets to stack" && tFilename
 
-    dispatch "finalizePackagedAssets" to stack tFilename with pBuildProfile, xAppA
+    dispatch "finalizePackagedAssets" to stack tFilename with pBuildProfile, pPlatform, xAppA
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizePackagedAssets
 
 
-private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
+private command _dispatchPackagingComplete pBuildProfile, pAppA, pOutputFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
@@ -462,7 +449,7 @@ private command _dispatchPostBuild pBuildProfile, pAppA, pOutputFolder
 
     dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder
   end repeat
-end _dispatchPostBuild
+end _dispatchPackagingComplete
 
 
 command packagerBuildStandaloneForTesting pStandaloneStackFilename
