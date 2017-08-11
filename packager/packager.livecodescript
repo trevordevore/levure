@@ -1976,18 +1976,13 @@ private command _packageForMAS pAppA, pOutputFolder
 end _packageForMAS
 
 
-private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
-  local tError, tFolder, tFolders, tCertName, tAppBundle
+private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
+  local tError, tCertName, tAppBundle
 
   set the itemdelimiter to "/"
 
-  put "macos" into tFolders
-  replace "," with "/" in tFolders
-
-  repeat for each item tFolder in tFolders
-
-    put pOutputFolder & "/" & tFolder & "/" & the last item of levureStandaloneFilename() into tAppBundle
-    if there is not a folder tAppBundle then next repeat
+  put pFolderWithMacApp & "/" & the last item of levureStandaloneFilename() into tAppBundle
+  if there is a folder tAppBundle then
 
     put pAppA["build profiles"][pBuildProfile]["certificates"]["macos"]["name"] into tCertName
     if tCertName is empty then
@@ -2047,11 +2042,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pOutputFolder
       end if
 
     end if
-
-    if tError is not empty then
-      exit repeat
-    end if
-  end repeat
+  end if
 
   return tError for error
 end _signMacOSApplication
