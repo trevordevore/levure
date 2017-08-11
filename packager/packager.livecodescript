@@ -129,7 +129,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       # Copy over all files
       if tError is empty then
-        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tAppA, tPlatform, tCopyFilesTempFolder
+        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tPlatform, tAppA, tCopyFilesTempFolder
         put the result into tError
       end if
 
@@ -300,7 +300,7 @@ private command _setPassword pStackName, pPassword
 end _setPassword
 
 
-private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, @xAppA, pPlatform, pOutputFolder
+private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, pPlatform, @xAppA, pOutputFolder
   local tError
 
   # Behaviors, Libraries, Frontscripts, Backscripts
