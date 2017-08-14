@@ -31,7 +31,7 @@ command PreloadApplication
       end repeat
 
       put arrayEncode(tPrefsA) into URL("binfile:" & tPreferenceFile)
-      appReloadPrefs "user"
+      prefsReload "user"
     end if
   end if
 end PreloadApplication
