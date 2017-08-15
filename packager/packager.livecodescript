@@ -1363,6 +1363,7 @@ private function _doesStringPassFilter pString, pFilter
   if pFilter is empty then return true
 
   local tFilter
+  local tPerformedAPositiveMatchCheck = "false"
 
   repeat for each item tFilter in pFilter
     if char 1 of tFilter is "!" then
@@ -1374,6 +1375,8 @@ private function _doesStringPassFilter pString, pFilter
       # Match means true
       if pString is tFilter then
         return true
+      else
+        put true into tPerformedAPositiveMatchCheck
       end if
     end if
   end repeat
