@@ -303,7 +303,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Move straight across.
   # Convert script only stacks to regular stacks
   if tError is empty then
-    _packageUI pBuildProfile, xAppA, pOutputFolder
+    _packageUI pBuildProfile, pPlatform, xAppA, pOutputFolder
     put the result into tError
   end if
 
@@ -1206,7 +1206,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
 end _packageHelper
 
 
-private command _packageUI pBuildProfile, @xAppA, pOutputFolder
+private command _packageUI pBuildProfile,pPlatform,  @xAppA, pOutputFolder
   local tError
   local tCompsA, tIndex, tKey, i
   local tComponentFolder
@@ -1259,7 +1259,7 @@ private command _packageUI pBuildProfile, @xAppA, pOutputFolder
                 log "Dispatching finalizePackagedUIAsset to stack" && xAppA["registered components"]["ui"][tKey]["callback stackfile"]
 
                 dispatch "finalizePackagedUIAsset" to stack xAppA["registered components"]["ui"][tKey]["callback stackfile"] \
-                      with pBuildProfile, tDestFolder
+                      with pBuildProfile, pPlatform, tDestFolder
 
                 # Store for unloading at end of packaging
                 put "" into sCallbackStacksA[ xAppA["registered components"]["ui"][tKey]["callback stackfile"] ]
