@@ -1,7 +1,7 @@
 script "Levure Framework Application Packager"
 constant kStandaloneBuilderPlatforms = "MacOSX x86-32,MacOSX x86-64,Windows,Linux,Linux x64,Linux armv6-hf,iOS,Android,Emscripten"
 constant kPlatformsThatCantTest = "iOS,Android,Emscripten"
-local sAppA, sPassword, sBuildLogFile, sCallbackStacksA
+local sAppA, sPassword, sBuildLogFile, sCallbackStacksA, sBuildStandaloneA
 
 on libraryStack
   if the target is not me then pass libraryStack
@@ -197,7 +197,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
         if tBuildStandalone then
           packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, pBuildProfile, \
-                tSubFolder, tCopyFiles
+                tSubFolder, tCopyFiles, tAppA
           put the result into tError
         else
           set the cRevStandaloneSettings["files"] of stack pStandaloneStackFilename to tCopyFiles
@@ -244,12 +244,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     if tError is empty then
       log "Dispatching post build message"
       _dispatchPackagingComplete pBuildProfile, sAppA, tOutputFolder
-
-      if pBuildProfile is "mas" or pBuildProfile is "mac app store" then
-        log "----------" & cr & "Packaging for MAS" & cr & "----------"
-        _packageForMAS sAppA, tOutputFolder
-        put the result into tError
-      end if
     end if
   end if
 
@@ -411,7 +405,7 @@ private function _packagerCallbackStacks pAppA, pBuildProfile
 end _packagerCallbackStacks
 
 
-private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pAppA, pOutputFolder
+private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
@@ -419,7 +413,7 @@ private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pApp
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching finalizePackageForPlatform to stack" && tFilename
 
-    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pOutputFolder
+    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pAppFolder, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizeBuildForPlatform
@@ -470,7 +464,7 @@ command packagerBuildStandaloneForTesting pStandaloneStackFilename
     if tBuildPlatform is among the items of kPlatformsThatCantTest \
           OR not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
 
-    packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, tBuildProfile, empty
+    packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, tBuildProfile, empty, sAppA
     put the result into tError
 
     if tError is empty then
@@ -494,13 +488,18 @@ command packagerBuildStandaloneForTesting pStandaloneStackFilename
 end packagerBuildStandaloneForTesting
 
 
-command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pBuildProfile, pSubfolder, pCopyFiles
+command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pBuildProfile, pSubfolder, pCopyFiles, pPrunedAppA
   local tError
   local buildForDistribution, tTempBuildFolder, tSourceFolder, tOutputFolder
 
   if the keys of sAppA is empty then
     put levureAppGetConfig() into sAppA
   end if
+  put levureAppFolder() into sBuildStandaloneA["app folder"]
+  put pBuildProfile into sBuildStandaloneA["build profile"]
+  put _buildPlatformToLevurePlatform(pBuildForPlatform) into sBuildStandaloneA["target platform"]
+  put _packagerCallbackStacks(sAppA, pBuildProfile) into sBuildStandaloneA["callback stacks"]
+  put pPrunedAppA into sBuildStandaloneA["app array"]
 
   put tolower(pBuildProfile) into pBuildProfile
 
@@ -682,7 +681,14 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
       log "Build: revSaveAsStandalone"
 
       revSetTestEnvironment true
-      set the itemdelimiter to "."
+
+      # Intercept standaloneSaved and dispatch custom message.
+      local tFrontScriptFilename
+
+      put the filename of me into tFrontScriptFilename
+      set the itemDelimiter to "/"
+      put "packager_frontscript.livecodescript" into the last item of tFrontScriptFilename
+      insert script of stack tFrontScriptFilename into front
 
       # This will trigger a "purge stack" error for the levureFramework stack. The stack in question resides
       # in the tmp stack where LiveCode builds the standalone. My guess is that the
@@ -695,6 +701,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
       put e into tError
     finally
       revSetTestEnvironment false
+      remove script of stack tFrontScriptFilename from front
+      put empty into sBuildStandaloneA
     end try
   end if
 
@@ -735,6 +743,63 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
 
   return tError
 end packagerBuildStandalones
+
+
+command packagerStandaloneSaved pFolderSavedIn
+  local tStack, tError
+
+  if the last char of pFolderSavedIn is "/" then delete the last char of pFolderSavedIn
+
+  if sBuildStandaloneA["target platform"] is "macos" then
+    local tAppBundle
+
+    # Use .app bundle path
+    put folders(pFolderSavedIn) into tAppBundle
+    filter tAppBundle with "*.app"
+    put pFolderSavedIn & "/" & tAppBundle into pFolderSavedIn
+
+    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sAppA, \
+          sBuildStandaloneA["app folder"], pFolderSavedIn & "/Contents/Resources"
+    put the result into tError
+  end if
+
+  if tError is empty then
+    repeat for each line tStack in sBuildStandaloneA["callback stacks"]
+      dispatch "finalizeStandaloneForPlatform" to stack tStack \
+            with sBuildStandaloneA["build profile"], sBuildStandaloneA["target platform"], \
+            sBuildStandaloneA["app array"], sBuildStandaloneA["app folder"], pFolderSavedIn
+    end repeat
+  end if
+
+  if tError is not empty then
+    answer error "Unable to copy `macos resources` files:" && tError & "."
+  end if
+end packagerStandaloneSaved
+
+
+command packagerMobileStandaloneSaved pTargetType, pAppBundle
+  local tStack, tError
+
+  if the last char of pAppBundle is "/" then delete the last char of pAppBundle
+
+  if sBuildStandaloneA["target platform"] is "macos" then
+    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sAppA, \
+          sBuildStandaloneA["app folder"], pAppBundle & "/Contents/Resources"
+    put the result into tError
+  end if
+
+  if tError is empty then
+    repeat for each line tStack in sBuildStandaloneA["callback stacks"]
+      dispatch "finalizeStandaloneForPlatform" to stack tStack \
+            with sBuildStandaloneA["build profile"], sBuildStandaloneA["target platform"], \
+            sBuildStandaloneA["app array"], sBuildStandaloneA["app folder"], pAppBundle
+    end repeat
+  end if
+
+  if tError is not empty then
+    answer error "Unable to copy `macos resources` files:" && tError & "."
+  end if
+end packagerMobileStandaloneSaved
 
 
 private function _packagerCallbacksStackFile pAppA, pBuildProfile
@@ -802,7 +867,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
 
-  if pTargetPlatform is not among the items of "package folder,all platforms,macos,windows,linux,ios,android,emscripten" then \
+  if pTargetPlatform is not among the items of "package folder,all platforms,macos,macos resources,windows,linux,ios,ios resources,android,emscripten" then \
         throw "invalid target platform for copy files action:" && pTargetPlatform
 
   put tolower(pBuildProfile) into pBuildProfile
@@ -840,6 +905,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
 
         # Figure out destination
         put tFilesA[i]["destination"] into tDestination
+
         if tDestination is empty then
           # If filename is not relative and contains a folder reference then use same folder structure when moving to destination.
           if tMaintainFilenameFolderStructure and the number of items of tFilesA[i]["filename"] > 1 then
@@ -1938,13 +2004,13 @@ private function _findRangeForPlistEntry pData, pEntry
 end _findRangeForPlistEntry
 
 
-private command _packageForMAS pAppA, pOutputFolder
+private command _packageForMAS pAppA, pFolderWithMacApp
   local tAppBundle, tCertName
-  local tPackage, tCmd
+  local tPackage, tCmd, tResult
 
   set the itemdelimiter to "/"
 
-  put pOutputFolder & "/MacOS/" & the last item of levureStandaloneFilename() into tAppBundle
+  put pFolderWithMacApp & "/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
   put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
@@ -1954,11 +2020,11 @@ private command _packageForMAS pAppA, pOutputFolder
   put "pkg" into item -1 of tPackage
 
   put format("productbuild --component \"%s\" /Applications --sign \"3rd Party Mac Developer Installer: %s\" \"%s\"", tAppBundle, tCertName, tPackage) into tCmd
-  get shell(tCmd)
+  put shell(tCmd) into tResult
   if the result > 0 then
-    return it
+    return tResult for error
   else
-    return empty
+    return empty for value
   end if
 end _packageForMAS
 
