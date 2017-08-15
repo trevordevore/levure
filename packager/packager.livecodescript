@@ -1454,7 +1454,7 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForPlatform, pB
   set the itemdelimiter to "/"
 
   if pBuildForDistribution then
-    revMoveFolder tFolderContainingBuild, pOutputFolder
+    _moveFolder tFolderContainingBuild, pOutputFolder
     put _errorMsg("moving folder [" & tFolderContainingBuild & "] to [" & pOutputFolder & "]", the result) into tError
 
     if tError is empty then
@@ -2396,6 +2396,58 @@ private function _escapeForShell pStr
 
   return pStr
 end _escapeForShell
+
+
+on _moveFolder pSrcFolder, pDestFolder
+  local tError,tResult, tExitCode
+
+  if the platform is "MacOS" then
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+    put shell ("mv -f" && pSrcFolder && pDestFolder) into tResult
+    put the result into tExitCode
+
+  else if the platform is "Win32" then
+    if the last char of pSrcFolder is "/" then delete the last char of pSrcFolder
+    if the last char of pDestFolder is "/" then delete the last char of pDestFolder
+    set the itemDelimiter to slash
+    put "/" & the last item of pSrcFolder after pDestFolder
+
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+
+    # Note: `move` fails on networks paths like \\mypath\file.
+    # Use `robocopy` or `xcopy` instead.
+    if _isWindowsVistaOrNewer() then
+      ## VISTA INTRODUCED ROBOCOPY. XCOPY WAS FAILING WITH COPIES TO PARALLELS NETWORK SHARE
+      put shell ("robocopy" && pSrcFolder && pDestFolder && "/e /nfl /ndl /ns /nc /njh /njs") into tResult
+    else
+      put shell ("xcopy" && pSrcFolder && pDestFolder && "/y /v /i /e /r /h") into tResult
+    end if
+    put the result into tExitCode
+
+    if tExitCode is empty then ## exit code is number of affected files
+      revDeleteFolder pSrcFolder
+    end if
+
+  else -- linux
+    put _escapeForShell(pSrcFolder) into pSrcFolder
+    put _escapeForShell(pDestFolder) into pDestFolder
+    put shell ("mv -f" && pSrcFolder && pDestFolder) into tResult
+    put the result into tExitCode
+  end if
+
+  if tExitCode is not empty then
+    put line 1 of tResult into tError
+  end if
+
+  return tError
+end _moveFolder
+
+
+private function _isWindowsVistaOrNewer
+  return word 1 of the systemVersion is "NT" and word 2 of the systemVersion >= 6.0
+end _isWindowsVistaOrNewer
 
 
 private function _printArray pArray, pDimension, pFullData
