@@ -2128,7 +2128,7 @@ command _signAndStrip pBundle, pCertificate, pMas, pSignFile
   end if
 
   if tError is empty then
-    _signFile pBundle, pCertificate, pMas
+    _signFile pBundle, pCertificate
     put the result into tError
   end if
 
@@ -2137,7 +2137,7 @@ end _signAndStrip
 
 
 # Signs a file or folder
-private command _signFile pFilename, pCertificate, pMas
+private command _signFile pFilename, pCertificate
   local tEntitlementsFile, tCmd, tError
 
   if tError is empty then
@@ -2243,7 +2243,7 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSi
       repeat for each line tFile in tFiles
         if the platform is "macos" AND \
               (item 1 of the itemDelimiter > 10 OR item 1 of the systemVersion = 10 AND item 2 of the systemVersion >= 9) then
-          _signFile pFolder & "/" & tFile, pCertificate, pMAS
+          _signFile pFolder & "/" & tFile, pCertificate
           put the result into tError
         end if
 
