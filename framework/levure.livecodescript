@@ -191,7 +191,9 @@ Move along. Nothing to see here.
 */
 command packagerDidFinishPackagingApplication pStandaloneStackFilename, pBuildProfile
   # Remove from memory after packaging is complete
-  delete stack "Levure Framework Application Packager FrontScript"
+  if there is a stack "Levure Framework Application Packager FrontScript" then
+    delete stack "Levure Framework Application Packager FrontScript"
+  end if
   delete stack "Levure Framework Application Packager"
 
   if pBuildProfile is among the items of "ios simulator,android simulator" then
@@ -209,7 +211,9 @@ Move along. Nothing to see here.
 */
 command packagerDidFinishBuildingStandaloneForTesting
   # Remove from memory after building standalone is complete
-  delete stack "Levure Framework Application Packager FrontScript"
+  if there is a stack "Levure Framework Application Packager FrontScript" then
+    delete stack "Levure Framework Application Packager FrontScript"
+  end if
   delete stack "Levure Framework Application Packager"
 end packagerDidFinishBuildingStandaloneForTesting
 
