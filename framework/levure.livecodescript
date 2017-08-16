@@ -665,6 +665,19 @@ end levureAppGetConfig
 
 
 /**
+Summary: Returns a text representation of the internal array that was created when reading the `app.yml` file.
+
+Example:
+put levureAppPrintConfig()
+
+Returns: Array
+*/
+function levureAppPrintConfig
+  return _printArray(sAppA,,true)
+end levureAppPrintConfig
+
+
+/**
 Summary: Returns an environmental variable stored in the `.env` file.
 
 Description:
