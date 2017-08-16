@@ -100,7 +100,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   if tError is empty then
     local tPlatform, tBuildPlatform
     local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
-    local tMacOSEngineFolder
+    local tCertName
 
     put the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename into tExtensionsBuiltIntoStandalone
 
@@ -113,6 +113,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       # Create folder for copy files
       log "packaging for platform:" && tPlatform
+
+      _determineSigningCertificate pBuildProfile, tPlatform, sAppA
 
       # Create version of app array that will be modfiied and stored with package
       put sAppA into tAppA
@@ -266,6 +268,28 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
   send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile" to stack pStandaloneStackFilename in 10 milliseconds
 end packagerPackageApplication
+
+
+private command _determineSigningCertificate pBuildProfile, pPlatform, @xAppA
+  local tCertName
+
+  put xAppA["build profiles"][pBuildProfile]["certificates"][pPlatform]["name"] into tCertName
+  if tCertName is empty then
+    put xAppA["build profiles"]["all profiles"]["certificates"][pPlatform]["name"] into tCertName
+  end if
+
+  if tCertName is not empty then
+    if pBuildProfile is "mac app store" then
+      put "3rd Party Mac Developer Application:" && tCertName into tCertName
+    else if pBuildProfile is "mac app store development" then
+      put "Mac Developer:" && tCertName into tCertName
+    else
+      put "Developer ID Application:" && tCertName into tCertName
+    end if
+
+    put tCertName into xAppA[pPlatform && "signing certificate"]
+  end if
+end _determineSigningCertificate
 
 
 private command _setPassword pStackName, pPassword
@@ -2008,7 +2032,7 @@ end _findRangeForPlistEntry
 
 
 private command _packageForMAS pAppA, pFolderWithMacApp
-  local tAppBundle, tCertName
+  local tAppBundle
   local tPackage, tCmd, tResult
 
   set the itemdelimiter to "/"
@@ -2016,13 +2040,11 @@ private command _packageForMAS pAppA, pFolderWithMacApp
   put pFolderWithMacApp & "/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
-
   set the itemdelimiter to "."
   put tAppBundle into tPackage
   put "pkg" into item -1 of tPackage
 
-  put format("productbuild --component \"%s\" /Applications --sign \"3rd Party Mac Developer Installer: %s\" \"%s\"", tAppBundle, tCertName, tPackage) into tCmd
+  put format("productbuild --component \"%s\" /Applications --sign \"%s\" \"%s\"", tAppBundle, pAppA["macos signing certificate"], tPackage) into tCmd
   put shell(tCmd) into tResult
   if the result > 0 then
     return tResult for error
@@ -2033,29 +2055,16 @@ end _packageForMAS
 
 
 private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
-  local tError, tCertName, tAppBundle
+  local tError, tAppBundle
 
   set the itemdelimiter to "/"
 
   put pFolderWithMacApp & "/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is a folder tAppBundle then
 
-    put pAppA["build profiles"][pBuildProfile]["certificates"]["macos"]["name"] into tCertName
-    if tCertName is empty then
-      put pAppA["build profiles"]["all profiles"]["certificates"]["macos"]["name"] into tCertName
-    end if
+    if pAppA["macos signing certificate"] is not empty then
 
-    if tCertName is not empty then
-      local isMAS
-
-      put pBuildProfile is "mas" OR "mac app store" into isMAS
-      if isMAS then
-        put "3rd Party Mac Developer Application:" && tCertName into tCertName
-      else
-        put "Developer ID Application:" && tCertName into tCertName
-      end if
-
-      log "Signing application for OS X using cert:" && tCertName
+      log "Signing application for OS X using cert:" && pAppA["macos signing certificate"]
 
       local tCmd
 
@@ -2077,7 +2086,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
       end if
 
       if tError is empty then
-        _signAndStrip tAppBundle, tCertName, isMAS
+        _signAndStrip tAppBundle, pAppA["macos signing certificate"]
         put the result into tError
       end if
 
@@ -2090,7 +2099,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
       end if
 
       if tError is empty then
-        put format("spctl --verbose --assess --type execute -v \"%s\"", tAppBundle) into tCmd
+        put format("spctl --assess --verbose --ignore-cache --type execute -v \"%s\"", tAppBundle) into tCmd
         get shell(tCmd)
         if the result > 0 then
           put "spctl error:" && it into tError
@@ -2105,7 +2114,7 @@ end _signMacOSApplication
 
 
 ## Monte Goulding with modifications by Trevor DeVore
-command _signAndStrip pBundle, pCertificate, pMas, pSignFile
+command _signAndStrip pBundle, pCertificate, pSignFile
   local tError
   local tRootFolder
 
@@ -2113,7 +2122,7 @@ command _signAndStrip pBundle, pCertificate, pMas, pSignFile
   if tError is empty then
     put pBundle & "/Contents/Frameworks" into tRootFolder
     if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFile
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pSignFile
       put the result into tError
     end if
   end if
@@ -2122,7 +2131,7 @@ command _signAndStrip pBundle, pCertificate, pMas, pSignFile
   if tError is empty then
     put pBundle & "/Contents/MacOS" into tRootFolder
     if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pMAS, pSignFile
+      _findBundlesAndStripExecutables tRootFolder, pCertificate, pSignFile
       put the result into tError
     end if
   end if
@@ -2197,7 +2206,7 @@ end _isMacOSExecutable
 
 
 ## Monte Goulding with modifications by Trevor DeVore
-private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSignFiles
+private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFiles
   local tError, tOldDefaultFolder, tFolders, tFilesInfo, tFiles
 
   put pSignFiles is not false into pSignFiles
@@ -2212,13 +2221,13 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSi
 
   repeat for each line tFolder in line 2 to -1 of tFolders
     if _isMacOSExecutable(tFolder) then
-      _signAndStrip  pFolder & "/" & tFolder, pCertificate, pMAS, false # don't sign any files within bundle
+      _signAndStrip  pFolder & "/" & tFolder, pCertificate, false # don't sign any files within bundle
       put the result into tError
     else if tFolder ends with ".app" OR tFolder ends with ".framework" then
-      _signAndStrip  pFolder & "/" & tFolder, pCertificate, pMAS, true # sign files within the app
+      _signAndStrip  pFolder & "/" & tFolder, pCertificate, true # sign files within the app
       put the result into tError
     else
-      _findBundlesAndStripExecutables pFolder & "/" & tFolder, pCertificate, pMAS, pSignFiles # inherit behavior
+      _findBundlesAndStripExecutables pFolder & "/" & tFolder, pCertificate, pSignFiles # inherit behavior
       put the result into tError
     end if
 
@@ -2254,26 +2263,23 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pMAS, pSi
 
   # strip
   if tError is empty then
-    if pMAS then
-      local tResult
+    local tResult
 
-      set the itemDelimiter to ","
+    set the itemDelimiter to ","
 
-      repeat for each line tFile in tFilesInfo
-        # If executable bit is set then lipo it.
-        # Prior to 2014-05-27 we assumed 755. Now we just check for a 7 in the first char.
-        # TODO: error reporting
-        if char 1 of item 10 of tFile = "7" then
-          get shell(format("lipo -remove ppc \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
-          put the result into tResult
-
-          if tResult is not empty then
-            get shell(format("lipo -remove ppc7400 \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
-            _log "lipo ppc7400" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
-          end if
+    repeat for each line tFile in tFilesInfo
+      # If executable bit is set then lipo it.
+      # Prior to 2014-05-27 we assumed 755. Now we just check for a 7 in the first char.
+      # TODO: error reporting
+      if char 1 of item 10 of tFile = "7" then
+        log "lipo -remove ppc" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
+        get shell(format("lipo -remove ppc \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
+        if the result > 0 then
+          log "lipo ppc7400" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
+          get shell(format("lipo -remove ppc7400 \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
         end if
-      end repeat
-    end if
+      end if
+    end repeat
   end if
 
   return tError for error
