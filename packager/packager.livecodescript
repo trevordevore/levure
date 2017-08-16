@@ -90,7 +90,10 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       log "Output folder:" && tOutputFolder
 
       if there is a folder tOutputFolder then
-        revDeleteFolder tOutputFolder
+        _deleteFolder tOutputFolder
+        if the result is not empty then
+          put "error deleting existing package folder:" && the result into tError
+        end if
       end if
     else
       put tCopyFilesTempFolder into tOutputFolder
@@ -227,7 +230,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       # If not building standalone then leave folder in place. We are building for a simulator.
       if tBuildStandalone and there is a folder tCopyFilesTempFolder then
-        revDeleteFolder tCopyFilesTempFolder
+        _deleteFolder tCopyFilesTempFolder
       end if
 
       if tError is not empty then
@@ -481,25 +484,30 @@ command packagerBuildStandaloneForTesting pStandaloneStackFilename
   log "Output folder:" && tOutputFolder
 
   if there is a folder tOutputFolder then
-    revDeleteFolder tOutputFolder
+    _deleteFolder tOutputFolder
+    if the result is not empty then
+      put "unable to delete output folder for standalone testing:" && the result into tError
+    end if
   end if
 
-  repeat for each item tBuildPlatform in kStandaloneBuilderPlatforms
-    if tBuildPlatform is among the items of kPlatformsThatCantTest \
-          OR not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
+  if tError is empty then
+    repeat for each item tBuildPlatform in kStandaloneBuilderPlatforms
+      if tBuildPlatform is among the items of kPlatformsThatCantTest \
+            OR not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
 
-    packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, tBuildProfile, empty, sAppA
-    put the result into tError
+      packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, tBuildProfile, empty, sAppA
+      put the result into tError
 
-    if tError is empty then
-      # Refresh after having unloaded for standalone builder
-      levureLoadAppConfig
-    end if
+      if tError is empty then
+        # Refresh after having unloaded for standalone builder
+        levureLoadAppConfig
+      end if
 
-    if tError is not empty then
-      exit repeat
-    end if
-  end repeat
+      if tError is not empty then
+        exit repeat
+      end if
+    end repeat
+  end if
 
   if tError is not empty then
     log "Done building standalone for testing with error:" && tError
@@ -739,7 +747,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
   end if
 
   if there is a folder tTempBuildFolder then
-    revDeleteFolder tTempBuildFolder
+    _deleteFolder tTempBuildFolder
   end if
   if there is a file tTempStandaloneStack then
     stop using stack tTempStandaloneStack
@@ -2102,7 +2110,8 @@ private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
         put format("spctl --assess --verbose --ignore-cache --type execute -v \"%s\"", tAppBundle) into tCmd
         get shell(tCmd)
         if the result > 0 then
-          put "spctl error:" && it into tError
+          # Don't stop because of this
+          answer error "spctl error:" && it
         end if
       end if
 
@@ -2653,6 +2662,32 @@ on _moveFolder pSrcFolder, pDestFolder
 
   return tError
 end _moveFolder
+
+
+## Like revDeleteFolder but returns valid error message.
+on _deleteFolder pSrcFolder
+  if the platform is "MacOS" and char 1 of the systemVersion is not "1" then
+    if "applescript" is in the alternateLanguages then
+      # OK-2009-02-11 : Removed unquoted literal pDestFolder
+      --do revAppleScriptFull("deleteFolder",pSrcFolder,pDestFolder) as applescript
+      do revAppleScriptFull("deleteFolder", pSrcFolder) as "applescript"
+      return the result
+    else return "Error: AppleScript not installed"
+  else if the platform is "Win32" then
+    revSetWindowsShellCommand
+    if _isWindowsVistaOrNewer() then
+      get shell ("rmdir /s /q" && revWindowsFromUnixPath(quote&pSrcFolder&quote))
+    else
+      get shell ("deltree /Y" && revWindowsFromUnixPath(quote&pSrcFolder&quote))
+    end if
+  else
+    get shell ("rm -rf" && quote&pSrcFolder&quote)
+  end if
+
+  ## Only applies to Win/Linux
+  if the result is not empty then return it
+  else return empty
+end _deleteFolder
 
 
 private function _isWindowsVistaOrNewer
