@@ -2107,11 +2107,13 @@ private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
       end if
 
       if tError is empty then
-        put format("spctl --assess --verbose --ignore-cache --type execute -v \"%s\"", tAppBundle) into tCmd
-        get shell(tCmd)
-        if the result > 0 then
-          # Don't stop because of this
-          answer error "spctl error:" && it
+        if pAppA["macos signing certificate"] begins with "3rd Party Mac Developer Application" then
+          put format("spctl --assess --verbose --ignore-cache --type execute -v \"%s\"", tAppBundle) into tCmd
+          get shell(tCmd)
+          if the result > 0 then
+            # Don't stop because of this
+            put "spctl error:" && it into tError
+          end if
         end if
       end if
 
