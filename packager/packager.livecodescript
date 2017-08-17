@@ -146,7 +146,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
       end if
 
       if tError is empty then
-        _dispatchFinalizePackagedAssets pBuildProfile, tPlatform, tAppA
+        _dispatchFinalizePackagedAssets pBuildProfile, tPlatform, tAppA, tAppFolder
       end if
 
       # Prune and move in app stack
@@ -446,7 +446,7 @@ private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pApp
 end _dispatchFinalizeBuildForPlatform
 
 
-private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA
+private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA, pAppFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
@@ -454,7 +454,7 @@ private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching finalizePackagedAssets to stack" && tFilename
 
-    dispatch "finalizePackagedAssets" to stack tFilename with pBuildProfile, pPlatform, xAppA
+    dispatch "finalizePackagedAssets" to stack tFilename with pBuildProfile, pPlatform, xAppA, pAppFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizePackagedAssets
