@@ -34,7 +34,6 @@ Want to help this project? There are a number of ways to contribute.
 - Help with an auto update helper component
   - Needs module wrapped around WinSparkle: https://winsparkle.org
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
-- Wrap YAML C++ library in module for full YAML support.
 
 # Known Issues
 
