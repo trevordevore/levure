@@ -967,24 +967,9 @@ command levureLoadAppConfig pBuildProfile
 
   if (the environment is not "development") and (the uAppA of stack kAppStackName is an array) then
     # Packaged application: app stack is already in memory and all folders have been expanded
-    # All "filenames" need to be expanded. It would probably speed things up to write a specific
-    # handler that searched through all assets, found "filename" properties and expanded them.
-    # Checking build profiles, uniqueness of files, etc. does not need to be done.
     put the uAppA of stack kAppStackName into sAppA
 
-    put expandMessagePathAssetsFileReferenceArray(pBuildProfile, sAppA["extensions"], sAppFolder, kLiveCodeModule) into sAppA["extensions"]
-
-    repeat for each item tSource in "libraries,backscripts,frontscripts,behaviors"
-      put expandMessagePathAssetsFileReferenceArray(pBuildProfile, sAppA[tSource], sAppFolder, kLiveCodeExtensions) into sAppA[tSource]
-    end repeat
-
-    repeat for each key tKey in sAppA["registered components"]["ui"]
-      put expandUIAssetsFileReferenceArray(pBuildProfile, sAppA[tKey], sAppFolder) into sAppA[tKey]
-    end repeat
-
-    repeat for each key tKey in sAppA["registered components"]["files"]
-      put expandFileAssetsFileReferenceArray(pBuildProfile, sAppA[tKey], sAppFolder) into sAppA[tKey]
-    end repeat
+    expandPackagedAppArrayFilenames sAppA, sAppFolder
 
     put expandHelperAssetsFileReferenceArray(pBuildProfile, sAppA["helpers"], sAppFolder) into sAppA["helpers"]
     resolveHelperAssets pBuildProfile
@@ -2110,6 +2095,33 @@ function levureFrameworkFilename
 end levureFrameworkFilename
 
 
+/**
+Summary: Expand "filenames" for every asset except Helpers
+*/
+private command expandPackagedAppArrayFilenames @xAppA, pRootFolder
+  local tAssets, tKeys, tKey
+
+  put "libraries,backscripts,frontscripts,behaviors,extensions" into tAssets
+  put the keys of sAppA["registered components"]["ui"] into tKeys
+  if tKeys is not empty then
+    replace cr with "," in tKeys
+    put tKeys into item (the number of items of tAssets + 1) of tAssets
+  end if
+  put the keys of sAppA["registered components"]["files"] into tKeys
+  if tKeys is not empty then
+    replace cr with "," in tKeys
+    put tKeys into item (the number of items of tAssets + 1) of tAssets
+  end if
+
+  repeat for each item tKey in tAssets
+    repeat with i = 1 to the number of elements of xAppA[tKey]
+      replaceVariablesInPaths xAppA[tKey][i]
+      put resolveFilenameReference(xAppA[tKey][i]["filename"], pRootFolder) into xAppA[tKey][i]["filename"]
+    end repeat
+  end repeat
+end expandPackagedAppArrayFilenames
+
+
 private function expandMessagePathAssetsFileReferenceArray pBuildProfile, pFilesA, pRootFolder, pExtensions
   local tFilesA, i, j, tPropsA, tProp
 
@@ -2225,11 +2237,8 @@ private function expandHelperAssetsFileReferenceArray pBuildProfile, pFilesA, pR
           put the result into tError
 
           if tError is empty then
-            # Should it be packaged up?
-            if _isFileIncludedInBuildProfile(pBuildProfile, tFileA["build profiles filter"], tFile) then
-              add 1 to j
-              put tFileA into tFilesA[j]
-            end if
+            add 1 to j
+            put tFileA into tFilesA[j]
           end if
         end if
       end repeat
@@ -2244,11 +2253,8 @@ private function expandHelperAssetsFileReferenceArray pBuildProfile, pFilesA, pR
         put the result into tError
 
         if tError is empty then
-          # Should it be packaged up?
-          if _isFileIncludedInBuildProfile(pBuildProfile, pFilesA[i]["build profiles filter"], pFilesA[i]["filename"]) then
-            add 1 to j
-            put pFilesA[i] into tFilesA[j]
-          end if
+          add 1 to j
+          put pFilesA[i] into tFilesA[j]
         end if
       end if
     end if
@@ -2309,12 +2315,7 @@ private command loadHelperConfigurationFile @xHelperA
   put xHelperA["filename"] into tConfigA["filename"]
   put xHelperA["preload"] is true into tConfigA["preload"]
   put xHelperA["encrypt"] is not false into tConfigA["encrypt"]
-
-  # Merge user defined "build profiles filter" with any defined profiles in helper.yml
-  if xHelperA["build profiles filter"] is not empty then
-    put xHelperA["build profiles filter"] into \
-          item (the number of items of tConfigA["build profiles filter"]) + 1 of tConfigA["build profiles filter"]
-  end if
+  put xHelperA["build profiles filter"] into tConfigA["build profiles filter"]
 
   put tConfigA into xHelperA
 
