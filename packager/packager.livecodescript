@@ -127,7 +127,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         put _errorMsg("creating copy files temp folder [" & tCopyFilesTempFolder & "] [" & tTempFolder & "]", the result) into tError
       end if
 
-      # Send before filenames are made relative
+      # Send before filenames are made relative. Gives helpers a chance to modify
+      # tAppA list of assets.
       if tError is empty then
         _dispatchFinalizePackagedAssets pBuildProfile, tPlatform, tAppA, tAppFolder
       end if
