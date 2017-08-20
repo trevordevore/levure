@@ -285,14 +285,13 @@ private command _determineSigningCertificate pBuildProfile, pPlatform, @xAppA
 
   if tCertName is not empty then
     if pBuildProfile is "mac app store" then
-      put "3rd Party Mac Developer Application:" && tCertName into tCertName
+      put "3rd Party Mac Developer Application:" && tCertName into xAppA[pPlatform && "signing certificate"]
+      put "3rd Party Mac Developer Installer:" && tCertName into xAppA[pPlatform && "installer signing certificate"]
     else if pBuildProfile is "mac app store development" then
-      put "Mac Developer:" && tCertName into tCertName
+      put "Mac Developer:" && tCertName into xAppA[pPlatform && "signing certificate"]
     else
-      put "Developer ID Application:" && tCertName into tCertName
+      put "Developer ID Application:" && tCertName into xAppA[pPlatform && "signing certificate"]
     end if
-
-    put tCertName into xAppA[pPlatform && "signing certificate"]
   end if
 end _determineSigningCertificate
 
@@ -2054,7 +2053,7 @@ private command _packageForMAS pAppA, pFolderWithMacApp
   put tAppBundle into tPackage
   put "pkg" into item -1 of tPackage
 
-  put format("productbuild --component \"%s\" /Applications --sign \"%s\" \"%s\"", tAppBundle, pAppA["macos signing certificate"], tPackage) into tCmd
+  put format("productbuild --component \"%s\" /Applications --sign \"%s\" \"%s\"", tAppBundle, pAppA["macos installer signing certificate"], tPackage) into tCmd
   put shell(tCmd) into tResult
   if the result > 0 then
     return tResult for error
