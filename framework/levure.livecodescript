@@ -792,6 +792,26 @@ end levureAppSet
 
 
 /**
+Summary: Returns an array of all `ui` category assets.
+
+Returns: Numerically indexed array. "name", "filename", and "key". "key" is the key the UI assets is listed under in app.yml.
+ */
+function levureGetUIStacks
+  local tKey, i, j, tStacksA
+
+  repeat for each key tKey in sAppA["registered components"]["ui"]
+    repeat with i = 1 to the number of elements of sAppA[tKey]
+      add 1 to j
+      put sAppA[tKey][i] into tStacksA[j]
+      put tKey into tStacksA[j]["key"]
+    end repeat
+  end repeat
+
+  return tStacksA
+end levureGetUIStacks
+
+
+/**
 Summary: Returns the name of the build profile used to package the version of the application that is running.
 
 Description:
