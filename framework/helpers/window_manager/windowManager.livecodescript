@@ -6,20 +6,8 @@ on libraryStack
   if the target is not me then pass libraryStack
 
   # workaround for bug #18997 <http://quality.livecode.com/show_bug.cgi?id=18997>
-  lock messages
-  local tStack, tEffectiveRect, tRect
-
-  put "DetermineWindowDecorationDimensions" into tStack
-  create invisible stack tStack
-  put the effective rect of stack tStack into tEffectiveRect
-  put the rect of stack tStack into tRect
-  delete stack tStack
-  unlock messages
-
-  put item 1 of tRect - item 1 of tEffectiveRect into sFrameA["left"]
-  put item 2 of tRect - item 2 of tEffectiveRect into sFrameA["top"]
-  put item 3 of tEffectiveRect - item 3 of tRect into sFrameA["right"]
-  put item 4 of tEffectiveRect - item 4 of tRect into sFrameA["bottom"]
+  _calculateDecorationsForStackStyle "toplevel"
+  _calculateDecorationsForStackStyle "palette"
 end libraryStack
 
 
@@ -41,6 +29,19 @@ cannot track whether or not cards or stacks have been opened in the current sess
 on openCard
   # This happens in the library rather than the frontscript as it is at the end of the message chain.
   if windowIsManaged() then
+
+    # Last updated 2017-09-01: LiveCode engine doesn't support setting the effective rect in messages prior
+    # to openStack. In order to work around that the stack is hidden if preOpenStack if the rect of the stack
+    # is being managed and it hasn't been set yet. Now it is time to show the stack.
+    local tStackName, tIsInit
+
+    put the short name of the owner of the target into tStackName
+    put windowHasWindowBeenOpened(tStackName) into tIsInit
+
+    if not tIsInit and not the visible of the owner of the target and windowWasVisibleInPreOpenStack(tStackName) then
+      set the visible of the owner of the target to true
+    end if
+
     windowSetCardInitializedState the short name of the owner of the target, the short name of the target, true
   end if
 
@@ -360,211 +361,367 @@ end windowGoStack
 
 
 /**
-Summary: Sizes and positions a stack window on screen within the working screen rect.
+Summary: Called during preOpenStack to position a window before it is displayed.
 
-pStackName: The name of the target stack. The default is `this stack`.
-pRestoreFromPrefs: If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window.
+pStackName: The name of the target stack.
+pRestoreFromPrefs: Boolean value specifying whether or not the handler will look for previous stack window rect in prefs.
+[pScreenNo]: The screen number to display the stack on. Default is 1. This will be ignored if pRestoreFromPrefs is true.
 
 Returns: empty
 
 Description:
-This handler will use uWindowManager["default width"] and uWindowManager["default height"] to size a window that
-is being opened for the first time. This handler is called automatically if the "rect" property is managed for a
-stack that is being opened.
+After determining the rect to use the handler then alters the rect as needed in order to ensure the following:
+
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
 */
-command windowPositionWithinConstraints pStackName, pRestoreFromPrefs
-  local msgsAreLocked,tHeight,tLoc,tRect
-  local tScreenRect,tStack,tWidth
+command windowSetWindowRectBeforeOpening pStackName, pRestoreFromPrefs, pScreenNo
+  local tRect, tLoc, tScreenNo, tScreenRect
 
-  put the lockMessages into msgsAreLocked
-  unlock messages
-
-  if pStackName is empty then
-    put the short name of this stack into pStackName
-  end if
-  put the long id of stack pStackName into tStack
-
-  ## FIRST RUN GETS DEFAULT SETTINGS CENTERED ON SCREEN
   if pRestoreFromPrefs then
     put prefsGetPref("window."& pStackName &".rect") into tRect
-    if tRect is a rect then
-      put _locOfRect(tRect) into tLoc
-    end if
+    put _locOfRect(tRect) into tLoc
+    put _whichScreenIsRectOn(tRect) into pScreenNo
   else
-    put the rect of tStack into tRect
-    put the loc of tStack into tLoc
+    put max(1, min(pScreenNo, the number of lines of the screenrects)) into pScreenNo
   end if
 
-  if not the resizable of tStack then ## WE DON'T TOUCH RECT OF STACKS THAT CAN'T BE RESIZED
-    put the rect of tStack into tRect
-    if tLoc is not a point then put the screenLoc into tLoc
-    put item 3 of tRect - item 1 of tRect into tWidth
-    put item 4 of tRect - item 2 of tRect into tHeight
-  else
-    if tRect is not a rect then
-      put "0,0,0,0" into tRect
-      put the working screenRect into tScreenRect
+  put line pScreenNo of the working screenrects into tScreenRect
 
-      local tDefaultWidth, tDefaultHeight, tPercent
+  put _calculateWindowRect(pStackName, tScreenRect, tRect, tLoc) into tRect
 
-      put windowGetProperty(pStackName, "default width") into tDefaultWidth
-      put windowGetProperty(pStackName, "default height") into tDefaultHeight
-      put windowGetProperty(pStackName, "default loc") into tLoc
+  if the effective rect of stack pStackName is not tRect then
+    local msgsAreLocked
 
-      if tDefaultWidth is not empty then
-        put item 3 of tScreenRect - item 1 of tScreenRect into tWidth
-        put item 4 of tScreenRect - item 2 of tScreenRect into tHeight
+    # Quirk workaround: On macos item 4 of tRect will be reduced by 23 points after setting the
+    # `effective rect` below. It seems that setting the rect during preopenstack triggers the stack
+    # to scroll and it affects the rect. Manually adding in the 23 pixels fixes the issue.
+    -- if the vscroll of stack pStackName > 0 then
+    --   add 23 to item 4 of tRect
+    -- end if
 
-        if the last char of tDefaultWidth is "%" then
-          put char 1 to -2 of tDefaultWidth into tPercent
-          put round(tWidth * ("." & tPercent)) into tWidth
-        else if tDefaultWidth > 0 then
-          put tDefaultWidth into tWidth
-        else if tDefaultWidth is -1 then
-          -- we already have proper value
-        end if
-
-        if the last char of tDefaultHeight is "%" then
-          put char 1 to -2 of tDefaultHeight into tPercent
-          put round(tHeight * ("." & tPercent)) into tHeight
-        else if tDefaultHeight > 0 then
-          put tDefaultHeight into tHeight
-        else if tDefaultHeight is -1 then
-          -- we already have proper value
-        end if
-      else
-        put the width of stack pStackName into tWidth
-        put the height of stack pStackName into tHeight
-      end if
-      put min(tWidth, item 3 of tScreenRect - item 1 of tScreenRect) into tWidth
-      put min(tHeight, item 4 of tScreenRect - item 2 of tScreenRect) into tHeight
-
-      put the screenLoc into tLoc
-    else
-      # stack has not been opened before
-      put item 3 of tRect - item 1 of tRect into tWidth
-      put item 4 of tRect - item 2 of tRect into tHeight
-    end if
+    put the lockmessages into msgsAreLocked
+    lock messages ## Don't send resizeStack message
+    set the effective rect of stack pStackName to tRect
+    set the lockmessages to msgsAreLocked
   end if
-
-  # Validate width/height against stack min/max values
-  put min( max(tWidth, the minWidth of tStack), the maxWidth of tStack) into tWidth
-  put min( max(tHeight, the minHeight of tStack), the maxHeight of tStack) into tHeight
-
-  put item 1 of tRect + tWidth into item 3 of tRect
-  put item 2 of tRect + tHeight into item 4 of tRect
-
-  # Determine loc after adjustments
-  if tLoc is not a point then
-    if windowGetProperty(empty, "center window on screen") \
-          or tRect is not a rect or tWidth is not an integer or tHeight is not an integer then
-      put the screenLoc into tLoc
-    else
-      put item 1 of tRect + floor(tWidth / 2) & "," & item 2 of tRect + floor(tHeight / 2) into tLoc
-    end if
-  end if
-
-  set the lockMessages to msgsAreLocked
-
-  ## Place stack on screen
-  lock screen
-
-  set rect of stack pStackName to tRect
-  set loc of stack pStackName to tLoc
-
-  get tRect
-
-  # Bug 18997 workaround <http://quality.livecode.com/show_bug.cgi?id=18997>
-  put the rect of stack pStackName into tRect
-  subtract sFrameA["left"] from item 1 of tRect
-  subtract sFrameA["top"] from item 2 of tRect
-  add sFrameA["right"] to item 3 of tRect
-  add sFrameA["bottom"] to item 4 of tRect
-  # end bug workaround
-
-  windowMoveWindowOnScreen pStackName, tRect
-  unlock screen
 
   return empty
-end windowPositionWithinConstraints
+end windowSetWindowRectBeforeOpening
 
 
 /**
-Summary: Repositions a stack so that it appears within a visible portion of the screen.
+Summary: Calculates the rect that should be used to open a stack window.
 
-pStackName: The name of the target stack. The default is `this stack`.
+pStackName: Name of the target stack
+[pScreenRect]: Optional screen rect to use to contrain the stack window.
+[pRect]: Optional rect for the stack window.
+[pLoc]: Optional loc.
+
+Returns: rectangle
+
+Description: The rect returned can be used to set `the effective rect` of the stack. The rect will
+size the stack window such that it is entirely visible on the screen it is displayed on.
+*/
+function windowCalculateRectForWindow pStackName, pScreenRect, pRect, pLoc
+  return _calculateWindowRect(pStackName, pScreenRect, pRect, pLoc)
+end windowCalculateRectForWindow
+
+
+private function _whichScreenIsRectOn pRect
+  local i
+
+  if pRect is a rect then
+    repeat with i = 1 to the number of lines of the screenrects
+      if item 1 to 2 of pRect is within (line i of the screenrects) then
+        return i
+      end if
+    end repeat
+  end if
+  return 1
+end _whichScreenIsRectOn
+
+
+private function _calculateWindowRect pStackName, pDefaultScreenRect, pDefaultRect, pDefaultLoc
+  local tStyle, tStack, tRect, tLoc, tDefaultWidth, tDefaultHeight
+  local tScreenRect, tScreenWidth, tWidth, tScreenHeight, tHeight
+  local tPercent
+
+  put pDefaultScreenRect into tScreenRect
+  put pDefaultRect into tRect
+  put pDefaultLoc into tLoc
+
+  put the long id of stack pStackName into tStack
+  put the style of tStack into tStyle
+
+  if tScreenRect is not a rect then
+    put line 1 of the working screenrects into tScreenRect
+  end if
+  put item 3 of tScreenRect - item 1 of tScreenRect into tScreenWidth
+  put item 4 of tScreenRect - item 2 of tScreenRect into tScreenHeight
+
+  # Rect
+  # Don't touch rect of a stack that isn't resizable
+  # We only care about the loc from the value stored in prefs
+  if tRect is not a rect and not the resizable of tStack then
+    put the rect of tStack into tRect
+  end if
+
+  if tRect is not a rect then
+    put windowGetProperty(pStackName, "default width") into tDefaultWidth
+    put windowGetProperty(pStackName, "default height") into tDefaultHeight
+
+    if tDefaultWidth is not empty then
+      if the last char of tDefaultWidth is "%" then
+        put char 1 to -2 of tDefaultWidth into tPercent
+        put round(tScreenWidth * ("." & tPercent)) into tWidth
+      else if tDefaultWidth > 0 then
+        put tDefaultWidth into tWidth
+      else if tDefaultWidth is -1 then
+        put tScreenWidth into tWidth
+      end if
+
+      if the last char of tDefaultHeight is "%" then
+        put char 1 to -2 of tDefaultHeight into tPercent
+        put round(tScreenHeight * ("." & tPercent)) into tHeight
+      else if tDefaultHeight > 0 then
+        put tDefaultHeight into tHeight
+      else if tDefaultHeight is -1 then
+        put tScreenHeight into tHeight
+      end if
+    else
+      put the width of tStack into tWidth
+      put the height of tStack into tHeight
+    end if
+
+    put "0,0," & tWidth & "," & tHeight into tRect
+  end if
+
+  # Make sure the rect doesn't fall outside of the min/max dimensions
+  put item 3 of tRect - item 1 of tRect into tWidth
+  put item 4 of tRect - item 2 of tRect into tHeight
+  put min(max(the minWidth of tStack, tWidth), the maxWidth of tStack) into tWidth
+  put min(max(the minHeight of tStack, tHeight), the maxHeight of tStack) into tHeight
+  put item 1 of tRect + tWidth into item 3 of tWidth
+  put item 2 of tRect + tHeight into item 4 of tWidth
+
+  # Loc
+  if tLoc is not a point then
+    put windowGetProperty(pStackName, "default loc") into tLoc
+
+    if tLoc is not a point then
+      if the last char of item 1 of tLoc is "%" then
+        put char 1 to -2 of item 1 of tLoc into tPercent
+        put floor(tScreenWidth * ("." & tPercent)) into item 1 of tLoc
+      end if
+      if the last char of item 2 of tLoc is "%" then
+        put char 1 to -2 of item 2 of tLoc into tPercent
+        put floor(tScreenHeight * ("." & tPercent)) into item 2 of tLoc
+      end if
+
+      if tLoc is not a point then
+        put _locOfRect(line 1 of the working screenrects) into tLoc
+      end if
+    end if
+  end if
+
+  # Now add the decorations
+  subtract sFrameA[tStyle]["left"] from item 1 of tRect
+  subtract sFrameA[tStyle]["top"] from item 2 of tRect
+  add sFrameA[tStyle]["right"] to item 3 of tRect
+  add sFrameA[tStyle]["bottom"] to item 4 of tRect
+
+  # Adjust loc using differences in frame sizes on left/right and top/bottom
+  subtract floor(abs(sFrameA[tStyle]["left"]-sFrameA[tStyle]["right"])/2) from item 1 of tLoc
+  subtract floor(abs(sFrameA[tStyle]["top"]-sFrameA[tStyle]["bottom"])/2) from item 2 of tLoc
+
+  if the resizable of tStack then
+    put _constrainWindowDimensionsToScreenDimensions(tScreenRect, tRect) into tRect
+  end if
+  put _centerRectAroundPoint(tRect, tLoc) into tRect
+  put _shiftWindowOnScreen(tScreenRect, tRect) into tRect
+
+  return tRect
+end _calculateWindowRect
+
+
+function windowGetStackRectFromEffectiveStackRect pEffectiveRect, pStyle
+  local tLoc
+
+  add sFrameA[pStyle]["left"] to item 1 of pEffectiveRect
+  add sFrameA[pStyle]["top"] to item 2 of pEffectiveRect
+  subtract sFrameA[pStyle]["right"] from item 3 of pEffectiveRect
+  subtract sFrameA[pStyle]["bottom"] from item 4 of pEffectiveRect
+
+  return pEffectiveRect
+end windowGetStackRectFromEffectiveStackRect
+
+
+/**
+Summary: Positions a window after the desktop has changed.
+
+pStackName: The name of the target stack.
 
 Returns: empty
 
 Description:
-This handler is called from windowPositionWithinConstraints to ensure that a window appears in a visible \
-area of the screen. You can call this function in other circumstances if need be.
+After the desktop changes two things must be checked:
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
 */
-command windowMoveWindowOnScreen pStackName, pEffectiveRect -- http://quality.livecode.com/show_bug.cgi?id=18997
-  local tConstraintRect, tHeight, tWidth
-  local tMaxHeight, tMaxWidth, tRect, tScreenNo
+command windowCheckWindowAfterDesktopChanged pStackName
+  local tScreenRect, tEffectiveRect, tRect
 
-  if pStackName is empty then
-    put the short name of this stack into pStackName
-  end if
+  put line (the screen of stack pStackName) of the working screenrects into tScreenRect
+  put the effective rect of stack pStackName into tEffectiveRect
+  put the rect of stack pStackName into tRect
 
-  put the screen of stack pStackName into tScreenNo
-  put line tScreenNo of the working screenrects into tConstraintRect
-  if tConstraintRect is not a rect then put line 1 of the working screenrects into tConstraintRect
+  put _constrainWindowDimensionsToScreenDimensions(tScreenRect, tEffectiveRect) into tEffectiveRect
+  put _shiftWindowOnScreen(tScreenRect, tEffectiveRect) into tEffectiveRect
 
-  # What widths/heights are we working with?
-  put item 3 of tConstraintRect - item 1 tConstraintRect into tMaxWidth
-  put item 4 of tConstraintRect - item 2 tConstraintRect into tMaxHeight
-
-  put pEffectiveRect into tRect
-  if tRect is not a rect then
-    put the effective rect of stack pStackName into tRect
-  end if
-  put item 3 of tRect - item 1 of tRect into tWidth
-  put item 4 of tRect - item 2 of tRect into tHeight
-
-  # Ensure stack height/width fits within constraints
-  if tWidth > tMaxWidth or tHeight > tMaxHeight then
-    if tWidth > tMaxWidth then
-      put item 1 of tConstraintRect into item 1 of tRect
-      put item 3 of tConstraintRect into item 3 of tRect
-    end if
-
-    if tHeight > tMaxHeight then
-      put item 2 of tConstraintRect into item 2 of tRect
-      put item 4 of tConstraintRect into item 4 of tRect
-    end if
-
-    set effective rect of stack pStackName to tRect
-  else
-    # If height/width check out then ensure entire window is on screen
-
-    # Anything less than this and stack is repositioned on screen
-    local tBuffer
-    put 25 into tBuffer
-
-    # Added temporary workarounds until bug is fixed
-    # http://quality.livecode.com/show_bug.cgi?id=18997
-    if item 2 of tRect < item 2 of tConstraintRect then
-      --set the effective top of stack pStackName to item 2 of tConstraintRect
-      set the top of stack pStackName to item 2 of tConstraintRect + 25 -- 25 is so title shows up.
-    else if item 2 of tRect > item 4 of tConstraintRect - tBuffer then
-      --set the effective bottom of stack pStackName to item 4 of tConstraintRect
-      set the bottom of stack pStackName to item 4 of tConstraintRect - 10
-    end if
-    if item 1 of tRect > item 3 of tConstraintRect - tBuffer then
-      ## LEFT CAN'T BE PAST RIGHT
-      --set the effective right of stack pStackName to item 3 of tConstraintRect
-      set the right of stack pStackName to item 3 of tConstraintRect - 10
-    else if item 3 of tRect < item 1 of tConstraintRect + tBuffer then
-      ## RIGHT CAN'T BE PAST LEFT
-      --set the effective left of stack pStackName to item 1 of tConstraintRect
-      set the left of stack pStackName to item 1 of tConstraintRect + 10
-    end if
+  if the effective rect of stack pStackName is not tEffectiveRect then
+    set the effective rect of stack pStackName to tEffectiveRect
   end if
 
   return empty
-end windowMoveWindowOnScreen
+end windowCheckWindowAfterDesktopChanged
+
+
+/**
+Summary: Positions a window after the user moves it.
+
+pStackName: The name of the target stack.
+
+Returns: empty
+
+Description:
+After the user moves a stack window two things need to be checked:
+1. That the stack size isn't too lage for the monitor the stack is now on.
+2. That the top and bottom of the title bar are in an actionable area of the screen.
+*/
+command windowCheckWindowAfterMove pStackName
+  local tScreenRect, tEffectiveRect, tRect
+
+  put line (the screen of stack pStackName) of the working screenrects into tScreenRect
+  put the effective rect of stack pStackName into tEffectiveRect
+  put the rect of stack pStackName into tRect
+
+  put _constrainWindowDimensionsToScreenDimensions(tScreenRect, tEffectiveRect) into tEffectiveRect
+  put _ensureTitleBarIsVisibleAfterMove(tScreenRect, tEffectiveRect, tRect) into tEffectiveRect
+
+  if the effective rect of stack pStackName is not tEffectiveRect then
+    set the effective rect of stack pStackName to tEffectiveRect
+  end if
+
+  return empty
+end windowCheckWindowAfterMove
+
+
+command _calculateDecorationsForStackStyle pStyle
+  local msgsAreLocked, tStack, tEffectiveRect, tRect
+
+  put the lockmessages into msgsAreLocked
+
+  lock messages
+
+  put "DetermineWindowDecorationDimensions" into tStack
+  set the style of the templateStack to pStyle
+  create invisible stack tStack
+  put the effective rect of stack tStack into tEffectiveRect
+  put the rect of stack tStack into tRect
+  delete stack tStack
+  reset the templateStack
+
+  put item 1 of tRect - item 1 of tEffectiveRect into sFrameA[pStyle]["left"]
+  put item 2 of tRect - item 2 of tEffectiveRect into sFrameA[pStyle]["top"]
+  put item 3 of tEffectiveRect - item 3 of tRect into sFrameA[pStyle]["right"]
+  put item 4 of tEffectiveRect - item 4 of tRect into sFrameA[pStyle]["bottom"]
+
+  set the lockMessages to msgsAreLocked
+end _calculateDecorationsForStackStyle
+
+
+private function _ensureTitleBarIsVisibleAfterMove pScreenRect, pEffectiveStackRect, pStackRect
+  local tTitleBarHeight, tDiff
+
+  put item 2 of pStackRect - item 2 of pEffectiveStackRect into tTitleBarHeight
+
+  # Title bar is off bottom
+  put item 4 of pScreenRect - (item 2 of pEffectiveStackRect + tTitleBarHeight) into tDiff
+  if tDiff < 0 then
+    add tDiff to item 2 of pEffectiveStackRect
+    add tDiff to item 4 of pEffectiveStackRect
+  end if
+  return pEffectiveStackRect
+end _ensureTitleBarIsVisibleAfterMove
+
+
+private function _shiftWindowOnScreen pScreenRect, pEffectiveStackRect
+  local tDiff
+
+  put item 1 of pScreenRect - item 1 of pEffectiveStackRect into tDiff
+  if tDiff > 0 then
+    add tDiff to item 1 of pEffectiveStackRect
+    add tDiff to item 3 of pEffectiveStackRect
+  else
+    put item 3 of pEffectiveStackRect - item 3 of pScreenRect into tDiff
+    if tDiff > 0 then
+      subtract tDiff from item 1 of pEffectiveStackRect
+      subtract tDiff from item 3 of pEffectiveStackRect
+    end if
+  end if
+
+  put item 2 of pScreenRect - item 2 of pEffectiveStackRect into tDiff
+  if tDiff > 0 then
+    add tDiff to item 2 of pEffectiveStackRect
+    add tDiff to item 4 of pEffectiveStackRect
+  else
+    put item 4 of pEffectiveStackRect - item 4 of pScreenRect into tDiff
+    if tDiff > 0 then
+      subtract tDiff from item 2 of pEffectiveStackRect
+      subtract tDiff from item 4 of pEffectiveStackRect
+    end if
+  end if
+
+  return pEffectiveStackRect
+end _shiftWindowOnScreen
+
+
+private function _constrainWindowDimensionsToScreenDimensions pScreenRect, pEffectiveStackRect
+  local tMaxWidth, tMaxHeight, tWidth, tHeight, tDiff
+
+  put item 3 of pScreenRect - item 1 of pScreenRect into tMaxWidth
+  put item 4 of pScreenRect - item 2 of pScreenRect into tMaxHeight
+  put item 3 of pEffectiveStackRect - item 1 of pEffectiveStackRect into tWidth
+  put item 4 of pEffectiveStackRect - item 2 of pEffectiveStackRect into tHeight
+
+  put tWidth - tMaxWidth into tDiff
+  if tDiff > 0 then
+    subtract tDiff from item 3 of pEffectiveStackRect
+  end if
+  put tHeight - tMaxHeight into tDiff
+  if tDiff > 0 then
+    subtract tDiff from item 4 of pEffectiveStackRect
+  end if
+
+  return pEffectiveStackRect
+end _constrainWindowDimensionsToScreenDimensions
+
+
+private function _centerRectAroundPoint pRect, pPoint
+  local tWidth, tHeight, tRect
+
+  put (item 3 of pRect - item 1 of pRect) into tWidth
+  put (item 4 of pRect - item 2 of pRect) into tHeight
+
+  put item 1 of pPoint - floor(tWidth / 2) into item 1 of tRect
+  put item 1 of pPoint + round(tWidth / 2) into item 3 of tRect
+
+  put item 2 of pPoint - floor(tHeight / 2) into item 2 of tRect
+  put item 2 of pPoint + round(tHeight / 2) into item 4 of tRect
+
+  return tRect
+end _centerRectAroundPoint
 
 
 /**

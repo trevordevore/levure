@@ -1,11 +1,20 @@
 script "Window Manager Frontscript"
+# Need a bit of a delay between end of moveStack and sending a moveStackEnd message to the widnow.
+# If the window ends up being resized then the engine doesn't redraw the window properly.
+# 100 doesn't work on a Retina 5K, 27-inch Late 2015 iMac.
+# 300 does.
+constant kCheckForWindowMoveEndDelay = 300
+
+local sVisibleStateInPreOpenStackA
+
+
 on desktopChanged
   if the platform is "win32" then pass desktopChanged ## Windows appears to resize our stacks for us, Mac doesn't
 
   repeat for each line tStackName in the openstacks
     if tStackName is not empty then
       if windowIsPropertyManaged(tStackName, "rect") then
-        windowPositionWithinConstraints tStackName
+        windowCheckWindowAfterDesktopChanged tStackName
       end if
     end if
   end repeat
@@ -59,15 +68,20 @@ on preOpenStack
     if not windowIsManaged(tStackName) then pass preOpenStack
 
     local tIsInit
-    put windowHasWindowBeenOpened(tStackName, the short name of tCard) into tIsInit
+    put windowHasWindowBeenOpened(tStackName) into tIsInit
 
+    if the environment is "development" then
+      set the editmenus of tStack to true
+    end if
+
+    # Last Updated 2017-09-01: If the window size is being managed then hide the stack. Ideally the stack would be resized here
+    # but the LiveCode engine doesn't allow you to set `the effective rect` in `preOpenStack`. `openStack` is the first
+    # handler where you can set the effective rect.
     if not tIsInit and windowIsPropertyManaged(tStackName, "rect") then
-      local restoreRectFromPrefs
-
-      lock messages ## Don't send resizeStack message
-      put true into restoreRectFromPrefs
-      windowPositionWithinConstraints tStackName, restoreRectFromPrefs
-      unlock messages
+      put the visible of tStack into sVisibleStateInPreOpenStackA[tStackName]
+      if sVisibleStateInPreOpenStackA[tStackName] then
+        set the visible of tStack to false
+      end if
     end if
 
     ## DISPATCH MESSAGE
@@ -81,16 +95,28 @@ on preOpenStack
         set backgroundcolor of group (the menubar of tStack) of tStack to effective backgroundcolor of tStack
       end if
 
-      if the environment is "development" then
-        set the editmenus of tStack to true
-      end if
-
       windowResizeMenu tStackName
     end if
   end if
 
   pass preOpenStack
 end preOpenStack
+
+
+/**
+Summary: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
+
+
+*/
+function windowWasVisibleInPreOpenStack pStackName
+  local tState
+
+  # Clean up memory. This is only accesse once during the opening of the stack.
+  put sVisibleStateInPreOpenStackA[pStackName] into tState
+  delete local sVisibleStateInPreOpenStackA[pStackName]
+
+  return tState
+end windowWasVisibleInPreOpenStack
 
 
 on preOpenCard
@@ -104,12 +130,20 @@ on preOpenCard
     put the short name of tStack into tStackName
     if not windowIsPropertyManaged(tStackName, "messages") then pass preOpenCard
 
+    # Last Updated 2017-09-01: If the stack rect is being managed then the stack will be
+    # resized in `openStack`. That is the first message where the `effective rect` can be set.
+    # If stack size hasn't been set yet then do not send `ResizeView` in this handler.
+    local tIsInit
+    put windowHasWindowBeenOpened(tStackName) into tIsInit
+
     ## DISPATCH MESSAGE
     local tCard
 
     put the long id of the current card of tStack into tCard
     dispatch "PreOpenView" to tCard with windowHasCardBeenOpened(tStackName, the short name of tCard)
-    dispatch "ResizeView" to tCard with the width of tCard, the height of tCard
+    if tIsInit or not windowIsPropertyManaged(tStackName, "rect") then
+      dispatch "ResizeView" to tCard with the width of tCard, the height of tCard
+    end if
   end if
 
   pass preOpenCard
@@ -117,7 +151,7 @@ end preOpenCard
 
 
 on openStack
-  local tStack
+  local tStack, tMsgsAreManaged
 
   put windowResolveTargetStack() into tStack
 
@@ -125,10 +159,30 @@ on openStack
     local tStackName
 
     put the short name of tStack into tStackName
-    if not windowIsPropertyManaged(tStackName, "messages") then pass openStack
+    put windowIsPropertyManaged(tStackName, "messages") into tMsgsAreManaged
+
+    ## Position window
+    # Last Updated 2017-09-01: This is the first message where `the effective rect` can be set. Set the rect,
+    # dispatch the `ResizeView` message, and show the stack.
+    local tIsInit
+    put windowHasWindowBeenOpened(tStackName) into tIsInit
+
+    if not tIsInit and windowIsPropertyManaged(tStackName, "rect") then
+      local restoreRectFromPrefs
+
+      put true into restoreRectFromPrefs
+      windowSetWindowRectBeforeOpening tStackName, restoreRectFromPrefs
+
+      if tMsgsAreManaged then
+        dispatch "ResizeView" to the current card of tStack \
+            with the width of the current card of tStack, the height of the current card of tStack
+      end if
+    end if
 
     ## DISPATCH MESSAGE
-    dispatch "OpenWindow" to the current card of tStack with windowHasWindowBeenOpened(tStackName, the short name of the current card of tStack)
+    if tMsgsAreManaged then
+      dispatch "OpenWindow" to the current card of tStack with windowHasWindowBeenOpened(tStackName)
+    end if
   end if
 
   pass openStack
@@ -188,7 +242,7 @@ on moveStack pNewH, pNewV
   if not windowIsPropertyManaged(tStackName, "messages") then pass moveStack
 
   _cancelMessage "_windowCheckForMoveStackEnd", the long id of me
-  send "_windowCheckForMoveStackEnd tStackName" to me in 100 milliseconds
+  send "_windowCheckForMoveStackEnd tStackName" to me in kCheckForWindowMoveEndDelay milliseconds
 end moveStack
 
 
@@ -197,13 +251,13 @@ command _windowCheckForMoveStackEnd pStackName
 
   if mouse(1) is "up" then
     if windowIsPropertyManaged(pStackName, "rect") then
-      windowPositionWithinConstraints pStackName
+      windowCheckWindowAfterMove pStackName
     end if
     dispatch "moveStackEnd" to the current card of stack pStackName
   else
     # User might stop moving stack but not release mouse button
     _cancelMessage "_windowCheckForMoveStackEnd", the long id of me
-    send "_windowCheckForMoveStackEnd pStackName" to me in 100 milliseconds
+    send "_windowCheckForMoveStackEnd pStackName" to me in kCheckForWindowMoveEndDelay milliseconds
   end if
 end _windowCheckForMoveStackEnd
 
@@ -230,7 +284,7 @@ command PreShutdownApplication
 
   repeat for each line tStack in the openStacks
     if tStack is empty then next repeat
-    if windowIsManaged(tStack) then
+    if windowIsManaged(tStack) and windowIsPropertyManaged(tStack, "rect") then
       windowSaveWindowPosition tStack
     end if
   end repeat

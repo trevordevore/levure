@@ -46,8 +46,7 @@ windowSetProperty "Document Window", "managed properties", "all"
 | `managed properties` | A comma delimited list. Possible list item values are `messages`, `rect`, `menu`, or `all` |
 | `default width` | integer or percent (e.g. 80%). Percentage is relative to total available screen width. |
 | `default height` | integer or percent (e.g. 80%). Percentage is relative to total available screen height. |
-| `default loc` | point (e.g. 100,50) |
-| `center window on screen` | true/false |
+| `default loc` | point or list of percents (e.g. 100,50 or 50%,50%) |
 
 The `managed properties` property affects how the Window Manager library treats a stack. Following is
 a description of what each property does if present in the `managed properties` list.
@@ -89,7 +88,7 @@ your app stores a default window position and you want to update that informatio
 Example:
 ```
 on moveStackEnd
-  prefsSetPref "default window dimensions", the width of me & "," & the height of me
+  prefsSetPref "default window dimensions", the width of this stack & "," & the height of this stack
   prefsSetPref "default window screen", the screen of me
 end moveStackEnd
 ```
@@ -99,9 +98,10 @@ end moveStackEnd
 The Window Manager will manage the window rect if this property is present in the `managed properties` list.
 The rect is managed as described below. Note that you must use the Preferences helper if the `rect` is managed.
 
-- When the stack is opened `windowPositionWithinConstraints` is called.
+- When the stack is opened `windowSetWindowRectBeforeOpening` is called.
 - When the stack is closed `windowSaveWindowPosition` is called.
-- When the desktop size is changed `windowPositionWithinConstraints` is called.
+- When the desktop size is changed `windowCheckWindowAfterDesktopChanged` is called.
+- When the user finishes moving a stack `windowCheckWindowAfterMove` is called.
 
 ### menu
 
@@ -125,7 +125,10 @@ The library manages the menu of a stack in the following ways:
 - [windowIsManaged](#windowIsManaged)
 - [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowMoveWindowOnScreen](#windowMoveWindowOnScreen)
-- [windowPositionWithinConstraints](#windowPositionWithinConstraints)
+- [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
+- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
+- [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
+- [windowCalculateRectForWindow](#windowCalculateRectForWindow)
 >
 - [windowResizeMenu](#windowResizeMenu)
 - [windowResolveTargetStack](#windowResolveTargetStack)
