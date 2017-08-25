@@ -196,7 +196,9 @@ command _windowCheckForMoveStackEnd pStackName
   if there is not a stack pStackName then exit _windowCheckForMoveStackEnd
 
   if mouse(1) is "up" then
-    windowPositionWithinConstraints pStackName
+    if windowIsPropertyManaged(pStackName, "rect") then
+      windowPositionWithinConstraints pStackName
+    end if
     dispatch "moveStackEnd" to the current card of stack pStackName
   else
     # User might stop moving stack but not release mouse button
