@@ -249,7 +249,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     end if
 
     if tError is empty then
-      log "Dispatching post build message"
       _dispatchPackagingComplete pBuildProfile, sAppA, tOutputFolder
     end if
   end if
@@ -1113,7 +1112,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
     # externals
     repeat for each key tKey in xHelperA["externals"]
       if tKey is not pPlatform then
-        log "  Skipping helper external platform" && tKey && ", target platform:" && pPlatform
+        log "  Skipping helper external platform" && tKey & ", target platform:" && pPlatform
         delete local xHelperA["externals"][tKey]
       else
         put empty into tHelpersA
