@@ -2158,7 +2158,7 @@ end _signAndStrip
 
 # Signs a file or folder
 private command _signFile pFilename, pCertificate
-  local tEntitlementsFile, tCmd, tError
+  local tEntitlementsFile, tCmd, tError, tResult
 
   if tError is empty then
     put _bundleEntitlementFile(pFilename) into tEntitlementsFile
@@ -2218,7 +2218,7 @@ end _isMacOSExecutable
 
 ## Monte Goulding with modifications by Trevor DeVore
 private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFiles
-  local tError, tOldDefaultFolder, tFolders, tFilesInfo, tFiles
+  local tError, tOldDefaultFolder, tFolders, tFilesInfo, tFiles, tResult
 
   put pSignFiles is not false into pSignFiles
 
@@ -2248,7 +2248,7 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFile
   # On Mavericks and above additional signing is required. Anything that can contain code (or that OS X thinks can contain code)
   if tError is empty then
     if pSignFiles then # don't sign if part of a bundle
-      local tFilesWOExt
+      local tFilesWOExt, tCmd
 
       set the itemdelimiter to "."
 
@@ -2263,6 +2263,20 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFile
       repeat for each line tFile in tFiles
         if the platform is "macos" AND \
               (item 1 of the itemDelimiter > 10 OR item 1 of the systemVersion = 10 AND item 2 of the systemVersion >= 9) then
+
+          # If file has already been codesigned then don't sign again. Some binaries may need to be signed by the developer
+          # using an entitlement file. If the file is signed again the entitlements won't be applied. If for any reason this code
+          # returns a false positive in the future a comparison could be done between pCertificate and the following line of output
+          # from the `codesign` call:
+          # Authority=3rd Party Mac Developer Application: CERT_NAME (TEAM_ID)
+          # pCertificate should match `3rd Party Mac Developer Application: CERT_NAME`.
+          put format("codesign -dv --verbose=4 \"%s\"", pFolder & "/" & tFile) into tCmd
+          put shell(tCmd) into tResult
+          if the result < 1 then
+            log "skipping file which is already signed:" && pFolder & "/" & tFile
+            next repeat
+          end if
+
           _signFile pFolder & "/" & tFile, pCertificate
           put the result into tError
         end if
@@ -2274,8 +2288,6 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFile
 
   # strip
   if tError is empty then
-    local tResult
-
     set the itemDelimiter to ","
 
     repeat for each line tFile in tFilesInfo
