@@ -2,7 +2,7 @@ script "levureFramework"
 ##########
 ## This script must be assigned to a behavior of a stack that will be built as a standalone.
 ##########
-constant kVersion = "0.9.3.0"
+constant kVersion = "0.9.4.0"
 constant kAppStackName = "app"
 constant kApplicationExternals = "levureAppExternals"
 constant kLiveCodeExtensions = "livecode,livecodescript"
