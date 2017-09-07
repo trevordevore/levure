@@ -46,7 +46,8 @@ windowSetProperty "Document Window", "managed properties", "all"
 | `managed properties` | A comma delimited list. Possible list item values are `messages`, `rect`, `menu`, or `all` |
 | `default width` | integer or percent (e.g. 80%). Percentage is relative to total available screen width. |
 | `default height` | integer or percent (e.g. 80%). Percentage is relative to total available screen height. |
-| `default loc` | point or list of percents (e.g. 100,50 or 50%,50%) |
+| `default loc` | point (e.g. 100,50) |
+| `center window on screen` | true/false |
 
 The `managed properties` property affects how the Window Manager library treats a stack. Following is
 a description of what each property does if present in the `managed properties` list.
@@ -88,7 +89,7 @@ your app stores a default window position and you want to update that informatio
 Example:
 ```
 on moveStackEnd
-  prefsSetPref "default window dimensions", the width of this stack & "," & the height of this stack
+  prefsSetPref "default window dimensions", the width of me & "," & the height of me
   prefsSetPref "default window screen", the screen of me
 end moveStackEnd
 ```
@@ -98,10 +99,9 @@ end moveStackEnd
 The Window Manager will manage the window rect if this property is present in the `managed properties` list.
 The rect is managed as described below. Note that you must use the Preferences helper if the `rect` is managed.
 
-- When the stack is opened `windowSetWindowRectBeforeOpening` is called.
+- When the stack is opened `windowPositionWithinConstraints` is called.
 - When the stack is closed `windowSaveWindowPosition` is called.
-- When the desktop size is changed `windowCheckWindowAfterDesktopChanged` is called.
-- When the user finishes moving a stack `windowCheckWindowAfterMove` is called.
+- When the desktop size is changed `windowPositionWithinConstraints` is called.
 
 ### menu
 
@@ -115,33 +115,53 @@ The library manages the menu of a stack in the following ways:
 
 ## API
 
-- [openCard](#openCard)
+- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
+- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)- [openCard](#openCard)
+- [windowCalculateRectForWindow](#windowCalculateRectForWindow)
+- [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
+- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
 - [windowClearWindowCache](#windowClearWindowCache)
+>
 - [windowGetProperty](#windowGetProperty)
 - [windowGoStack](#windowGoStack)
 - [windowHasCardBeenOpened](#windowHasCardBeenOpened)
->
 - [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
 - [windowIsManaged](#windowIsManaged)
-- [windowIsPropertyManaged](#windowIsPropertyManaged)
-- [windowMoveWindowOnScreen](#windowMoveWindowOnScreen)
-- [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
-- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
-- [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
-- [windowCalculateRectForWindow](#windowCalculateRectForWindow)
 >
+- [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowResizeMenu](#windowResizeMenu)
 - [windowResolveTargetStack](#windowResolveTargetStack)
 - [windowSaveWindowPosition](#windowSaveWindowPosition)
 - [windowSetCardInitializedState](#windowSetCardInitializedState)
-- [windowSetInitializedState](#windowSetInitializedState)
 >
+- [windowSetInitializedState](#windowSetInitializedState)
 - [windowSetProperty](#windowSetProperty)
+- [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
 - [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
 - [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)
 
 
 <br>
+
+## <a name="windowWasVisibleInPreOpenStack"></a>windowWasVisibleInPreOpenStack
+
+**Type**: function
+
+**Syntax**: `windowWasVisibleInPreOpenStack(<pStackName>)`
+
+**Summary**: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
+
+
+
+
+## <a name="windowWasVisibleInPreOpenStack"></a>windowWasVisibleInPreOpenStack
+
+**Type**: function
+
+**Syntax**: `windowWasVisibleInPreOpenStack(<pStackName>)`
+
+**Summary**: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
+
 
 ## <a name="openCard"></a>openCard
 
@@ -155,6 +175,83 @@ The library manages the menu of a stack in the following ways:
 
 Your application MUST pass the openCard message so that it reaches this library. Otherwise the library
 cannot track whether or not cards or stacks have been opened in the current session.
+
+
+<br>
+
+## <a name="windowCalculateRectForWindow"></a>windowCalculateRectForWindow
+
+**Type**: function
+
+**Syntax**: `windowCalculateRectForWindow(<pStackName>,<pScreenRect>,<pRect>,<pLoc>)`
+
+**Summary**: Calculates the rect that should be used to open a stack window.
+
+**Returns**: rectangle
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  Name of the target stack
+[pScreenRect]: Optional screen rect to use to contrain the stack window.
+[pRect]: Optional rect for the stack window.
+[pLoc]: Optional loc. |
+
+**Description**:
+
+The rect returned can be used to set `the effective rect` of the stack. The rect will
+size the stack window such that it is entirely visible on the screen it is displayed on.
+
+
+<br>
+
+## <a name="windowCheckWindowAfterDesktopChanged"></a>windowCheckWindowAfterDesktopChanged
+
+**Type**: command
+
+**Syntax**: `windowCheckWindowAfterDesktopChanged <pStackName>`
+
+**Summary**: Positions a window after the desktop has changed.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+After the desktop changes two things must be checked:
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
+
+
+<br>
+
+## <a name="windowCheckWindowAfterMove"></a>windowCheckWindowAfterMove
+
+**Type**: command
+
+**Syntax**: `windowCheckWindowAfterMove <pStackName>`
+
+**Summary**: Positions a window after the user moves it.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+After the user moves a stack window two things need to be checked:
+1. That the stack size isn't too lage for the monitor the stack is now on.
+2. That the top and bottom of the title bar are in an actionable area of the screen.
 
 
 <br>
@@ -317,56 +414,6 @@ A property is considered to be manaaged by this library if the
 
 <br>
 
-## <a name="windowMoveWindowOnScreen"></a>windowMoveWindowOnScreen
-
-**Type**: command
-
-**Syntax**: `windowMoveWindowOnScreen <pStackName>,<pEffectiveRect>`
-
-**Summary**: Repositions a stack so that it appears within a visible portion of the screen.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-**Description**:
-
-This handler is called from windowPositionWithinConstraints to ensure that a window appears in a visible \
-area of the screen. You can call this function in other circumstances if need be.
-
-
-<br>
-
-## <a name="windowPositionWithinConstraints"></a>windowPositionWithinConstraints
-
-**Type**: command
-
-**Syntax**: `windowPositionWithinConstraints <pStackName>,<pRestoreFromPrefs>`
-
-**Summary**: Sizes and positions a stack window on screen within the working screen rect.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pRestoreFromPrefs` |  If set to true then this function will fetch the last saved position of the window from prefs and use that rect to position the window. |
-
-**Description**:
-
-This handler will use uWindowManager["default width"] and uWindowManager["default height"] to size a window that
-is being opened for the first time. This handler is called automatically if the "rect" property is managed for a
-stack that is being opened.
-
-
-<br>
-
 ## <a name="windowResizeMenu"></a>windowResizeMenu
 
 **Type**: command
@@ -477,6 +524,34 @@ This handler requires the Preferences helper.
 | `pProperty` |  The property to set. |
 | `pValue` |  The value to set the property to. |
 | `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
+
+<br>
+
+## <a name="windowSetWindowRectBeforeOpening"></a>windowSetWindowRectBeforeOpening
+
+**Type**: command
+
+**Syntax**: `windowSetWindowRectBeforeOpening <pStackName>,<pRestoreFromPrefs>,<pScreenNo>`
+
+**Summary**: Called during preOpenStack to position a window before it is displayed.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+| `pRestoreFromPrefs` |  Boolean value specifying whether or not the handler will look for previous stack window rect in prefs.
+[pScreenNo]: The screen number to display the stack on. Default is 1. This will be ignored if pRestoreFromPrefs is true. |
+
+**Description**:
+
+After determining the rect to use the handler then alters the rect as needed in order to ensure the following:
+
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
+
 
 <br>
 
