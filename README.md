@@ -7,8 +7,8 @@ Levure is an application development framework for LiveCode. The primary goals o
 
 1. Lightweight. The framework has a minimal amount of code for loading, managing, and packaging your application. Common functionality is added via helper components.
 2. Provide common features such as preferences, logging, and undo management.
-3. Easily extensible. Helpers all developers to develop features as helpers which can easily be added to any application.
-4. Easy to organize. Levure applications are organized using the file system. Easily browser your app structure and add files.
+3. Easily extensible. **Helpers** provide a framework for developers to add features which can easily be added to any application.
+4. Easy to organize. Levure applications are organized using the file system. Easily browse your app structure and add files.
 5. Designed for use with version control systems. Wherever possible configuration and scripts are text files. While developers can take advantage of the efficiency of binary stack files for the UI, almost all of the scripts should be stored in script only stack files and assigned as behaviors.
 
 # Screencasts
