@@ -1,6 +1,8 @@
 script "Undo Manager Field Edits Undo Frontscript"
+constant kTimer = 20000
 local sWatchForFirstInput = false
 local sLogMessages = false
+local sLastTimestamp = 0
 
 on openField
   put true into sWatchForFirstInput
@@ -132,8 +134,14 @@ end undoRestoreMementos
 private command _logUndoIfNecessary pMsg
   if the environment is not "development" then
     if the selectedfield is not empty and the uEnableFieldUndo of the selectedField is not false then
-      if sWatchForFirstInput or word 4 of the selectedchunk > word 2 of the selectedchunk then
+      # Log an undo entry if:
+      # a) we are watching for first input
+      # b) a range of text is being replaced.
+      # c) the user hasn't typed anything in kTimer number of seconds
+      if sWatchForFirstInput or word 4 of the selectedchunk > word 2 of the selectedchunk \
+            or (the milliseconds - sLastTimestamp) > kTimer then
         undoLogEditFieldUndo pMsg
+        put the milliseconds into sLastTimestamp
       end if
     end if
   end if
