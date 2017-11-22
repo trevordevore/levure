@@ -946,7 +946,11 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
             put pDestinationFolder into tDestination
           end if
         else
-          put pDestinationFolder & "/" & tDestination into tDestination
+          put pDestinationFolder & "/" & _normalizeRelativeFilename(tDestination) into tDestination
+          # tDestination may have been `./` or `/`.
+          if the last char of tDestination is "/" then
+            delete the last char of tDestination
+          end if
         end if
 
         packagerCreateAllFoldersInPath tDestination, pDestinationFolder
@@ -2341,6 +2345,8 @@ end _fileListing
 private function _resolveRelativeFilenameReference pFilename, pRootFolder
   set the itemDelimiter to "/"
 
+  put _normalizeRelativeFilename(pFilename) into pFilename
+
   repeat while pFilename begins with "../"
     if pRootFolder is empty then
       return "relative path is too deep for root folder" for error
@@ -2356,6 +2362,16 @@ private function _resolveRelativeFilenameReference pFilename, pRootFolder
     return pRootFolder & "/" & pFilename for value
   end if
 end _resolveRelativeFilenameReference
+
+
+private function _normalizeRelativeFilename pFilename
+  if char 1 of pFilename is "/" then
+    delete char 1 of pFilename
+  else if char 1 to 2 of pFilename is "./" then
+    delete char 1 to 2 of pFilename
+  end if
+  return pFilename for value
+end _normalizeRelativeFilename
 
 
 private function _makeRelativePath pFilename, pRootFolder
