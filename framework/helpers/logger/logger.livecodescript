@@ -257,7 +257,7 @@ private command _log pMsg
     put the result into tError
 
     if tError is empty then
-      write pMsg to file sLogTarget
+      write textEncode(pMsg, "utf8") to file sLogTarget
     end if
 
     close file sLogTarget
