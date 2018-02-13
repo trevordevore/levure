@@ -324,7 +324,7 @@ function undoGetNextUndoInStack pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
   if undoCanUndo(pUndoStack) then
-    put the number of elements of sUndoLogA[pUndoStack]["undo"] into tIndex
+    put item 2 of the extents of sUndoLogA[pUndoStack]["undo"] into tIndex
     return sUndoLogA[pUndoStack]["undo"][tIndex]
   else
     return empty
@@ -345,7 +345,7 @@ command undoUndo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
   if undoCanUndo(pUndoStack) then
-    _reverseAction pUndoStack, "undo", the number of elements of sUndoLogA[pUndoStack]["undo"]
+    _reverseAction pUndoStack, "undo", item 2 of the extents of sUndoLogA[pUndoStack]["undo"]
     return empty
   else
     return "can't undo"
@@ -364,7 +364,7 @@ command undoRedo pUndoStack
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
   if undoCanRedo(pUndoStack) then
-    _reverseAction pUndoStack, "redo", the number of elements of sUndoLogA[pUndoStack]["redo"]
+    _reverseAction pUndoStack, "redo", item 2 of the extents of sUndoLogA[pUndoStack]["redo"]
     return empty
   else
     return "can't redo"
@@ -387,7 +387,7 @@ function undoUndoActionName pUndoStack
 
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
-  put the number of elements of sUndoLogA[pUndoStack]["undo"] into tIndex
+  put item 2 of the extents of sUndoLogA[pUndoStack]["undo"] into tIndex
   if tIndex > 0 then
     return sUndoLogA[pUndoStack]["undo"][tIndex]["action name"]
   else
@@ -411,7 +411,7 @@ function undoRedoActionName pUndoStack
 
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
-  put the number of elements of sUndoLogA[pUndoStack]["redo"] into tIndex
+  put item 2 of the extents of sUndoLogA[pUndoStack]["redo"] into tIndex
   if tIndex > 0 then
     return sUndoLogA[pUndoStack]["redo"][tIndex]["action name"]
   else
@@ -432,7 +432,7 @@ command undoRemoveLatest pUndoStack
 
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
-  put the number of elements of sUndoLogA[pUndoStack]["undo"] into tIndex
+  put item 2 of the extents of sUndoLogA[pUndoStack]["undo"] into tIndex
   _cleanupIndex pUndoStack, "undo", tIndex
   return empty
 end undoRemoveLatest
@@ -474,7 +474,7 @@ end _FocusedObjectIsFieldEdit
 private function _getNextUndoIndex pUndoStack
   local tMaxIndex
 
-  put the number of elements of sUndoLogA[pUndoStack]["undo"] into tMaxIndex
+  put item 2 of the extents of sUndoLogA[pUndoStack]["undo"] into tMaxIndex
   return tMaxIndex + 1
 end _getNextUndoIndex
 
@@ -482,7 +482,7 @@ end _getNextUndoIndex
 private function _getNextRedoIndex pUndoStack
   local tMaxIndex
 
-  put the number of elements of sUndoLogA[pUndoStack]["redo"] into tMaxIndex
+  put item 2 of the extents of sUndoLogA[pUndoStack]["redo"] into tMaxIndex
   return tMaxIndex + 1
 end _getNextRedoIndex
 
