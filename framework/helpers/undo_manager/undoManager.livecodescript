@@ -158,7 +158,7 @@ command undoReset pUndoStack
   ## Send cleanup handlers to for each undo and redo
   repeat for each item tKey in "undo,redo"
     put the keys of sUndoLogA[pUndoStack][tKey] into tIndexes
-    sort lines of tIndexes numeric ascending
+    sort lines of tIndexes numeric descending
     repeat for each item tIndex in tIndexes
       _cleanupIndex pUndoStack, "undo", tIndex
     end repeat
@@ -287,7 +287,7 @@ command undoAddAction pUndoStack, pActionName, pMementosA
   local tIndexes
 
   put the keys of sUndoLogA[pUndoStack]["redo"] into tIndexes
-  sort lines of tIndexes numeric ascending
+  sort lines of tIndexes numeric descending
   repeat for each line tIndex in tIndexes
     _cleanupIndex pUndoStack, "redo", tIndex
   end repeat
