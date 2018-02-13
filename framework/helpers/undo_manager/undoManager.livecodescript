@@ -262,24 +262,24 @@ undoAddAction "document 1", "Create thing", tMementosA
 ```
 */
 command undoAddAction pUndoStack, pActionName, pMementosA
-  local i, tIndex, tMementoA
+  local i, tUndoIndex, tIndex, tMementoA
 
   if pUndoStack is empty then put "default" into pUndoStack
-  put _getNextUndoIndex(pUndoStack) into tIndex
+  put _getNextUndoIndex(pUndoStack) into tUndoIndex
 
   repeat with i = 1 to the number of elements of pMementosA
     if sUndoStructure[ pMementosA[i]["type"] ] is not an array then return "undo not set up for this type"
   end repeat
 
-  put pActionName into sUndoLogA[pUndoStack]["undo"][tIndex]["action name"]
-  put pMementosA into sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"]
+  put pActionName into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["action name"]
+  put pMementosA into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
 
-  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"]
+  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
     local tTarget, tType
 
-    put sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][1]["type"] into tType
+    put sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"][1]["type"] into tType
     put _getTargetForMessages(pUndoStack, tType) into tTarget
-    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tIndex]["mementos"][i]
+    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"][i]
   end repeat
 
   ## Redos are wiped out. "cleanup handler" is called so program
@@ -303,7 +303,7 @@ command undoAddAction pUndoStack, pActionName, pMementosA
     _cleanupIndex pUndoStack, "undo", line i of tIndexes
   end repeat
 
-  return sUndoLogA[pUndoStack]["undo"][tIndex]
+  return sUndoLogA[pUndoStack]["undo"][tUndoIndex]
 end undoAddAction
 
 
