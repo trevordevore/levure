@@ -806,12 +806,15 @@ Summary: Returns an array of all `ui` category assets.
 Returns: Numerically indexed array. "name", "filename", and "key". "key" is the key the UI assets is listed under in app.yml.
  */
 function levureGetUIStacks
-  local tKey, i, j, tStacksA
+  local tKey, tLookupA, i, j, tStacksA
 
   repeat for each key tKey in sAppA["registered components"]["ui"]
-    repeat with i = 1 to the number of elements of sAppA[tKey]
+    put tKey into tLookupA
+    split tLookupA by "|"
+
+    repeat with i = 1 to the number of elements of sAppA[tLookupA]
       add 1 to j
-      put sAppA[tKey][i] into tStacksA[j]
+      put sAppA[tLookupA][i] into tStacksA[j]
       put tKey into tStacksA[j]["key"]
     end repeat
   end repeat
@@ -1121,6 +1124,8 @@ command levureLoadAppConfig pBuildProfile
         put empty into tFilesA
         put 0 into j
 
+        split tKey by "|"
+
         repeat with i = 1 to the number of elements of sAppA[tKey]
           add 1 to j
           put sAppA[tKey][i] into tFilesA[j]
@@ -1142,6 +1147,8 @@ command levureLoadAppConfig pBuildProfile
       repeat for each key tKey in sAppA["registered components"]["files"]
         put empty into tFilesA
         put 0 into j
+
+        split tKey by "|"
 
         repeat with i = 1 to the number of elements of sAppA[tKey]
           add 1 to j
@@ -1393,6 +1400,8 @@ private command loadAppAssets
     local tKey
 
     repeat for each key tKey in sAppA["registered components"]["ui"]
+      split tKey by "|"
+
       repeat with i = 1 to the number of elements of sAppA[tKey]
         put sAppA[tKey][i]["name"] & "," & \
               sAppA[tKey][i]["filename"] & cr after tStackFiles
@@ -1512,6 +1521,8 @@ private command _loadRegisteredKeyFiles pKey
   put sAppA["registered components"]["files"][pKey]["callback stackfile"] into tCallbackStack
 
   if tCallbackStack is not empty then
+    split pKey by "|"
+
     repeat with i = 1 to the number of elements of sAppA[pKey]
       dispatch "loadRegisteredKeyFile" to stack tCallbackStack with sAppA[pKey][i]
       put the result into tError
@@ -2154,6 +2165,8 @@ private command expandPackagedAppArrayFilenames @xAppA, pRootFolder
   end if
 
   repeat for each item tKey in tAssets
+    split tKey by "|"
+
     repeat with i = 1 to the number of elements of xAppA[tKey]
       replaceVariablesInPaths xAppA[tKey][i]
       put resolveFilenameReference(xAppA[tKey][i]["filename"], pRootFolder) into xAppA[tKey][i]["filename"]
