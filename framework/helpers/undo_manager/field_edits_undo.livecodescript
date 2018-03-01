@@ -66,19 +66,23 @@ end enterInField
 /**
 Summary: Stores a memento for a field prior to changes being made.
 */
-command undoStoreMemento pUndoStack, @pMementoA
-  if pUndoStack is not "edit field" then pass undoStoreMemento
+command undoStoreMementos pUndoStack, @pMementosA
+  if pUndoStack is not "edit field" then pass undoStoreMementos
 
-  if pMementoA["control"] is empty then
-    put the long id of the selectedField into pMementoA["control"]
-  end if
-  put word 1 to 4 of the selectedchunk into pMementoA["control selected chunk"]
+  local i
 
-  local tControl
+  repeat with i = 1 to the number of elements of pMementosA
+    if pMementosA[i]["control"] is empty then
+      put the long id of the selectedField into pMementosA[i]["control"]
+    end if
+    put word 1 to 4 of the selectedchunk into pMementosA[i]["control selected chunk"]
 
-  put pMementoA["control"] into tControl
-  put compress(the htmltext of tControl) into pMementoA["value"]
-end undoStoreMemento
+    local tControl
+
+    put pMementosA[i]["control"] into tControl
+    put compress(the htmltext of tControl) into pMementosA[i]["value"]
+  end repeat
+end undoStoreMementos
 
 
 /**
