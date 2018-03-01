@@ -71,9 +71,10 @@ end undoGetMaxUndos
 Summary: Registers an undo type with the Undo Manager.
 
 pType: The type to register.
-pInverseType: When calling undoUndo the type of the undo action will be set to this value. For example, if pType is "add object" then this might be "delete object". Leave empty  if there is no inverse type. If this value is different then pType then make sure you register this type as well.
-pRemoveFromStackCallback: The callback that will be sent when an undo action of this type is removed from the undo stack. Pass in empty if you have no cleanup requirements.
-[pCallbackTarget]: Optional control reference where callback messages should be sent. See undoSetTargetForStackCallbacks if you need to target callbacks based on a specific undo stack.
+pInverseType: When calling undoUndo the type of the undo action will be set to
+this value. For example, if pType is "create" then this might be
+"delete". Leave empty  if there is no inverse type. If this value is
+different then pType then make sure you register this type as well.
 
 Returns: empty
 
@@ -83,15 +84,11 @@ The type helps the application know how to undo or redo the action.
 Each type has callbacks that will be triggered when that type of undo entry
 needs to be undone or redone.
 */
-command undoRegisterType pType, pInverseType, pRemoveFromStackCallback, pCallbackTarget
+command undoRegisterType pType, pInverseType
   local tLineNo
 
   set the wholematches to true
-  put lineoffset(pType, sUndoStructure["types"]) into tLineNo
-  if tLineNo is 0 then put pType into line (the number of lines of sUndoStructure["types"] + 1) of sUndoStructure["types"]
 
-  put pRemoveFromStackCallback into sUndoStructure[pType]["cleanup handler"]
-  put pCallbackTarget into sUndoStructure[pType]["target"]
   put pInverseType into sUndoStructure[pType]["inverse type"]
 
   return empty
@@ -101,15 +98,8 @@ end undoRegisterType
 private command _cleanupIndex pUndoStack, pUndoOrRedo, pIndex
   local i, tType, tArray, tTarget
 
-  # Clean up each memento in turn
-  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"]
-    put sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"][i]["type"] into tType
-
-    if sUndoStructure[tType]["cleanup handler"] is not empty then
-      put _getTargetForMessages(pUndoStack, tType) into tTarget
-      dispatch sUndoStructure[tType]["cleanup handler"] to tTarget with sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]["mementos"][i]
-    end if
-  end repeat
+  put _getTargetForMessages(pUndoStack) into tTarget
+  dispatch "undoCleanupMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][pUndoOrRedo][pIndex]["mementos"]
 
   delete local sUndoLogA[pUndoStack][pUndoOrRedo][ pIndex ]
 
@@ -121,7 +111,6 @@ end _cleanupIndex
 Summary: Returns the target object for messages.
 
 pUndoStack: The target undo stack.
-pUndoType: The undo type for the event.
 
 Returns: object reference or empty.
 
@@ -129,10 +118,8 @@ Description:
 If an target callback has been defined for the type then that callback is returned.
 If not then the target for the undo stack is returned.
 */
-private function _getTargetForMessages pUndoStack, pUndoType
-  if pUndoType is not empty and sUndoStructure[pUndoType]["target"] is not empty then
-    return sUndoStructure[pUndoType]["target"]
-  else if sUndoLogA[pUndoStack]["target"] is not empty then
+private function _getTargetForMessages pUndoStack
+  if sUndoLogA[pUndoStack]["target"] is not empty then
     return sUndoLogA[pUndoStack]["target"]
   else
     return the long id of the target
@@ -155,29 +142,10 @@ command undoReset pUndoStack
 
   put _validateUndoStackString(pUndoStack) into pUndoStack
 
-  ## Send cleanup handlers to for each undo and redo
-  repeat for each item tKey in "undo,redo"
-    put the keys of sUndoLogA[pUndoStack][tKey] into tIndexes
-    sort lines of tIndexes numeric descending
-    repeat for each item tIndex in tIndexes
-      _cleanupIndex pUndoStack, "undo", tIndex
-    end repeat
-  end repeat
+  _cleanupStackIndexes pUndoStack
 
   ## Clean out undo stack key
   put empty into sUndoLogA[pUndoStack]
-
-  ## In case of a card for caching controls
-  if there is a group (pUndoStack && "Controls") of me then
-    local msgsAreLocked
-
-    put the lockmessages into msgsAreLocked
-    if not msgsAreLocked then lock messages
-    repeat with i = the number of controls of group (pUndoStack && "Controls") of me down to 1
-      delete control i of group (pUndoStack && "Controls") of me
-    end repeat
-    if not msgsAreLocked then unlock messages
-  end if
 
   return empty
 end undoReset
@@ -262,7 +230,7 @@ undoAddAction "document 1", "Create thing", tMementosA
 ```
 */
 command undoAddAction pUndoStack, pActionName, pMementosA
-  local i, tUndoIndex, tIndex, tMementoA
+  local i, tUndoIndex, tIndex, tTarget, tMementoA
 
   if pUndoStack is empty then put "default" into pUndoStack
   put _getNextUndoIndex(pUndoStack) into tUndoIndex
@@ -274,13 +242,8 @@ command undoAddAction pUndoStack, pActionName, pMementosA
   put pActionName into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["action name"]
   put pMementosA into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
 
-  repeat with i = 1 to the number of elements of sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
-    local tTarget, tType
-
-    put sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"][1]["type"] into tType
-    put _getTargetForMessages(pUndoStack, tType) into tTarget
-    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"][i]
-  end repeat
+  put _getTargetForMessages(pUndoStack) into tTarget
+  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
 
   ## Redos are wiped out. "cleanup handler" is called so program
   ## can clean up after any internal data specific to the undo array.
@@ -446,9 +409,28 @@ pUndoStack: The undo stack to target.
 Returns: empty
 */
 command undoCleanupStack pUndoStack
+  _cleanupStackIndexes pUndoStack
+
   delete local sUndoLogA[pUndoStack]
+
   return empty
 end undoCleanupStack
+
+
+private command _cleanupStackIndexes pUndoStack
+  local tKey, tIndexes, tIndex
+
+  ## Send cleanup handlers to for each undo and redo
+  repeat for each item tKey in "undo,redo"
+    put the keys of sUndoLogA[pUndoStack][tKey] into tIndexes
+    sort lines of tIndexes numeric descending
+    repeat for each item tIndex in tIndexes
+      _cleanupIndex pUndoStack, tKey, tIndex
+    end repeat
+  end repeat
+
+  return empty
+end _cleanupStackIndexes
 
 
 private function _validateUndoStackString pUndoStack
@@ -529,13 +511,12 @@ private command _reverseAction pUndoStack, pTargetQueue, pIndex
     put sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"] into tType
     put sUndoStructure[tType]["inverse type"] into tType
     put tType into sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]["type"]
-
-    put _getTargetForMessages(pUndoStack, tType) into tTarget
-    dispatch "undoStoreMemento" to tTarget with pUndoStack, sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"][i]
   end repeat
 
-  ## Run the undo
   put _getTargetForMessages(pUndoStack) into tTarget
+  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"]
+
+  ## Run the undo
   dispatch "undoRestoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"]
 
   delete local sUndoLogA[pUndoStack][pTargetQueue][pIndex]
