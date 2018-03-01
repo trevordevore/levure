@@ -11,6 +11,7 @@ On Macintosh OS X an external is used so you can set preferences using the OS X 
 * [Set default preferences values](#set-default-preferences-values)
 * [Set a preference to a value](#set-a-preference-to-a-value)
 * [Get a preference value](#get-a-preference-value)
+* [Saving preferences](#saving-preferences)
 * [API](#api)
 
 ## Activate the preferences framework helper
@@ -27,9 +28,11 @@ helpers:
 
 ## Set the preferences file name
 
-You set the preferences file name for the platforms your application supports in `app.yml`. You can provide an optional default file name for all platforms and then override it for specific platforms.
+You set the preferences file name for the platforms your application supports in `app.yml`. You can provide an optional default file name for all platforms and then override it for specific platforms. A file name can be specified for *user* which is for the the current user using the application, or for *shared* which is shared among all users on the computer. Note the *shared* is only available on macOS, windows, and linux. It is not supported on mobile devices.
 
-The preferences file is stored in the folder returned by `levureApplicationDataFolder()` on all platforms except macOS, where it is stored in `~/Library/Preferences`, so you should specify only the name of the preferences file without any other path information.
+The "user" preferences file is stored in the folder returned by `levureApplicationDataFolder("user")` on all platforms except macOS, where it is stored in `~/Library/Preferences`, so you should specify only the name of the preferences file without any other path information.
+
+The "shared" preferences file is stored in the folder returned by `levureApplicationDataFolder("shared")` on all supported platforms.
 
 Do not use quote marks around your `preferences filename` value in `app.yml`.
 
@@ -111,6 +114,10 @@ While your application is running you can get a preference value with the `prefs
 # prefsGetPref example
 put prefsGetPref("my preference name") into tPreferenceValue
 ```
+
+## Saving preferences
+
+Levure will automatically call `prefsSave` when your application is running as a standalone and shuts down. `prefsSave "user"` and `prefsSave "shared"` is called in the `levureShutdownApplication` command in the `levure.livecodescript` script. You can save preferences at any other point by calling `prefsSave user|shared`.
 
 <br>
 
