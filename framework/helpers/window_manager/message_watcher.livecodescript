@@ -106,7 +106,7 @@ end preOpenStack
 /**
 Summary: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
 
-
+Returns: Boolean
 */
 function windowWasVisibleInPreOpenStack pStackName
   local tState
