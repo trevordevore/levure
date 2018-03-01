@@ -489,7 +489,7 @@ is removed from the field.
 
 **Type**: command
 
-**Syntax**: `undoRegisterType <pType>,<pInverseType>,<pRemoveFromStackCallback>,<pCallbackTarget>`
+**Syntax**: `undoRegisterType <pType>,<pInverseType>`
 
 **Summary**: Registers an undo type with the Undo Manager.
 
@@ -500,9 +500,10 @@ is removed from the field.
 | Name | Description |
 |:---- |:----------- |
 | `pType` |  The type to register. |
-| `pInverseType` |  When calling undoUndo the type of the undo action will be set to this value. For example, if pType is "add object" then this might be "delete object". Leave empty  if there is no inverse type. If this value is different then pType then make sure you register this type as well. |
-| `pRemoveFromStackCallback` |  The callback that will be sent when an undo action of this type is removed from the undo stack. Pass in empty if you have no cleanup requirements.
-[pCallbackTarget]: Optional control reference where callback messages should be sent. See undoSetTargetForStackCallbacks if you need to target callbacks based on a specific undo stack. |
+| `pInverseType` |  When calling undoUndo the type of the undo action will be set to
+this value. For example, if pType is "create" then this might be
+"delete". Leave empty  if there is no inverse type. If this value is
+different then pType then make sure you register this type as well. |
 
 **Description**:
 
