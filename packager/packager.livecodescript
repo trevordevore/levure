@@ -1242,7 +1242,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
 end _packageHelper
 
 
-private command _packageUI pBuildProfile,pPlatform,  @xAppA, pOutputFolder
+private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
   local tError
   local tCompsA, tIndex, tKey, i
   local tComponentFolder
@@ -1262,18 +1262,30 @@ private command _packageUI pBuildProfile,pPlatform,  @xAppA, pOutputFolder
       if tError is empty then
         local tDestFolder, tExclusions
 
+        put empty into tExclusions
+
+        # Build list of stacks that are excluded from password protection
+        repeat with i = 1 to the number of elements of xAppA[tKey]
+          if xAppA[tKey][i]["encrypt"] is false then
+            put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
+            put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
+            put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] & cr after tExclusions
+          end if
+        end repeat
+        delete the last char of tExclusions
+
+        log "  UI stacks excluded from encryption for key" && tKey & ":" && tExclusions
+
         repeat with i = 1 to the number of elements of xAppA[tKey]
           if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
             log "  Skipping ui asset" && tKey && ":" && xAppA[tKey][i]["filename"]
             next repeat
           end if
 
-          put empty into tExclusions
           put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
+          put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
 
           log "  Adding component:" && xAppA[tKey][i]["filename"]
-
-          put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
 
           # If two entries in array are in same folder only copy and process the folder once.
           if there is not a folder tDestFolder then
@@ -1281,10 +1293,6 @@ private command _packageUI pBuildProfile,pPlatform,  @xAppA, pOutputFolder
             put _errorMsg("copying folder" && tComponentFolder && "to" && tDestFolder, the result) into tError
 
             if tError is empty then
-              if xAppA[tKey][i]["encrypt"] is false then
-                put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tExclusions
-              end if
-
               _processStacksInFolder tDestFolder, sPassword, tExclusions
               put the result into tError
             end if
@@ -1301,8 +1309,6 @@ private command _packageUI pBuildProfile,pPlatform,  @xAppA, pOutputFolder
                 put "" into sCallbackStacksA[ xAppA["registered components"]["ui"][tKey]["callback stackfile"] ]
               end if
             end if
-          else
-            beep
           end if
 
           add 1 to tIndex
@@ -1432,7 +1438,6 @@ private command _processStacksInFolder pFolder, pPassword, pExclusions
   local tFolders, tFolder, tFiles, tFile
 
   log "Processing stacks in folder:" && pFolder
-  log "  Stacks excluded from encryption:" && pExclusions
 
   set the wholematches to true
 

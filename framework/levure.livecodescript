@@ -8,6 +8,8 @@ constant kApplicationExternals = "levureAppExternals"
 constant kLiveCodeExtensions = "livecode,livecodescript"
 constant kLiveCodeModule = "lcm"
 constant kLevureErr = "levureerr,"
+constant kUIKey = "ui"
+constant kUITemplatesKey = "templates"
 
 local sAppFolder              # Folder where the `app` stack resides
 local sAppA
@@ -847,8 +849,10 @@ private command normalizeAppArray
   put sAppA["multiple instances"] is true into sAppA["multiple instances"]
   put sAppA["relaunch in background"] is true into sAppA["relaunch in background"]
 
-  # "ui" is always a registered "ui" component
-  put empty into sAppA["registered components"]["ui"]["ui"]
+  # kUIKey and kUITemplatesKey are always a registered "ui" component
+  put empty into sAppA["registered components"]["ui"][kUIKey]
+  put empty into sAppA["registered components"]["ui"][kUITemplatesKey]
+  put false into sAppA["registered components"]["ui"][kUITemplatesKey]["encrypt binary stacks"]
 
   repeat for each item tGroup in "user,shared"
     repeat for each item tPlatform in "default,macos,windows,linux,ios,android"
@@ -1071,6 +1075,8 @@ command levureLoadAppConfig pBuildProfile
             case "ui"
               if tKey is not among the keys of sAppA["registered components"][tKind] then
                 put empty into sAppA["registered components"][tKind][tKey]
+                put sAppA["helpers"][i]["register components"][tKeyIndex]["encrypt binary stacks"] is not false \
+                      into sAppA["registered components"][tKind][tKey]["encrypt binary stacks"]
               end if
             case "files"
               if tKey is not among the keys of sAppA["registered components"][tKind] then
@@ -1082,8 +1088,10 @@ command levureLoadAppConfig pBuildProfile
               if the environment is "development" then
                 if tKey is not among the keys of sAppA["registered components"][tKind] then
                   put empty into sAppA["registered components"][tKind][tKey]
-                  put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] into sAppA["registered components"][tKind][tKey]["target platform"]
-                  put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] into sAppA["registered components"][tKind][tKey]["destination"]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] \
+                        into sAppA["registered components"][tKind][tKey]["target platform"]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] \
+                        into sAppA["registered components"][tKind][tKey]["destination"]
                 end if
               end if
               break
@@ -1120,6 +1128,11 @@ command levureLoadAppConfig pBuildProfile
 
         if the number of elements of tFilesA > 0 then
           put expandUIAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
+        end if
+
+        # Stacks acting as templates will not have binary stacks encrypted
+        if sAppA["registered components"]["ui"][tKey]["encrypt binary stacks"] is false then
+          dontEncryptBinaryStacks sAppA[tKey]
         end if
       end repeat
 
@@ -2557,6 +2570,28 @@ private function ensureStackNameIsPresent pFileA
 
   return pFileA
 end ensureStackNameIsPresent
+
+
+private command dontEncryptBinaryStacks @xFilesA
+  local i, tStackIsLoaded, msgsAreLocked
+
+  put the lockMessages into msgsAreLocked
+
+  repeat with i = 1 to the number of elements of xFilesA
+    lock messages
+    put there is a stack xFilesA[i]["filename"] into tStackIsLoaded
+    if tStackIsLoaded then
+      if not the scriptonly of stack xFilesA[i]["filename"] then
+        put false into xFilesA[i]["encrypt"]
+      end if
+      delete stack xFilesA[i]["filename"]
+    end if
+  end repeat
+
+  set the lockMessages to msgsAreLocked
+
+  return empty
+end dontEncryptBinaryStacks
 
 
 private function resolveFilenameReference pFilename, pRootFolder
