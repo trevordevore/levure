@@ -2986,7 +2986,9 @@ command YAMLToArray pYaml
     end if
 
     -- map
-    put __unquotedCharOffset(":", tLine) into tCharNo
+    if not (word 1 of tLine begins with "{") and not (word 1 of tLine begins with "[") then
+      put __unquotedCharOffset(":", tLine) into tCharNo
+    end if
     if tCharNo > 0 then
       local tKey
 
@@ -3096,9 +3098,9 @@ private command __AddToArray pLine, @xElement
         put word 1 to -1 of pLine[tIndex] into pLine[tIndex]
 
         local tValue
-        put item 1 of pLine[tIndex] into tKey
+        put word 1 to -1 of item 1 of pLine[tIndex] into tKey
         __ClearQuotes tKey
-        put item 2 to -1 of pLine[tIndex] into tValue
+        put word 1 to -1 of item 2 to -1 of pLine[tIndex] into tValue
         __ClearQuotes tValue
 
         put tValue into tLine[tKey]
