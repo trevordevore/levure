@@ -296,8 +296,8 @@ end ulLogIt
 
 # Message Box
 on msgChanged
-  if sLogA["msg"] then
-    _log "Message box" & cr & "Message:" && msg
+  if sLogA["msg"] and msg is not empty then
+    _log "msg changed:" && msg
   end if
   pass msgChanged
 end msgChanged
