@@ -3069,11 +3069,17 @@ end YAMLToArray
 
 private function __unquotedCharOffset pChar, pLine
   local tOffset = 0
-  local tCharOffset
+  local tChar
   local tInQuote = "false"
 
-  repeat for each char tChar in pLine
-    add 1 to tOffset
+  repeat with tOffset = 1 to the number of chars of pLine
+    put char tOffset of pLine into tChar
+
+    if tInQuote and tChar is "\" and char tOffset+1 of pLine is quote then
+      add 1 to tOffset
+      next repeat
+    end if
+
     if tChar is quote then
       put not tInQuote into tInQuote
     else if tChar is pChar and not tInQuote then
@@ -3085,6 +3091,66 @@ private function __unquotedCharOffset pChar, pLine
 end __unquotedCharOffset
 
 
+private function _splitYAMLStringAtDelimiter pString, pDelimiter
+  local tBuffer, tDataA, tIndex
+  local tOffset = 0
+  local tEscapeChar = "'"
+  local tQuoteChars, tQuoteChar, tChar
+  local tInQuote = "false"
+
+  put "'" into tQuoteChar
+  put quote & ",'" into tQuoteChars
+
+  if pDelimiter is empty then put "," into pDelimiter
+  # name: started_at, type: timestamp, default: "strftime('%s','now')"
+  repeat with tOffset = 1 to the number of chars of pString
+    put char tOffset of pString into tChar
+
+    if tInQuote and tChar is tEscapeChar and char tOffset+1 of pString is tQuoteChar then
+      add 1 to tOffset
+      put tQuoteChar after tBuffer
+      next repeat
+    end if
+
+    if tInQuote then
+      if tChar is tQuoteChar then
+        put false into tInQuote
+      end if
+    else
+      put tChar is among the items of tQuoteChars into tInQuote
+      if tInQuote then
+        put tChar into tQuoteChar
+        if tChar is quote then
+          put "\" into tEscapeChar
+        else
+          put "'" into tEscapeChar
+        end if
+      end if
+    end if
+
+    if not tInQuote then
+      if tChar is pDelimiter then
+        add 1 to tIndex
+        put tBuffer into tDataA[tIndex]
+        put empty into tBuffer
+      else
+        put tChar after tBuffer
+      end if
+    else
+      put tChar after tBuffer
+    end if
+  end repeat
+
+  if tBuffer is not empty then
+    add 1 to tIndex
+    put tBuffer into tDataA[tIndex]
+    put empty into tBuffer
+  end if
+
+  return tDataA
+end _splitYAMLStringAtDelimiter
+
+
 private command __AddToArray pLine, @xElement
   local tElements, tKey
   -- trim whitespace
@@ -3093,7 +3159,7 @@ private command __AddToArray pLine, @xElement
     if pLine begins with "[" and pLine ends with "]" then
       -- support single line flow sequence
       put char 2 to -2 of pLine into pLine
-      split pLine by comma
+      put _splitYAMLStringAtDelimiter(pLine) into pLine
       put the number of elements of pLine into tElements
       repeat with tIndex = 1 to tElements
         put word 1 to -1 of pLine[tIndex] into pLine[tIndex]
@@ -3102,7 +3168,7 @@ private command __AddToArray pLine, @xElement
     else if pLine begins with "{" and pLine ends with "}" then
       -- support single line flow sequence
       put char 2 to -2 of pLine into pLine
-      split pLine by comma
+      put _splitYAMLStringAtDelimiter(pLine) into pLine
       set the itemDelimiter to ":"
 
       local tLine
