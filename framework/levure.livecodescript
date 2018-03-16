@@ -1643,7 +1643,7 @@ private command loadExtensions pArrayA
       load extension from file pArrayA["extensions"][i]["filename"]
     end if
     if the result is not empty and the result is not "module already loaded" then
-      put the result & cr after tError
+      put the result & ":" && pArrayA["extensions"][i]["filename"] & cr after tError
     end if
   end repeat
 
