@@ -447,6 +447,9 @@ command levureInitializeFramework
   end if
 
   if tError is empty then
+    repeat with i = 1 to the number of elements of sAppA["helpers"]
+      loadBehaviorsIntoMemory sAppA["helpers"][i]
+    end repeat
     loadBehaviorsIntoMemory sAppA
 
     # Preload special helpers
