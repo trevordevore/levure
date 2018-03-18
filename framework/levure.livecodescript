@@ -451,10 +451,6 @@ command levureInitializeFramework
       loadBehaviorsIntoMemory sAppA["helpers"][i]
     end repeat
     loadBehaviorsIntoMemory sAppA
-
-    # Preload special helpers
-    loadEarlyHelpers
-    put the result into tError
   end if
 
   if tError is empty then
@@ -887,12 +883,6 @@ private command unloadApp
   unloadAssets sAppA
 
   repeat with i = the number of elements of sAppA["helpers"] down to 1
-    if sAppA["helpers"][i]["preload"] then next repeat
-    unloadAssets sAppA["helpers"][i]
-  end repeat
-
-  repeat with i = the number of elements of sAppA["helpers"] down to 1
-    if not sAppA["helpers"][i]["preload"] then next repeat
     unloadAssets sAppA["helpers"][i]
   end repeat
 
@@ -1348,47 +1338,6 @@ private command createSubfolders pRootFolder, pSubfolder
 end createSubfolders
 
 
-private command loadEarlyHelpers
-  local tError
-  local tStackFiles, tLoaded
-  local i, j
-
-  put the stackFiles of stack kAppStackName into tStackFiles
-  if tStackFiles is not empty then put cr after tStackFiles
-
-  # Load any helpers marked preload=true
-  repeat with i = 1 to the number of elements of sAppA["helpers"]
-    if sAppA["helpers"][i]["preload"] then
-      loadExtensions sAppA["helpers"][i]
-      put the result into tError
-
-      if tError is empty then
-        loadBehaviorsIntoMemory sAppA["helpers"][i]
-        loadMessagePathAssets sAppA["helpers"][i]
-        put the result into tError
-      end if
-
-      if tError is empty then
-        repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
-          put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
-
-          if sAppA["helpers"][i]["ui"][j]["autoload"] then
-            put there is a stack sAppA["helpers"][i]["ui"][j]["filename"] into tLoaded
-          end if
-        end repeat
-      end if
-
-      if tError is not empty then exit repeat
-    end if
-  end repeat
-
-  delete the last char of tStackFiles
-  set the stackfiles of stack kAppStackName to tStackFiles
-
-  return tError for error
-end loadEarlyHelpers
-
-
 private command loadAppAssets
   local tError
   local tRenameAnswerDialog = "false"
@@ -1429,7 +1378,6 @@ private command loadAppAssets
     local j
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["preload"] then next repeat
       repeat with j = 1 to the number of elements of sAppA["helpers"][i]["ui"]
         put sAppA["helpers"][i]["ui"][j]["name"] & "," & sAppA["helpers"][i]["ui"][j]["filename"] & cr after tStackFiles
         if sAppA["helpers"][i]["ui"][j]["autoload"] then
@@ -1448,16 +1396,14 @@ private command loadAppAssets
     put the result into tError
 
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["preload"] then next repeat
       loadExtensions sAppA["helpers"][i]
     end repeat
   end if
 
-  # behaviors, libraries, frontscripts, backscripts
+  # libraries, frontscripts, backscripts
   if tError is empty then
     repeat with i = 1 to the number of elements of sAppA["helpers"]
-      if sAppA["helpers"][i]["preload"] then next repeat
-      loadBehaviorsIntoMemory sAppA["helpers"][i]
+      # Note that behaviors were already loaded
       loadMessagePathAssets sAppA["helpers"][i]
       put the result into tError
 
@@ -2369,7 +2315,6 @@ private command loadHelperConfigurationFile @xHelperA
 
   # Move properties defined in app.yml into array created from helper.yml
   put xHelperA["filename"] into tConfigA["filename"]
-  put xHelperA["preload"] is true into tConfigA["preload"]
   put xHelperA["encrypt"] is not false into tConfigA["encrypt"]
   put xHelperA["build profiles filter"] into tConfigA["build profiles filter"]
 
@@ -2518,7 +2463,6 @@ private command replaceVariablesInPaths @pFilesA
 
         if pFilesA[i][tKey] contains "[[FRAMEWORK]]" then
           replace "[[FRAMEWORK]]" with tFrameworkFolder in pFilesA[i][tKey]
-          put true into pFilesA[i]["preload"] # framework files should be available to all app libraries, etc.
         end if
       end if
     end repeat
