@@ -978,7 +978,7 @@ Returns: Error message
 command levureLoadAppConfig pBuildProfile
   local tError
   local tSource
-  local tKey, i
+  local tKey
 
   # set sAppFolder and load kAppStackName into memory
   loadApplicationStack
@@ -1000,10 +1000,7 @@ command levureLoadAppConfig pBuildProfile
       ## Load all behaviors into memory. See note below for reason why
       ## behaviors are loaded in this handler.
       ##########
-      repeat with i = 1 to the number of elements of sAppA["helpers"]
-        loadBehaviorsIntoMemory sAppA["helpers"][i]
-      end repeat
-      loadBehaviorsIntoMemory sAppA
+      loadAllBehaviorsIntoMemory
     end if
   else
 
@@ -1016,7 +1013,7 @@ command levureLoadAppConfig pBuildProfile
     end if
 
     if tError is empty then
-      local j
+      local i, j
       local tFilesA
 
       ##########
@@ -1120,10 +1117,7 @@ command levureLoadAppConfig pBuildProfile
       ## If one of those stacks relies on a behavior then that behavior must be loaded
       ## beforehand.
       ##########
-      repeat with i = 1 to the number of elements of sAppA["helpers"]
-        loadBehaviorsIntoMemory sAppA["helpers"][i]
-      end repeat
-      loadBehaviorsIntoMemory sAppA
+      loadAllBehaviorsIntoMemory
 
       ##########
       # ui components (includes "ui" key by default)
@@ -1513,6 +1507,41 @@ command levureReloadRegisteredKey pKey
 end levureReloadRegisteredKey
 
 
+private command loadAllBehaviorsIntoMemory
+  local tHelperA, tBehaviorA
+
+  repeat for each element tHelperA in sAppA["helpers"]
+    loadBehaviorsIntoMemory tHelperA
+  end repeat
+  loadBehaviorsIntoMemory sAppA
+
+  # Now that all behaviors are in memory send a message to let each behavior know
+  # it has been loaded. This allows a behavior to set its own behavior without
+  # needing to worry about the loading order.
+  repeat for each element tBehaviorA in sAppA["behaviors"]
+    put tBehaviorA["filename"] into tStack
+    dispatch "LoadBehavior" to stack tStack
+
+    # for packaged apps
+    repeat for each line tStack in the substacks of stack tBehaviorA["filename"]
+      dispatch "LoadBehavior" to stack tStack
+    end repeat
+  end repeat
+
+  repeat for each element tHelperA in sAppA["helpers"]
+    repeat for each element tBehaviorA in tHelperA["behaviors"]
+      put tBehaviorA["filename"] into tStack
+      dispatch "LoadBehavior" to stack tStack
+
+      # for packaged apps
+      repeat for each line tStack in the substacks of stack tBehaviorA["filename"]
+        dispatch "LoadBehavior" to stack tStack
+      end repeat
+    end repeat
+  end repeat
+end loadAllBehaviorsIntoMemory
+
+
 private command loadBehaviorsIntoMemory pArrayA
   local tFileIsLoaded
 
@@ -1529,19 +1558,6 @@ private command loadMessagePathAssets pArrayA
   try
     # Note: tStack will contain the name of the last stack that this handler
     #       tried to load. If an error occurs then include tStack in the error report.
-
-    # Now that all behaviors are in memory enable a script only
-    # behavior stack to set its own behavior
-    repeat with i = 1 to the number of elements of pArrayA["behaviors"]
-      put pArrayA["behaviors"][i]["filename"] into tStack
-      dispatch "LoadBehavior" to stack tStack
-
-      # for packaged apps
-      repeat for each line tStack in the substacks of stack pArrayA["behaviors"][i]["filename"]
-        dispatch "LoadBehavior" to stack tStack
-      end repeat
-    end repeat
-
     repeat with i = 1 to the number of elements of pArrayA["libraries"]
       put pArrayA["libraries"][i]["filename"] into tStack
 
