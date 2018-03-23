@@ -19,51 +19,68 @@ end levureExternalEditorStartServer
 
 
 on levureExternalEditorClientRequest pIPAddr
-  local tStackName, tFilename, tError
+  local tError, tKey, tQueryA
 
   read from socket pIPAddr until linefeed
   delete the last char of it
+  
+  put it into tQueryA
 
-  split it by "&" and "="
-  put textDecode(urldecode(it["stack"]), "utf8") into tStackName
-  put textDecode(urldecode(it["filename"]), "utf8") into tFilename
-
-  if there is a stack tStackName and the filename of stack tStackName is tFilename then
-    try
-      local tOldPreserveVariables, tOldExplicitVariables, tDefaultStack
-
-      put the defaultStack into tDefaultStack
-      put the preserveVariables into tOldPreserveVariables
-
-      set the defaultStack to me
-      set the preserveVariables to true
-
-      lock messages
-      create button "CompileScript"
-
-      set the script of button "CompileScript" to (line 2 to -1 of url("file:" & tFilename))
-      put the result into tError
-
-      if tError is empty then
-        set the script of stack tStackName to the script of button "CompileScript"
+  split tQueryA by "&" and "="
+  
+  repeat for each key tKey in tQueryA
+    put textDecode(urldecode(tQueryA[tKey]), "utf8") into tQueryA[tKey]
+  end repeat
+  
+  switch tQueryA["command"]
+    case "open"
+      if there is a stack tQueryA["filename"] then
+        go stack tQueryA["filename"]
         write "success" to socket pIPAddr
+      else
+        put "Stack file" && tQueryA["filename"] && "does not exist." into tError
+        write "error:" && tError to socket pIPAddr
+        answer error tError
       end if
+      break
+    default
+      if there is a stack tQueryA["stack"] and the filename of stack tQueryA["stack"] is tQueryA["filename"] then
+        try
+          local tOldPreserveVariables, tOldExplicitVariables, tDefaultStack
 
-      delete button "CompileScript"
-      set the preserveVariables to tOldPreserveVariables
-      set the defaultStack to tDefaultStack
-      unlock messages
-    catch tError
+          put the defaultStack into tDefaultStack
+          put the preserveVariables into tOldPreserveVariables
 
-    end try
+          set the defaultStack to me
+          set the preserveVariables to true
 
-    if tError is not empty then
-      write "error:" && tError to socket pIPAddr
-      beep
-      put tError
-      answer error "Error setting script of stack" && tStackName & "."
-    end if
-  else
-    write "file not found" to socket pIPAddr
-  end if
+          lock messages
+          create button "CompileScript"
+
+          set the script of button "CompileScript" to (line 2 to -1 of url("file:" & tQueryA["filename"]))
+          put the result into tError
+
+          if tError is empty then
+            set the script of stack tQueryA["stack"] to the script of button "CompileScript"
+            write "success" to socket pIPAddr
+          end if
+
+          delete button "CompileScript"
+          set the preserveVariables to tOldPreserveVariables
+          set the defaultStack to tDefaultStack
+          unlock messages
+        catch tError
+
+        end try
+
+        if tError is not empty then
+          write "error:" && tError to socket pIPAddr
+          beep
+          put tError
+          answer error "Error setting script of stack" && tQueryA["stack"] & "."
+        end if
+      else
+        write "file not found" to socket pIPAddr
+      end if
+  end switch
 end levureExternalEditorClientRequest
