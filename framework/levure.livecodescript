@@ -447,13 +447,6 @@ command levureInitializeFramework
   end if
 
   if tError is empty then
-    repeat with i = 1 to the number of elements of sAppA["helpers"]
-      loadBehaviorsIntoMemory sAppA["helpers"][i]
-    end repeat
-    loadBehaviorsIntoMemory sAppA
-  end if
-
-  if tError is empty then
     createApplicationDataFolders
     put the result into tError
   end if
@@ -985,7 +978,7 @@ Returns: Error message
 command levureLoadAppConfig pBuildProfile
   local tError
   local tSource
-  local tKey
+  local tKey, i
 
   # set sAppFolder and load kAppStackName into memory
   loadApplicationStack
@@ -1002,6 +995,16 @@ command levureLoadAppConfig pBuildProfile
     resolveHelperAssets pBuildProfile
     put the result into tError
 
+    if tError is empty then
+      ##########
+      ## Load all behaviors into memory. See note below for reason why
+      ## behaviors are loaded in this handler.
+      ##########
+      repeat with i = 1 to the number of elements of sAppA["helpers"]
+        loadBehaviorsIntoMemory sAppA["helpers"][i]
+      end repeat
+      loadBehaviorsIntoMemory sAppA
+    end if
   else
 
     # Development: Load config file and expand all folders in config
@@ -1013,7 +1016,7 @@ command levureLoadAppConfig pBuildProfile
     end if
 
     if tError is empty then
-      local i, j
+      local j
       local tFilesA
 
       ##########
@@ -1109,6 +1112,18 @@ command levureLoadAppConfig pBuildProfile
         end if
 
       end repeat
+
+      ##########
+      ## Load all behaviors into memory.
+      ## When retrieving UI stack names the UI stack will be brought into memory.
+      ## This will load any stacks listed in the stackfiles property of the UI stack.
+      ## If one of those stacks relies on a behavior then that behavior must be loaded
+      ## beforehand.
+      ##########
+      repeat with i = 1 to the number of elements of sAppA["helpers"]
+        loadBehaviorsIntoMemory sAppA["helpers"][i]
+      end repeat
+      loadBehaviorsIntoMemory sAppA
 
       ##########
       # ui components (includes "ui" key by default)
