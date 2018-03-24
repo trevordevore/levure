@@ -1,4 +1,4 @@
-script "levureExternalEditorServer"
+﻿script "levureExternalEditorServer"
 constant kDefaultPort = "61373"
 
 
@@ -23,20 +23,30 @@ on levureExternalEditorClientRequest pIPAddr
 
   read from socket pIPAddr until linefeed
   delete the last char of it
-  
+
   put it into tQueryA
 
   split tQueryA by "&" and "="
-  
+
   repeat for each key tKey in tQueryA
     put textDecode(urldecode(tQueryA[tKey]), "utf8") into tQueryA[tKey]
   end repeat
-  
+
   switch tQueryA["command"]
     case "open"
       if there is a stack tQueryA["filename"] then
-        go stack tQueryA["filename"]
-        write "success" to socket pIPAddr
+        try
+          go stack tQueryA["filename"]
+        catch tError
+
+        finally
+          write "success" to socket pIPAddr
+        end try
+
+        if tError is not empty then
+          throw tError
+        end if
+
       else
         put "Stack file" && tQueryA["filename"] && "does not exist." into tError
         write "error:" && tError to socket pIPAddr
