@@ -1508,7 +1508,7 @@ end levureReloadRegisteredKey
 
 
 private command loadAllBehaviorsIntoMemory
-  local tHelperA, tBehaviorA
+  local tHelperA, tBehaviorA, tStack
 
   repeat for each element tHelperA in sAppA["helpers"]
     loadBehaviorsIntoMemory tHelperA
