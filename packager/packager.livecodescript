@@ -346,7 +346,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Files
   # Move straight over
   if tError is empty then
-    _packageFiles pBuildProfile, xAppA, pOutputFolder
+    _packageFiles pBuildProfile, pPlatform, xAppA, pOutputFolder
     put the result into tError
   end if
 
@@ -1243,7 +1243,7 @@ end _packageHelper
 
 
 private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
-  local tError
+  local tError, tLookupA
   local tCompsA, tIndex, tKey, i
   local tComponentFolder
 
@@ -1253,7 +1253,10 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
     put empty into tCompsA
     put 0 into tIndex
 
-    if the number of elements of xAppA[tKey] > 0 then
+    put tKey into tLookupA
+    split tLookupA by "|"
+
+    if the number of elements of xAppA[tLookupA] > 0 then
       log "Packaging" && tKey
 
       create folder (pOutputFolder & "/" & tKey)
@@ -1265,27 +1268,27 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
         put empty into tExclusions
 
         # Build list of stacks that are excluded from password protection
-        repeat with i = 1 to the number of elements of xAppA[tKey]
-          if xAppA[tKey][i]["encrypt"] is false then
-            put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
+        repeat with i = 1 to the number of elements of xAppA[tLookupA]
+          if xAppA[tLookupA][i]["encrypt"] is false then
+            put item 1 to -2 of xAppA[tLookupA][i]["filename"] into tComponentFolder
             put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
-            put tDestFolder & "/" & the last item of xAppA[tKey][i]["filename"] & cr after tExclusions
+            put tDestFolder & "/" & the last item of xAppA[tLookupA][i]["filename"] & cr after tExclusions
           end if
         end repeat
         delete the last char of tExclusions
 
         log "  UI stacks excluded from encryption for key" && tKey & ":" && tExclusions
 
-        repeat with i = 1 to the number of elements of xAppA[tKey]
-          if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
-            log "  Skipping ui asset" && tKey && ":" && xAppA[tKey][i]["filename"]
+        repeat with i = 1 to the number of elements of xAppA[tLookupA]
+          if not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile) then
+            log "  Skipping ui asset" && tKey && ":" && xAppA[tLookupA][i]["filename"]
             next repeat
           end if
 
-          put item 1 to -2 of xAppA[tKey][i]["filename"] into tComponentFolder
+          put item 1 to -2 of xAppA[tLookupA][i]["filename"] into tComponentFolder
           put pOutputFolder & "/" & tKey & "/" & the last item of tComponentFolder into tDestFolder
 
-          log "  Adding component:" && xAppA[tKey][i]["filename"]
+          log "  Adding component:" && xAppA[tLookupA][i]["filename"]
 
           # If two entries in array are in same folder only copy and process the folder once.
           if there is not a folder tDestFolder then
@@ -1312,16 +1315,16 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
           end if
 
           add 1 to tIndex
-          put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tKey][i]["filename"] into tCompsA[tIndex]["filename"]
-          put xAppA[tKey][i]["name"] into tCompsA[tIndex]["name"]
-          put xAppA[tKey][i]["autoload"] into tCompsA[tIndex]["autoload"]
+          put tKey & "/" & the last item of tComponentFolder & "/" & the last item of xAppA[tLookupA][i]["filename"] into tCompsA[tIndex]["filename"]
+          put xAppA[tLookupA][i]["name"] into tCompsA[tIndex]["name"]
+          put xAppA[tLookupA][i]["autoload"] into tCompsA[tIndex]["autoload"]
 
           if tError is not empty then exit repeat
         end repeat
       end if
 
       if tError is empty then
-        put tCompsA into xAppA[tKey]
+        put tCompsA into xAppA[tLookupA]
       end if
     end if
   end repeat
@@ -1330,8 +1333,8 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
 end _packageUI
 
 
-private command _packageFiles pBuildProfile, @xAppA, pOutputFolder
-  local tError
+private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
+  local tError, tLookupA
   local tCompsA, tKey, tProp, i
   local tComponentFolder
 
@@ -1340,45 +1343,59 @@ private command _packageFiles pBuildProfile, @xAppA, pOutputFolder
   repeat for each key tKey in xAppA["registered components"]["files"]
     put empty into tCompsA
 
-    if _shouldAssetBeDistributed(xAppA["registered components"]["files"][tKey], pBuildProfile) and the number of elements of xAppA[tKey] > 0 then
+    put tKey into tLookupA
+    split tLookupA by "|"
+
+    if the number of elements of xAppA[tLookupA] > 0 then
       log "Packaging" && tKey
 
+      local tFilename
+
+      repeat with i = 1 to the number of elements of xAppA[tLookupA]
+        # Send callbacks
+        if xAppA["registered components"]["files"][tKey]["callback stackfile"] is not empty then
+          log "Dispatching processPackagedFileAsset to stack" && xAppA["registered components"]["files"][tKey]["callback stackfile"]
+
+          dispatch "processPackagedFileAsset" to stack xAppA["registered components"]["files"][tKey]["callback stackfile"] \
+                with pBuildProfile, pPlatform, xAppA[tLookupA][i], pOutputFolder
+
+          # Store for unloading at end of packaging
+          put "" into sCallbackStacksA[ xAppA["registered components"]["files"][tKey]["callback stackfile"] ]
+        end if
+
+        # Skip if no being distributed
+        if not _shouldAssetBeDistributed(xAppA["registered components"]["files"][tKey], pBuildProfile) \
+              or not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile) then
+          log "  Skipping file asset" && tKey && ":" && xAppA[tLookupA][i]["filename"]
+          next repeat
+        end if
+
+        put xAppA[tLookupA][i]["filename"] into tFilename
+        replace levureAppFolder() with pOutputFolder in tFilename
+
+        packagerCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
+        put _errorMsg("creating folder" && item 1 to -2 of tFilename, the result) into tError
+
+        if tError is empty then
+          _fileCopyFile xAppA[tLookupA][i]["filename"], tFilename
+          put _errorMsg("copying file" && xAppA[tLookupA][i]["filename"] && "to" && \
+                tFilename, the result) into tError
+        end if
+
+        if tError is empty then
+          put _makeRelativePath(xAppA[tLookupA][i]["filename"], levureAppFolder()) into tCompsA[i]["filename"]
+          repeat for each key tProp in xAppA[tLookupA][i]
+            if tProp is "filename" then next repeat
+
+            put xAppA[tLookupA][i][tProp] into tCompsA[i][tProp]
+          end repeat
+        end if
+
+        if tError is not empty then exit repeat
+      end repeat
+
       if tError is empty then
-        local tFilename
-
-        repeat with i = 1 to the number of elements of xAppA[tKey]
-          if not _shouldAssetBeDistributed(xAppA[tKey][i], pBuildProfile) then
-            log "  Skipping file asset" && tKey && ":" && xAppA[tKey][i]["filename"]
-            next repeat
-          end if
-
-          put xAppA[tKey][i]["filename"] into tFilename
-          replace levureAppFolder() with pOutputFolder in tFilename
-
-          packagerCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
-          put _errorMsg("creating folder" && item 1 to -2 of xAppA[tKey][i]["filename"], the result) into tError
-
-          if tError is empty then
-            _fileCopyFile xAppA[tKey][i]["filename"], tFilename
-            put _errorMsg("copying file" && xAppA[tKey][i]["filename"] && "to" && \
-                  tFilename, the result) into tError
-          end if
-
-          if tError is empty then
-            put _makeRelativePath(xAppA[tKey][i]["filename"], levureAppFolder()) into tCompsA[i]["filename"]
-            repeat for each key tProp in xAppA[tKey][i]
-              if tProp is "filename" then next repeat
-
-              put xAppA[tKey][i][tProp] into tCompsA[i][tProp]
-            end repeat
-          end if
-
-          if tError is not empty then exit repeat
-        end repeat
-      end if
-
-      if tError is empty then
-        put tCompsA into xAppA[tKey]
+        put tCompsA into xAppA[tLookupA]
       end if
     end if
   end repeat
