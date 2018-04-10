@@ -1655,7 +1655,10 @@ private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
 
   # libraries, frontscripts, backscript
   if tError is empty then
-    local tProp
+    local tProp, tStandaloneLibraryStacksA, tFile, tstlibIndex
+
+    # union tStandaloneLibraryStacksA with xAppA[tAssetType] at the end. xAppA[tAssetType] will have a [1] key.
+    put 1 into tstlibIndex
 
     repeat for each item tAssetType in "frontscripts,backscripts,libraries"
       put empty into tStacksToLoad
@@ -1681,15 +1684,31 @@ private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
         end if
 
         log "  Adding" && tAssetType && "stack:" && xAppA[tAssetType][i]["filename"]
-        set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
 
-        repeat for each key tProp in xAppA[tAssetType][i]
-          if tProp is "filename" then
-            put the short name of stack xAppA[tAssetType][i]["filename"] into tStacksToLoad[i]["name"]
-          else
-            put xAppA[tAssetType][i][tProp] into tStacksToLoad[i][tProp]
-          end if
-        end repeat
+        if tAssetType is "libraries" and the substacks of stack xAppA[tAssetType][i]["filename"] is not empty then
+          put _fileExtractName(xAppA[tAssetType][i]["filename"]) into tFile
+          save stack xAppA[tAssetType][i]["filename"] as (pOutputFolder & "/" & tFile) with newest format
+          add 1 to tstlibIndex
+          put tFile into tStandaloneLibraryStacksA[tstlibIndex]["filename"]
+
+          repeat for each key tProp in xAppA[tAssetType][i]
+            if tProp is "filename" then
+              put the short name of stack xAppA[tAssetType][i]["filename"] into tStandaloneLibraryStacksA[tstlibIndex]["name"]
+            else
+              put xAppA[tAssetType][i][tProp] into tStandaloneLibraryStacksA[tstlibIndex][tProp]
+            end if
+          end repeat
+        else
+          set the mainstack of stack xAppA[tAssetType][i]["filename"] to tStackName
+
+          repeat for each key tProp in xAppA[tAssetType][i]
+            if tProp is "filename" then
+              put the short name of stack xAppA[tAssetType][i]["filename"] into tStacksToLoad[i]["name"]
+            else
+              put xAppA[tAssetType][i][tProp] into tStacksToLoad[i][tProp]
+            end if
+          end repeat
+        end if
       end repeat
 
       set the uStacksToLoad of stack tStackName to tStacksToLoad
@@ -1702,6 +1721,9 @@ private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
       if tError is empty then
         put empty into xAppA[tAssetType]
         put tAssetType & ".livecode" into xAppA[tAssetType][1]["filename"]
+
+        log "standalone libraries:" && _printArray(tStandaloneLibraryStacksA)
+        union xAppA[tAssetType] with tStandaloneLibraryStacksA
       end if
     end repeat
   end if
@@ -2745,6 +2767,12 @@ end _deleteFolder
 private function _isWindowsVistaOrNewer
   return word 1 of the systemVersion is "NT" and word 2 of the systemVersion >= 6.0
 end _isWindowsVistaOrNewer
+
+
+private function _fileExtractName pFilePath
+  set the itemDelimiter to slash
+  return the last item of pFilePath
+end _fileExtractName
 
 
 private function _printArray pArray, pDimension, pFullData
