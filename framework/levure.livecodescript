@@ -928,6 +928,7 @@ command levureShutdownApplication
   if tCurrentState is "running" then
     dispatch "PreShutdownApplication" to stack kAppStackName
 
+    # TODO: helpers should register to be notified when application is shutting down
     if levureIsHelperLoaded("preferences") then
       prefsSave "user"
       put the result into tError
