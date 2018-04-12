@@ -76,7 +76,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   log "[" & the system date & "] Packaging app using profile" && pBuildProfile
 
   if tError is empty then
-    local tExtensionsBuiltIntoStandalone, tTempFolder, tCopyFilesTempFolder
+    local tTempFolder, tCopyFilesTempFolder
 
     put levureAppFolder() into tAppFolder
 
@@ -104,8 +104,6 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
     local tPlatform, tBuildPlatform
     local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
     local tCertName
-
-    put the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename into tExtensionsBuiltIntoStandalone
 
     repeat for each item tBuildPlatform in tStandaloneBuilderPlatforms
       put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
@@ -1527,6 +1525,8 @@ private command _packageExtensions pBuildProfile, @xAppA, pOutputFolder, pExtens
 
   if the number of elements of xAppA["extensions"] > 0 then
     log "Packaging extensions"
+
+    log "Extensions build into standalone:" && pExtensionsBuiltIntoStandalone
 
     repeat with i = 1 to the number of elements of xAppA["extensions"]
       # We don't need to add extensions that are being built with the standalone
