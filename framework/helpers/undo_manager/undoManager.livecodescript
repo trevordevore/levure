@@ -156,8 +156,8 @@ Summary: Prints the undo log array. Use for troublehsooting.
 
 Returns: text representation of internal array
 */
-command undoPrintLog
-  return printKeys(sUndoLogA)
+function undoPrintLog
+  return _printArray(sUndoLogA)
 end undoPrintLog
 
 
