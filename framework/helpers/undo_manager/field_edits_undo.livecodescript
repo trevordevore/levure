@@ -126,6 +126,10 @@ command undoRestoreMementos pUndoStack, @pMementosA
     dispatch "TextChanged" to tControl ## let control know that content was updated.
   end repeat
 
+  if tControl is not empty then
+    dispatch "EditFieldMementosRestored" to tControl
+  end if
+
   unlock screen
 
   ## Start watching text input again
