@@ -70,6 +70,7 @@ end undoGetMaxUndos
 /**
 Summary: Registers an undo type with the Undo Manager.
 
+Parameters:
 pType: The type to register.
 pInverseType: When calling undoUndo the type of the undo action will be set to
 this value. For example, if pType is "create" then this might be
@@ -204,6 +205,19 @@ command undoSetTargetForStackCallbacks pUndoStack, pTarget
   put pTarget into sUndoLogA[pUndoStack]["target"]
   return empty
 end undoSetTargetForStackCallbacks
+
+
+/**
+Summary: Returns the target that messages are sent to for an undo stack.
+
+Parameters:
+pUndoStack: The undo stack of interest.
+
+Returns: Object reference
+*/
+function undoGetTargetForStackCallbacks pUndoStack
+  return _getTargetForMessages(pUndoStack)
+end undoGetTargetForStackCallbacks
 
 
 /**
