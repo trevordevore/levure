@@ -145,7 +145,8 @@ command undoReset pUndoStack
   _cleanupStackIndexes pUndoStack
 
   ## Clean out undo stack key
-  put empty into sUndoLogA[pUndoStack]
+  put empty into sUndoLogA[pUndoStack]["undo"]
+  put empty into sUndoLogA[pUndoStack]["redo"]
 
   return empty
 end undoReset
