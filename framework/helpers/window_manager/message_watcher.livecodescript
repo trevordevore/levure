@@ -142,7 +142,7 @@ on preOpenCard
     put the long id of the current card of tStack into tCard
     dispatch "PreOpenView" to tCard with windowHasCardBeenOpened(tStackName, the short name of tCard)
     if tIsInit or not windowIsPropertyManaged(tStackName, "rect") then
-      dispatch "ResizeView" to tCard with the width of tCard, the height of tCard
+      _dispatchResizeView tCard
     end if
   end if
 
@@ -174,8 +174,7 @@ on openStack
       windowSetWindowRectBeforeOpening tStackName, restoreRectFromPrefs
 
       if tMsgsAreManaged then
-        dispatch "ResizeView" to the current card of tStack \
-            with the width of the current card of tStack, the height of the current card of tStack
+        _dispatchResizeView the long id of the current card of tStack
       end if
     end if
 
@@ -227,7 +226,7 @@ on resizeStack pWidth, pHeight, pOldWidth, pOldHeight
     end if
 
     if windowIsPropertyManaged(tStackName, "messages") then
-      dispatch "ResizeView" to the current card of tStack with pWidth, pHeight, pOldWidth, pOldHeight
+      _dispatchResizeView the long id of the current card of tStack, pWidth, pHeight, pOldWidth, pOldHeight
     end if
   end if
 
@@ -244,6 +243,13 @@ on moveStack pNewH, pNewV
   _cancelMessage "_windowCheckForMoveStackEnd", the long id of me
   send "_windowCheckForMoveStackEnd tStackName" to me in kCheckForWindowMoveEndDelay milliseconds
 end moveStack
+
+
+private command _dispatchResizeView pCardRef, pWidth, pHeight, pOldWidth, pOldHeight
+  if pWidth is empty then put the width of pCardRef into pWidth
+  if pHeight is empty then put the height of pCardRef into pHeight
+  dispatch "ResizeView" to pCardRef with pWidth, pHeight, pOldWidth, pOldHeight
+end _dispatchResizeView
 
 
 command _windowCheckForMoveStackEnd pStackName
