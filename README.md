@@ -25,9 +25,9 @@ Want to help this project? There are a number of ways to contribute.
 
 - Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
 - Need to decide how errors should be reported when loading helpers. Should a developer throw an error or use some other mechanism? Ideally the application should report the error to the end user and then quit. We don't want the application hanging around if an error occurs on loading.
-- Create module for iOS prefs that uses NSUserDefaults.
-- Move preferences external for OS X into a module.
-- Create a helper component for the MAS (security-scoped bookmarks and licensing).
+- Create module for iOS prefs that uses NSUserDefaults. (2018-05-28: Trevor DeVore is working on an FFI module for this.)
+- Move preferences external for OS X into a module. (2018-05-28: Trevor DeVore is working on an FFI module for this.)
+- Create a helper component for the MAS (security-scoped bookmarks and licensing). (2018-05-28: Trevor DeVore is working on an FFI module for this.)
   - secscopGetBookmarkFromURL(pUTF8Filename) to generate bookmark data for a filename
   - secscopInitializeURLFromBookmarkData(pBookmarkData) to generate security scoped filenames using bookmark data
   - secscopStopUsingURL(pSecurityScopedFilename) to release a security scoped filename.
