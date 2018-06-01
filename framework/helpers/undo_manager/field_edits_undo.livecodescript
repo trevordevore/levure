@@ -100,7 +100,6 @@ command undoRestoreMementos pUndoStack, @pMementosA
     put pMementosA[i]["control"] into tControl
     if there is not a tControl then next repeat
 
-
     set the htmltext of tControl to decompress(pMementosA[i]["value"])
     put pMementosA[i]["control selected chunk"] into tChunk
 
@@ -132,6 +131,11 @@ command undoRestoreMementos pUndoStack, @pMementosA
   ## Start watching text input again
   put true into sWatchForFirstInput
 end undoRestoreMementos
+
+
+command undoCleanupMementos pUndoStack, pMementosA
+  ## Nothing to do
+end undoCleanupMementos
 
 
 ## This handler will log an undo if there is a selectedChunk or if the text entry is the first in the field
