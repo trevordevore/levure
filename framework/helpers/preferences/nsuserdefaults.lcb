@@ -1,0 +1,423 @@
+library community.livecode.trevordevore.nsuserdefaults
+
+  use com.livecode.foreign
+  use com.livecode.objc
+
+  metadata title is "NSUserDefaults"
+  metadata author is "Trevor DeVore"
+  metadata version is "0.1.0"
+
+  __safe foreign handler NSNumberGetDoubleValue(in pObj as ObjcId) returns CDouble binds to "objc:NSNumber.doubleValue"
+
+  private foreign handler ObjC_NSObjectGetClass (in pObj as ObjcId) \
+        returns Pointer binds to "objc:NSObject.-class"
+  private foreign handler ObjC_NSStringFromClass (in pClass as Pointer) \
+        returns ObjcId binds to "NSStringFromClass"
+
+
+  private foreign handler ObjC_NSUserDefaultsAlloc() \
+        returns ObjcRetainedId \
+        binds to "objc:NSUserDefaults.+alloc"
+  private foreign handler ObjC_NSUserDefaultsStandardUserDefaults() \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.+standardUserDefaults"
+  private foreign handler ObjC_NSUserDefaultsInitWithSuiteName (in pObj as ObjcId, in pSuiteName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-initWithSuiteName:"
+  private foreign handler ObjC_NSUserDefaultsObjectForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-objectForKey:"
+  private foreign handler ObjC_NSUserDefaultsURLForKey (in pObj as ObjcId, in nsURL as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-URLForKey:"
+  private foreign handler ObjC_NSUserDefaultsArrayForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-arrayForKey:"
+  private foreign handler ObjC_NSUserDefaultsDictionaryForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-dictionaryForKey:"
+  private foreign handler ObjC_NSUserDefaultsStringForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-stringForKey:"
+  private foreign handler ObjC_NSUserDefaultsStringArrayForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-stringArrayForKey:"
+  private foreign handler ObjC_NSUserDefaultsDataForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-dataForKey:"
+  private foreign handler ObjC_NSUserDefaultsBoolForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-boolForKey:"
+  private foreign handler ObjC_NSUserDefaultsIntegerForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-integerForKey:"
+  private foreign handler ObjC_NSUserDefaultsFloatForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-floatForKey:"
+  private foreign handler ObjC_NSUserDefaultsDoubleForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-doubleForKey:"
+  private foreign handler ObjC_NSUserDefaultsDictionaryRepresentation (in pObj as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-dictionaryRepresentation"
+
+  private foreign handler ObjC_NSUserDefaultsPersistentDomainForName (in pObj as ObjcId, in domainName as ObjcId) \
+        returns ObjcId \
+        binds to "objc:NSUserDefaults.-persistentDomainForName:"
+  private foreign handler ObjC_NSUserDefaultsRemovePersistentDomainForName (in pObj as ObjcId, in domainName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-removePersistentDomainForName:"
+
+  private foreign handler ObjC_NSUserDefaultsSetObjectForKey (in pObj as ObjcId, in pObject as ObjcId, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setObject:forKey:"
+  private foreign handler ObjC_NSUserDefaultsSetFloatForKey (in pObj as ObjcId, in pFloat as CFloat, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setFloat:forKey:"
+  private foreign handler ObjC_NSUserDefaultsSetDoubleForKey (in pObj as ObjcId, in pDouble as CDouble, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setDouble:forKey:"
+  private foreign handler ObjC_NSUserDefaultsSetIntegerForKey (in pObj as ObjcId, in pInteger as CInt, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setInteger:forKey:"
+  private foreign handler ObjC_NSUserDefaultsSetBoolForKey (in pObj as ObjcId, in pBool as CBool, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setBool:forKey:"
+  private foreign handler ObjC_NSUserDefaultsSetURLForKey (in pObj as ObjcId, in pURL as ObjcId, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-setURL:forKey:"
+
+  private foreign handler ObjC_NSUserDefaultsRemoveObjectForKey (in pObj as ObjcId, in defaultName as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-removeObjectForKey:"
+
+  private foreign handler ObjC_NSUserDefaultsRegisterDefaults (in pObj as ObjcId, in nsDict as ObjcId) \
+        returns nothing \
+        binds to "objc:NSUserDefaults.-registerDefaults:"
+
+
+  private variable mNSUserDefaultsInstance as optional ObjcObject
+
+
+  /**
+  Summary: Sets the database that the NSUserDefaults calls will use.
+
+  Description:
+  By default all NSUserDefaults handlers in this library will use the standardUserDefaults for
+  the currently running application. Calling this handler with the name of a preference database
+  will change the target database.
+
+  ```
+  get NSUserDefaultsInitWithSuiteName("com.apple.Preview")
+  put NSUserDefaultsGetStringForKey("NSNavLastRootDirectory")
+  ```
+
+  Returns: nothing
+  */
+  public handler NSUserDefaultsInitWithSuiteName(in pSuiteName as String) returns nothing
+    variable tUserDefaults as optional ObjcObject
+
+    // Need to clear out the variable
+    if mNSUserDefaultsInstance is not nothing then
+      put nothing into mNSUserDefaultsInstance
+    end if
+
+    if pSuiteName is not empty then
+      unsafe
+        put ObjC_NSUserDefaultsAlloc() into tUserDefaults
+        // tUserDefaults can be null when calling this with a suite name that matches app identifier in a standalone.
+        // That is fine as the standard user defaults will be used which gives the same result.
+        put ObjC_NSUserDefaultsInitWithSuiteName(tUserDefaults, StringToNSString(pSuiteName)) into tUserDefaults
+        put tUserDefaults into mNSUserDefaultsInstance
+      end unsafe
+    end if
+  end handler
+
+
+  /**
+  Summary: Sets the value for a default.
+
+  Parameters:
+  pDefault: The name of the default.
+  pValue: The value to set the default to.
+
+  Description:
+  Inspects the data type of pValue and uses the proper NSDefaults API to store it.
+  Numbers will be stored as doubles.
+
+  Returns: nothing
+  */
+  public handler NSUserDefaultsSetValueForKey(in pDefault as String, in pValue as any) returns nothing
+    unsafe
+      if pValue is a data then
+        ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), DataToNSData(pValue), StringToNSString(pDefault))
+      else if pValue is a boolean then
+        ObjC_NSUserDefaultsSetBoolForKey(_defaultsObject(), pValue, StringToNSString(pDefault))
+      else if pValue is an array then
+        ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), ArrayToNSDictionary(pValue), StringToNSString(pDefault))
+      else if pValue is a list then
+        ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), ListToNSArray(pValue), StringToNSString(pDefault))
+      else if pValue is a number then
+        ObjC_NSUserDefaultsSetDoubleForKey(_defaultsObject(), NSNumberGetDoubleValue(NumberToNSNumber(pValue)), StringToNSString(pDefault))
+      else
+        ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), StringToNSString(pValue), StringToNSString(pDefault))
+      end if
+    end unsafe
+  end handler
+
+
+  /**
+  Summary: Returns the value for a default.
+
+  Parameters:
+  pDefault: The name of the default.
+
+  Description:
+  Determines the type of data stored in the default and uses the proper NSDeafults
+  API call to return the value.
+
+  Returns: any
+  */
+  public handler NSUserDefaultsValueForKey(in pDefault as String) returns any
+    variable tObject as optional ObjcObject
+
+    unsafe
+      put ObjC_NSUserDefaultsObjectForKey(_defaultsObject(), StringToNSString(pDefault)) into tObject
+      if tObject is not nothing then
+        variable tObjcClass as Pointer
+        variable tObjCString as ObjcObject
+        variable tClassName as String
+
+        put ObjC_NSObjectGetClass(tObject) into tObjcClass
+        put ObjC_NSStringFromClass(tObjcClass) into tObjCString
+        put StringFromNSString(tObjCString) into tClassName
+
+        if tClassName is "__NSCFData" then
+          return DataFromNSData(tObject)
+        else if tClassName is "__NSCFBoolean" then
+          return NumberFromNSNumber(tObject) is 1
+        else if tClassName is "__NSCFDictionary" then
+          return ArrayFromNSDictionary(tObject)
+        else if tClassName is "__NSCFArray" then
+          return ListFromNSArray(tObject)
+        else if tClassName is "__NSCFNumber" then
+          return NumberFromNSNumber(tObject)
+        else
+          -- __NSCFConstantString
+          -- __NSCFString
+          return StringFromNSString(tObject)
+        end if
+      end if
+    end unsafe
+
+    return ""
+  end handler
+
+
+  /**
+  Summary: Sets the string value for a default.
+
+  Parameter:
+  pDefault: The name of the default.
+  pString: The value to set.
+
+  Returns: nothing
+  */
+  public handler NSUserDefaultsSetStringForKey(in pDefault as String, in pString as String) returns nothing
+    unsafe
+      ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), StringToNSString(pString), StringToNSString(pDefault))
+    end unsafe
+  end handler
+
+
+  /**
+  Summary: Returns the string value for a default.
+
+  Parameter:
+  pDefault: The name of the default.
+
+  Returns: String
+  */
+  public handler NSUserDefaultsGetStringForKey(in pDefault as String) returns String
+    variable tString as optional ObjcObject
+
+    unsafe
+      put ObjC_NSUserDefaultsStringForKey(_defaultsObject(), StringToNSString(pDefault)) into tString
+    end unsafe
+
+    if tString is nothing then
+      return ""
+    else
+      return StringFromNSString(tString)
+    end if
+  end handler
+
+
+  /**
+  Summary: Sets the string value for a default.
+
+  Parameter:
+  pDefault: The name of the default.
+  pString: The value to set.
+
+  Returns: nothing
+  */
+  public handler NSUserDefaultsSetDataForKey(in pDefault as String, in pData as Data) returns nothing
+    unsafe
+      ObjC_NSUserDefaultsSetObjectForKey(_defaultsObject(), DataToNSData(pData), StringToNSString(pDefault))
+    end unsafe
+  end handler
+
+
+  /**
+  Summary: Returns the string value for a default.
+
+  Parameter:
+  pDefault: The name of the default.
+
+  Returns: String
+  */
+  public handler NSUserDefaultsGetDataForKey(in pDefault as String) returns optional Data
+    variable tData as optional ObjcObject
+
+    unsafe
+      put ObjC_NSUserDefaultsDataForKey(_defaultsObject(), StringToNSString(pDefault)) into tData
+    end unsafe
+
+    if tData is nothing then
+      return nothing
+    else
+      return DataFromNSData(tData)
+    end if
+  end handler
+
+
+  /**
+  Summary: Detects whether or not a preference has been set.
+
+  Parameter:
+  pDefaultName: The name of the default to check.
+
+  Returns: Boolean
+  */
+  public handler NSUserDefaultsDefaultHasBeenSet(in pDefaultName as String) returns Boolean
+    variable tObject as optional ObjcObject
+
+    unsafe
+      // ObjectForKey returns nil if defaults hasn't been set
+      put ObjC_NSUserDefaultsObjectForKey(_defaultsObject(), StringToNSString(pDefaultName)) into tObject
+    end unsafe
+
+    return tObject is not nothing
+  end handler
+
+
+  /**
+  Summary: Returns a dictionary that contains a union of all key-value pairs in the domains in the search list.
+
+  Parameter:
+
+  Returns: String
+  */
+  public handler NSUserDefaultsDictionaryRepresentation() returns String
+    variable tDictionary as optional ObjcObject
+    variable tDefaults as Array
+    variable tKeysList as List
+    variable tKeys as String
+
+    unsafe
+      put ObjC_NSUserDefaultsDictionaryRepresentation(_defaultsObject()) into tDictionary
+    end unsafe
+    put ArrayFromNSDictionary(tDictionary) into tDefaults
+
+    put the keys of tDefaults into tKeysList
+    sort tKeysList in ascending text order
+    combine tKeysList with "\n" into tKeys
+    return tKeys
+  end handler
+
+
+  /**
+  Summary: Returns a dictionary representation of the defaults for the specified domain.
+
+  Parameter:
+  pDomainName: The name of the target domain to target.
+
+  Returns: Array
+  */
+  public handler NSUserDefaultsPersistentDomainForName(in pDomainName as String) returns String
+    variable tDictionary as optional ObjcObject
+    variable tDefaults as Array
+    variable tKeysList as List
+    variable tKeys as String
+
+    unsafe
+      put ObjC_NSUserDefaultsPersistentDomainForName(_defaultsObject(), StringToNSString(pDomainName)) into tDictionary
+    end unsafe
+    if tDictionary is not nothing then
+      put ArrayFromNSDictionary(tDictionary) into tDefaults
+
+      // TODO: Loop through array keys and fill in array that is returned to caller.
+      // Some values will be strings, others will be dictionaries or other values.
+      // Need to determine type of object id points to and call the correction conversion handler.
+      // `log` does this automatically so look at it in the source code
+
+      put the keys of tDefaults into tKeysList
+      sort tKeysList in ascending text order
+      combine tKeysList with "\n" into tKeys
+    end if
+    log tDefaults
+
+    return tKeys
+  end handler
+
+
+  /**
+  Summary: Removes the contents of the specified persistent domain from the user’s defaults.
+
+  Parameter:
+  pDomainName: The name of the target domain to target.
+
+  Returns: String
+  */
+  public handler NSUserDefaultsRemovePersistentDomainForName(in pDomainName as String) returns nothing
+    unsafe
+      ObjC_NSUserDefaultsRemovePersistentDomainForName(_defaultsObject(), StringToNSString(pDomainName))
+    end unsafe
+  end handler
+
+
+  /**
+  Summary: Clears the value for a preference.
+
+  Parameter:
+  pDefaultName: The name of the default to check.
+
+  Returns: nothing
+  */
+  public handler NSUserDefaultsRemoveObjectForKey(in pDefaultName as String)
+    unsafe
+      ObjC_NSUserDefaultsRemoveObjectForKey(_defaultsObject(), StringToNSString(pDefaultName))
+    end unsafe
+  end handler
+
+  /**
+  Summary: Returns the shared user defaults object
+
+  Returns: ObjcObject
+  */
+  private handler _defaultsObject() returns ObjcObject
+    variable defaultsObject as ObjcObject
+
+    unsafe
+      if mNSUserDefaultsInstance is nothing then
+        put ObjC_NSUserDefaultsStandardUserDefaults() into defaultsObject
+      else
+        put mNSUserDefaultsInstance into defaultsObject
+      end if
+    end unsafe
+
+    return defaultsObject
+  end handler
+
+end library

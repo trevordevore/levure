@@ -1,7 +1,7 @@
 script "Preferences Library"
 constant kPrefsErr = "prefserr,"
 
-local sUseExternal, sUseBroadcaster
+local sUseExternal, sUseExtension, sUseBroadcaster
 local sDefaultPrefsA, sDefaultSharedPrefsA
 local sPrefsA
 
@@ -15,6 +15,11 @@ on libraryStack
   _loadDefaultPreferences
   if the result is not empty then
     throw kPrefsErr & "unable to load default preferences:" && the result
+  end if
+
+  # Set target suite on macOS
+  if useMacOSExtension("user") then
+    get NSUserDefaultsInitWithSuiteName(prefFilenameForPlatform("user"))
   end if
 end libraryStack
 
@@ -39,14 +44,25 @@ end useBroadcaster
 /**
 Summary: Returns true if an external should be used for interfacing with the OS prefs API.
 */
-private function useExternal pUserOrShared
+private function useMacOSExternal pUserOrShared
   if sUseExternal is empty then
     set the wholematches to true
     put the platform is "macos" and "Preferences" is among the lines of levureExternalsLoadedInMemory() into sUseExternal
   end if
 
   return sUseExternal and (pUserOrShared is "user")
-end useExternal
+end useMacOSExternal
+
+
+private function useMacOSExtension pUserOrShared
+  if sUseExtension is empty then
+    set the wholematches to true
+    put the platform is "macos" and "community.livecode.trevordevore.nsuserdefaults" \
+          is among the lines of the loadedExtensions into sUseExtension
+  end if
+
+  return sUseExtension and (pUserOrShared is "user")
+end useMacOSExtension
 
 
 /**
@@ -55,9 +71,30 @@ Summary: Returns the preference file name for the category and platform.
 pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 pPlatform: macos, ios, windows, android, linux
 
+Description:
+An error will be thrown if no preference filename has been defined for
+the category and platform.
+
 Returns: Pref file name defined in `app.yml`
 */
 private function prefFilenameForPlatform pUserOrShared, pPlatform
+  local tPrefName
+
+  put filenameForPlatform(pUserOrShared, pPlatform) into tPrefName
+
+  if tPrefName is empty then
+    throw kPrefsErr & param(0) && ": the" && quote & "preferences filename" & quote \
+          && "property has not been set for" && pPlatform && "in app.yml"
+  end if
+
+  return tPrefName
+end prefFilenameForPlatform
+
+
+/**
+Summary: Returns the preference file name for the category and platform.
+*/
+private function filenameForPlatform pUserOrShared, pPlatform
   local tA, tDefaultPrefName, tPrefName
 
   validateKey pUserOrShared
@@ -83,14 +120,8 @@ private function prefFilenameForPlatform pUserOrShared, pPlatform
   put levureAppGet(tA) into tPrefName
 
   if tPrefName is empty then put tDefaultPrefName into tPrefName
-
-  if tPrefName is empty then
-    throw kPrefsErr & param(0) && ": the" && quote & "preferences filename" & quote \
-          && "property has not been set for" && pPlatform && "in app.yml"
-  end if
-
   return tPrefName
-end prefFilenameForPlatform
+end filenameForPlatform
 
 
 /**
@@ -125,6 +156,19 @@ end _loadDefaultPreferences
 
 
 /**
+Summary: Use this to check if preferences have been configured for "user" or "shared".
+
+Returns: Boolean
+*/
+function prefsIsCategoryConfigured pUserOrShared
+  local tFilename
+
+  put filenameForPlatform(pUserOrShared) into tFilename
+  return tFilename is not empty
+end prefsIsCategoryConfigured
+
+
+/**
 Summary: Returns the entire array of default preferences.
 
 pUserOrShared: Preferences category. "user" or "shared". Default is "user".
@@ -156,12 +200,10 @@ Note that on OS X this command currently does not work.
 command prefsReset pUserOrShared
   validateKey pUserOrShared
 
-  ## OS X external behavior
-  if useExternal(pUserOrShared) then
-    /*
-    Implement once we switch to a module
-    http://stackoverflow.com/questions/8259786/cocoa-resetting-nsuserdefaults
-    */
+  if useMacOSExternal(pUserOrShared) then
+    // Not available
+  else if useMacOSExtension(pUserOrShared) then
+    get NSUserDefaultsRemovePersistentDomainForName(prefFilenameForPlatform("user"))
   else
     put empty into sPrefsA[pUserOrShared]
     prefsSave pUserOrShared
@@ -186,13 +228,13 @@ Description:
 This handler will clear out any values that are stored internally and reloads
 preferences from the file on disk.
 
-Note that this command does nothing on OS X which handles preferences using Cocoa
+Note that this command does nothing on macOS or iOS which handle preferences using the NSUserDefaults
 APIs.
 */
 command prefsReload pUserOrShared
   validateKey pUserOrShared
 
-  if not useExternal(pUserOrShared) then
+  if not useMacOSExternal(pUserOrShared) then
     put null into sPrefsA[pUserOrShared]
     _ensurePrefsAreLoaded pUserOrShared
   end if
@@ -206,30 +248,39 @@ Summary: Sets an application preference.
 pKey: Name of preference to set.
 pValue: Value to set preference to. This can be a string or an array.
 pUserOrShared: Preferences category. "user" or "shared". Default is "user".
-pType: Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
 
 Returns: error message
 */
-command prefsSetPref pKey, pValue, pUserOrShared, pType
+command prefsSetPref pKey, pValue, pUserOrShared
   local tStack, tError
 
   validateKey pUserOrShared
 
   # OS X external behavior
-  if useExternal(pUserOrShared) then
-    if the keys of pValue is empty then
-      if pValue contains NULL OR pType is "binary" then
-        osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
-      else
-        # encode strings as UTF8 or this will fail in LC 8. Convert to module at some point.
-        osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform("user")
-      end if
-    else
+  if useMacOSExternal(pUserOrShared) then
+    if the keys of pValue is not empty then
       put "_LCA" & arrayEncode(pValue) into pValue
+    end if
+
+    if pValue is strictly a binary string then
       osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
+    else
+      # encode strings as UTF8 or this will fail in LC 8.
+      osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform("user")
     end if
     put the result into tError
 
+  else if useMacOSExtension(pUserOrShared) then
+    if the keys of pValue is not empty then
+      put "_LCA" & arrayEncode(pValue) into pValue
+    end if
+
+    if pValue is strictly a binary string then
+      get NSUserDefaultsSetDataForKey(pKey, pValue)
+    else
+      get NSUserDefaultsSetStringForKey(pKey, pValue)
+    end if
+    put the result into tError
   else
     _ensurePrefsAreLoaded pUserOrShared
     put pValue into sPrefsA[pUserOrShared][pKey]
@@ -266,7 +317,7 @@ function prefsGetPref pKey, pUserOrShared
       put sDefaultPrefsA[pKey] into tValue
     end if
   else
-    if useExternal(pUserOrShared) then
+    if useMacOSExternal(pUserOrShared) then
       local tValueA
 
       osxHLPrefGet pKey, "tValueA", prefFilenameForPlatform("user")
@@ -287,6 +338,17 @@ function prefsGetPref pKey, pUserOrShared
         end switch
       end if
 
+    else if useMacOSExtension(pUserOrShared) then
+      local tError
+
+      put NSUserDefaultsValueForKey(pKey) into tValue
+      if tValue begins with "_LCA" then
+        # Pre-NSDefaults API stored arrays with _LCA prefix.
+        try # Assume a value with _LCA prefix is an array. If operation fails then tValue stays the same.
+          put arrayDecode(byte 5 to -1 of tValue) into tValue
+        catch tError
+        end try
+      end if
     else
       _ensurePrefsAreLoaded pUserOrShared
       put sPrefsA[pUserOrShared][pKey] into tValue
@@ -311,9 +373,13 @@ function prefsIsPrefSet pKey, pUserOrShared
   validateKey pUserOrShared
 
   ## OS X external behavior
-  if useExternal(pUserOrShared) then
+  if useMacOSExternal(pUserOrShared) then
 
     return osxHLPrefExists(pKey, prefFilenameForPlatform("user"))
+
+  else if useMacOSExtension(pUserOrShared) then
+
+    return NSUserDefaultsDefaultHasBeenSet(pKey)
 
   else
     _ensurePrefsAreLoaded pUserOrShared
@@ -341,11 +407,13 @@ command prefsSave pUserOrShared
   put prefsGetPreferenceFile(pUserOrShared) into tFile
 
   if tFile is not empty then
-    if useExternal(pUserOrShared) then
+    if useMacOSExternal(pUserOrShared) then
 
       osxHLPrefSavePrefs prefFilenameForPlatform("user")
       put the result into tError
 
+    else if useMacOSExtension(pUserOrShared) then
+      # Nothing to do.
     else
 
       saveContentsToFile tFile, arrayEncode(sPrefsA[pUserOrShared])
@@ -366,8 +434,7 @@ pUserOrShared: Preferences category. "user" or "shared". Default is "user".
 Returns: Filename or empty
 
 Description:
-Returns the filename of the preference file. If an external is being used on OS X
-then empty will be returned.
+Returns the filename of the preference file.
 */
 function prefsGetPreferenceFile pUserOrShared
   local tFile

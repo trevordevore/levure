@@ -947,16 +947,20 @@ command levureShutdownApplication
 
     # TODO: helpers should register to be notified when application is shutting down
     if levureIsHelperLoaded("preferences") then
-      prefsSave "user"
-      put the result into tError
-      if tError is not empty then
-        answer "An error occurred while saving user preferences:" && tError & "."
+      if prefsIsCategoryConfigured("user") then
+        prefsSave "user"
+        put the result into tError
+        if tError is not empty then
+          answer "An error occurred while saving user preferences:" && tError & "."
+        end if
       end if
 
-      prefsSave "shared"
-      put the result into tError
-      if tError is not empty then
-        answer "An error occurred while saving shared preferences:" && tError & "."
+      if prefsIsCategoryConfigured("shared") then
+        prefsSave "shared"
+        put the result into tError
+        if tError is not empty then
+          answer "An error occurred while saving shared preferences:" && tError & "."
+        end if
       end if
     end if
 
@@ -1637,13 +1641,11 @@ private command loadMessagePathAssets pArrayA
 end loadMessagePathAssets
 
 
-
 private command loadExtensions pArrayA
   local tError
   local tExtA, tTargetPlatform
 
-  if the platform is "win32" then put "windows" into tTargetPlatform
-  else put the platform into tTargetPlatform
+  put targetPlatform() into tTargetPlatform
 
   repeat for each element tExtA in pArrayA["extensions"]
     if tExtA["engine version"] is not empty and not _useFileWithThisEngine(tExtA["engine version"]) then next repeat
@@ -1891,8 +1893,7 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
       put ensureStackNameIsPresent(tConfigA["ui"][j]) into tConfigA["ui"][j]
     end repeat
 
-    if the platform is "win32" then put "windows" into tTargetPlatform
-    else put the platform into tTargetPlatform
+    put targetPlatform() into tTargetPlatform
 
     set the wholematches to true
 
@@ -2823,6 +2824,20 @@ function levureExternalsLoadedInMemory
 
   return keys of tPackagesA
 end levureExternalsLoadedInMemory
+
+
+/**
+Summary: Massages `the platform` into a value that Levure expects.
+*/
+private function targetPlatform
+  if the platform is "win32" then
+    return "windows"
+  else if the platform is "iphone" then
+    return "ios"
+  else
+    return the platform
+  end if
+end targetPlatform
 
 
 /**

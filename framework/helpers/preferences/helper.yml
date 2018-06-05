@@ -2,5 +2,10 @@ externals:
   macos:
     - filename: preferences.bundle
       name: Preferences
+      engine version: "<9.0"
 libraries:
   - filename: preferences.livecodescript
+extensions:
+  - filename: nsuserdefaults.lcm
+    engine version: ">=9.0"
+    platform: macos,ios

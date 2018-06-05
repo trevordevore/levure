@@ -2,7 +2,7 @@
 
 Levure provides your LiveCode application with a preferences management system.
 
-On Macintosh OS X an external is used so you can set preferences using the OS X APIs. On Windows, Linux, iOS, and Android preferences are stored in a file containing data serialized using arrayEncode.
+On macOS an extension (>= LC 9) or an external (< LC 9) is used so you can set preferences using the macOS NSUserDefaults API. On iOS an extension is used to access NSUserDefaults. On Windows, Linux, and Android preferences are stored in a file containing data serialized using arrayEncode.
 
 ## Contents
 
@@ -65,7 +65,7 @@ preferences filename:
     macos: com.mycompany.myapplication
     windows:
     linux:
-    ios:
+    ios: com.mycompany.myapplication
     android:
 ```
 
@@ -76,10 +76,10 @@ Will cause your application to create and use these user preferences file names:
 | macOS |  com.mycompany.myapplication |
 | Windows |  My Application.prefs |
 | Linux |  My Application.prefs |
-| iOS |  My Application.prefs |
+| iOS |  com.mycompany.myapplication |
 | Android |  My Application.prefs |
 
-Note that in this example the `default:` preferences file name is used for all platforms except for macOS where it is overridden with the `macos:` file name.
+Note that in this example the `default:` preferences file name is used for all platforms except for macOS and iOS where it is overridden with the `macos:` and `ios:` file names.
 
 ## Set default preferences values
 
