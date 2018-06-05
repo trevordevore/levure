@@ -313,14 +313,14 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Create single stack for each and move all as substacks of single stack.
   # For libraries, frontscripts, and backscripts store a custom property with order to load them in.
   if tError is empty then
-    _packageAssetStacks pBuildProfile, xAppA, pOutputFolder
+    _packageAssetStacks pBuildProfile, xAppA, pPlatform, pOutputFolder
     put the result into tError
   end if
 
   # Extensions
   # Move straight across
   if tError is empty then
-    _packageExtensions pBuildProfile, xAppA, pOutputFolder, the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename
+    _packageExtensions pBuildProfile, xAppA, pPlatform, pOutputFolder, the cRevStandaloneSettings["extensions"] of stack pStandaloneStackFilename
     put the result into tError
   end if
 
@@ -1015,7 +1015,7 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
     log "Packaging Helpers for platform" && pPlatform
 
     repeat with i = 1 to the number of elements of xAppA["helpers"]
-      if not _shouldAssetBeDistributed(xAppA["helpers"][i], pBuildProfile) then
+      if not _shouldAssetBeDistributed(xAppA["helpers"][i], pBuildProfile, pPlatform) then
         log "  Skipping helper:" && xAppA["helpers"][i]["filename"]
         next repeat
       end if
@@ -1025,7 +1025,7 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
       end if
 
       if tError is empty then
-        _packageHelper pBuildProfile, xAppA["helpers"][i], pOutputFolder, pExecutableOutputFolder, tPlatformKey
+        _packageHelper pBuildProfile, xAppA["helpers"][i], pPlatform, pOutputFolder, pExecutableOutputFolder, tPlatformKey
         put the result into tError
       end if
 
@@ -1046,7 +1046,7 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
 end _packageHelpers
 
 
-private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecutableOutputFolder, pPlatform
+private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolder, pExecutableOutputFolder
   local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFolder
   local tKey, i
   local tRootFolder
@@ -1077,7 +1077,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
       put 0 into tIndex
 
       repeat with i = 1 to the number of elements of xHelperA[tKey]
-        if not _shouldAssetBeDistributed(xHelperA[tKey][i], pBuildProfile) then
+        if not _shouldAssetBeDistributed(xHelperA[tKey][i], pBuildProfile, pPlatform) then
           log "  Skipping helper" && tKey && ":" && xHelperA[tKey]["filename"]
           next repeat
         end if
@@ -1121,7 +1121,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
         put 0 into tIndex
 
         repeat with i = 1 to the number of elements of xHelperA["externals"][pPlatform]
-          if not _shouldAssetBeDistributed(xHelperA["externals"][pPlatform][i], pBuildProfile) then
+          if not _shouldAssetBeDistributed(xHelperA["externals"][pPlatform][i], pBuildProfile, pPlatform) then
             log "  Skipping helper external:" && xHelperA["externals"][pPlatform][i]["filename"]
             next repeat
           end if
@@ -1168,7 +1168,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pOutputFolder, pExecuta
       put 0 into tIndex
 
       repeat with i = 1 to the number of elements of xHelperA["extensions"]
-        if not _shouldAssetBeDistributed(xHelperA["extensions"][i], pBuildProfile) then
+        if not _shouldAssetBeDistributed(xHelperA["extensions"][i], pBuildProfile, pPlatform) then
           log "  Skipping helper extension:" && xHelperA["extensions"][i]["filename"]
           next repeat
         end if
@@ -1278,7 +1278,7 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
         log "  UI stacks excluded from encryption for key" && tKey & ":" && tExclusions
 
         repeat with i = 1 to the number of elements of xAppA[tLookupA]
-          if not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile) then
+          if not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile, pPlatform) then
             log "  Skipping ui asset" && tKey && ":" && xAppA[tLookupA][i]["filename"]
             next repeat
           end if
@@ -1362,8 +1362,8 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
         end if
 
         # Skip if no being distributed
-        if not _shouldAssetBeDistributed(xAppA["registered components"]["files"][tKey], pBuildProfile) \
-              or not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile) then
+        if not _shouldAssetBeDistributed(xAppA["registered components"]["files"][tKey], pBuildProfile, pPlatform) \
+              or not _shouldAssetBeDistributed(xAppA[tLookupA][i], pBuildProfile, pPlatform) then
           log "  Skipping file asset" && tKey && ":" && xAppA[tLookupA][i]["filename"]
           next repeat
         end if
@@ -1402,9 +1402,18 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
 end _packageFiles
 
 
-private function _shouldAssetBeDistributed pAssetA, pBuildProfile
-  if pAssetA["distribute"] is false then return false
-  else return true
+private function _shouldAssetBeDistributed pAssetA, pBuildProfile, pPlatform
+  set the wholematches to true
+
+  if pAssetA["distribute"] is false then
+    return false
+  else if pAssetA["engine version"] is not empty and not __useLevureFileWithThisEngine(pAssetA["engine version"]) then
+    return false
+  else if pAssetA["platform"] is not empty and pPlatform is not among the items of pAssetA["platform"] then
+    return false
+  else
+    return true
+  end if
 end _shouldAssetBeDistributed
 
 
@@ -1516,7 +1525,7 @@ private command _unloadStackAndStackFiles pStack
 end _unloadStackAndStackFiles
 
 
-private command _packageExtensions pBuildProfile, @xAppA, pOutputFolder, pExtensionsBuiltIntoStandalone
+private command _packageExtensions pBuildProfile, @xAppA, pPlatform, pOutputFolder, pExtensionsBuiltIntoStandalone
   local tError
   local tExtsA, tIndex, i
 
@@ -1531,7 +1540,7 @@ private command _packageExtensions pBuildProfile, @xAppA, pOutputFolder, pExtens
     repeat with i = 1 to the number of elements of xAppA["extensions"]
       # We don't need to add extensions that are being built with the standalone
       if _getKindFromExtensionFile(xAppA["extensions"][i]["filename"]) is not among the lines of pExtensionsBuiltIntoStandalone \
-            and _shouldAssetBeDistributed(xAppA["extensions"][i], pBuildProfile) then
+            and _shouldAssetBeDistributed(xAppA["extensions"][i], pBuildProfile, pPlatform) then
         if there is not a folder (pOutputFolder & "/extensions") then
           create folder (pOutputFolder & "/extensions")
           put _errorMsg("creating the extensions folder [" & pOutputFolder & "/extensions" & "]", the result) into tError
@@ -1606,7 +1615,7 @@ private function _getKindFromExtensionFile pFilename
 end _getKindFromExtensionFile
 
 
-private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
+private command _packageAssetStacks pBuildProfile, @xAppA, pPlatform, pOutputFolder
   local tError, i
   local tStacksToLoad
   local tStackName, tFilename
@@ -1626,7 +1635,7 @@ private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA["behaviors"]
-        if not _shouldAssetBeDistributed(xAppA["behaviors"][i], pBuildProfile) then next repeat
+        if not _shouldAssetBeDistributed(xAppA["behaviors"][i], pBuildProfile, pPlatform) then next repeat
 
         if xAppA["behaviors"][i]["encrypt"] is not false and sPassword is not empty then
           # Just in case there are duplicate entries in array
@@ -1673,7 +1682,7 @@ private command _packageAssetStacks pBuildProfile, @xAppA, pOutputFolder
       end if
 
       repeat with i = 1 to the number of elements of xAppA[tAssetType]
-        if not _shouldAssetBeDistributed(xAppA[tAssetType][i], pBuildProfile) then next repeat
+        if not _shouldAssetBeDistributed(xAppA[tAssetType][i], pBuildProfile, pPlatform) then next repeat
 
         if xAppA[tAssetType][i]["encrypt"] is not false and sPassword is not empty then
           # Just in case there are duplicate entries in array

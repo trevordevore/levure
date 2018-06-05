@@ -449,6 +449,16 @@ command levureInitializeFramework
     put the result into tError
   end if
 
+  # extensions
+  if tError is empty then
+    loadExtensions sAppA
+    put the result into tError
+
+    repeat with i = 1 to the number of elements of sAppA["helpers"]
+      loadExtensions sAppA["helpers"][i]
+    end repeat
+  end if
+
   if tError is empty then
     createApplicationDataFolders
     put the result into tError
@@ -1407,16 +1417,6 @@ private command loadAppAssets
     set the stackFiles of stack kAppStackName to tStackFiles
   end if
 
-  # extensions
-  if tError is empty then
-    loadExtensions sAppA
-    put the result into tError
-
-    repeat with i = 1 to the number of elements of sAppA["helpers"]
-      loadExtensions sAppA["helpers"][i]
-    end repeat
-  end if
-
   # libraries, frontscripts, backscripts
   if tError is empty then
     repeat with i = 1 to the number of elements of sAppA["helpers"]
@@ -1633,16 +1633,22 @@ end loadMessagePathAssets
 
 private command loadExtensions pArrayA
   local tError
-  local i
+  local tExtA, tTargetPlatform
 
-  repeat with i = 1 to the number of elements of pArrayA["extensions"]
-    if pArrayA["extensions"][i]["resource path"] is not empty then
-      load extension from file pArrayA["extensions"][i]["filename"] with resource path pArrayA["extensions"][i]["resource path"]
+  if the platform is "win32" then put "windows" into tTargetPlatform
+  else put the platform into tTargetPlatform
+
+  repeat for each element tExtA in pArrayA["extensions"]
+    if tExtA["engine version"] is not empty and not _useFileWithThisEngine(tExtA["engine version"]) then next repeat
+    if tExtA["platform"] is not empty and tTargetPlatform is not among the items of tExtA["platform"] then next repeat
+
+    if tExtA["resource path"] is not empty then
+      load extension from file tExtA["filename"] with resource path tExtA["resource path"]
     else
-      load extension from file pArrayA["extensions"][i]["filename"]
+      load extension from file tExtA["filename"]
     end if
     if the result is not empty and the result is not "module already loaded" then
-      put the result & ":" && pArrayA["extensions"][i]["filename"] & cr after tError
+      put the result & ":" && tExtA["filename"] & cr after tError
     end if
   end repeat
 
@@ -1811,6 +1817,46 @@ private command resolveHelperAssets pBuildProfile
 end resolveHelperAssets
 
 
+// For packager
+function __useLevureFileWithThisEngine pVersionRange
+  return _useFileWithThisEngine(pVersionRange)
+end __useLevureFileWithThisEngine
+
+
+private function _useFileWithThisEngine pVersionRange
+  local tChar, tVersion, tOperator, tEngineVersion
+
+  repeat for each char tChar in pVersionRange
+    if tChar is among the chars of "<=>" then
+      put tChar after tOperator
+    else
+      put tChar after tVersion
+    end if
+  end repeat
+
+  # FYI: This is a very limited major/minor comparison
+  set the itemDelimiter to "."
+  put item 1 to 2 of the version into tEngineVersion
+
+  switch tOperator
+    case "<"
+      return tVersion < tEngineVersion
+
+    case ">"
+      return tVersion > tEngineVersion
+
+    case "<="
+        return tVersion <= tEngineVersion
+
+    case ">="
+      return tVersion >= tEngineVersion
+
+    default
+      return false
+  end switch
+end _useFileWithThisEngine
+
+
 private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPackagesInMemory
   local tError
   local tConfigA
@@ -1836,6 +1882,10 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
       repeat with j = 1 to the number of elements of tConfigA["externals"][tPlatform]
         put xHelperA["filename"] & "/" & normalizeRelativeFilename(tConfigA["externals"][tPlatform][j]["filename"]) into \
                 tConfigA["externals"][tPlatform][j]["filename"]
+
+        if tConfigA["externals"][tPlatform][j]["engine version"] is not empty and not _useFileWithThisEngine(tConfigA["externals"][tPlatform][j]["engine version"]) then
+          next repeat
+        end if
 
         if tPlatform is tTargetPlatform and tConfigA["externals"][tTargetPlatform][j]["name"] is not empty \
               and tConfigA["externals"][tTargetPlatform][j]["name"] is not among the lines of pExternalPackagesInMemory then
