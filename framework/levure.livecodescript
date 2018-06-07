@@ -501,10 +501,17 @@ command levureRunApplication
         exit to top
       end if
     else
-      ## Slight delay here so that appleEvents can be sent before
-      ## Application is loaded. This allows URLs that launched application
-      ## to be tucked away in "process url"
-      send "levureFinishLoadingApplication" to me in 10 milliseconds
+      ## On macOS we need a delay here so that appleEvents can be processed
+      ## `OpenApplication` is sent to the application. This allows URLs that
+      ## launched application to be tucked away in "process url"
+      ## We don't want a delay when running on mobile platforms, however, as
+      ## it can introduce a brief flicker when transitioning from splash screen
+      ## to the first stack.
+      if the platform is "macos" then
+        send "levureFinishLoadingApplication" to me in 10 milliseconds
+      else
+        levureFinishLoadingApplication
+      end if
     end if
   end if
 
