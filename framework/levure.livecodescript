@@ -1676,17 +1676,24 @@ Returns: Error message
 command levureBuildExtensions
   local tError
 
-  put empty into sAppA
-  if sAppA is not an array then
-    start using me
-
-    levureLoadAppConfig levureBuildProfile()
+  if tError is empty then
+    buildExtensions sAppA["extensions"]
     put the result into tError
   end if
 
   if tError is empty then
-    buildExtensions sAppA["extensions"]
-    put the result into tError
+    local tHelper
+
+    repeat for each element tHelper in sAppA["helpers"]
+      if tHelper["extensions"] is an array then
+        buildExtensions tHelper["extensions"]
+        put the result into tError
+
+        if tError is not empty then
+          exit repeat
+        end if
+      end if
+    end repeat
   end if
 
   return tError for error
