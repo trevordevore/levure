@@ -1661,6 +1661,9 @@ end loadExtensions
 /**
 Summary: Builds extensions configured in the app.yml file.
 
+Parameters:
+pOnlyBuildMissing: Pass in true to only build extensions which don't already exist.
+
 Description:
 If the app.yml file includes references to the source code files (*.lcb) for extensions then
 this command will compile the source code and update the .lcm file for the extension.
@@ -1673,11 +1676,11 @@ levureBuildExtensions
 
 Returns: Error message
 */
-command levureBuildExtensions
+command levureBuildExtensions pOnlyBuildMissing
   local tError
 
   if tError is empty then
-    buildExtensions sAppA["extensions"]
+    buildExtensions sAppA["extensions"], pOnlyBuildMissing
     put the result into tError
   end if
 
@@ -1686,7 +1689,7 @@ command levureBuildExtensions
 
     repeat for each element tHelper in sAppA["helpers"]
       if tHelper["extensions"] is an array then
-        buildExtensions tHelper["extensions"]
+        buildExtensions tHelper["extensions"], pOnlyBuildMissing
         put the result into tError
 
         if tError is not empty then
@@ -1700,13 +1703,15 @@ command levureBuildExtensions
 end levureBuildExtensions
 
 
-private command buildExtensions pArrayA
+private command buildExtensions pArrayA, pOnlyBuildMissing
   local tError, i
   local tNewExtensionFile, tTempFolder
 
   put the temporary folder & "/_buildLevureExtension_" & the milliseconds into tTempFolder
 
   repeat with i = 1 to the number of elements of pArrayA
+    if pOnlyBuildMissing and there is a file pArrayA[i]["filename"] then next repeat
+
     if there is a file pArrayA[i]["source"] then
       create folder tTempFolder
       put the result into tError
