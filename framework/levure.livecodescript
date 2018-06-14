@@ -453,9 +453,16 @@ command levureInitializeFramework
   if tError is empty then
     loadExtensions sAppA
     put the result into tError
+  end if
 
+  if tError is empty then
     repeat with i = 1 to the number of elements of sAppA["helpers"]
       loadExtensions sAppA["helpers"][i]
+      put the result into tError
+
+      if tError is not empty then
+        exit repeat
+      end if
     end repeat
   end if
 
