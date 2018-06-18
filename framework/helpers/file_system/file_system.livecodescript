@@ -53,6 +53,24 @@ end fileSystemFilesToProcessOnOpen
 
 
 /**
+Summary: Process the file/url so that levure handlers can be used for processing the request.
+
+Parameters:
+pUrl: If this is a file then it starts with file://
+
+Description:
+If a url caused the OS to open the app then this is called before levure app finishes loading.
+It can be handled like other events triggered by file/url open requests.
+*/
+on urlWakeUp pUrl
+  if pURL begins with "file://" then
+    delete char 1 to 7 of pUrl
+  end if
+  ProcessCommandLineParameters pUrl
+end urlWakeUp
+
+
+/**
 Summary: Processes files and urls that are sent to the application via appleEvents on macOS.
 
 Description:
