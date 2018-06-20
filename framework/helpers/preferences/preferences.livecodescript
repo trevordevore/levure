@@ -248,10 +248,11 @@ Summary: Sets an application preference.
 pKey: Name of preference to set.
 pValue: Value to set preference to. This can be a string or an array.
 pUserOrShared: Preferences category. "user" or "shared". Default is "user".
+pType: Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
 
 Returns: error message
 */
-command prefsSetPref pKey, pValue, pUserOrShared
+command prefsSetPref pKey, pValue, pUserOrShared, pType
   local tStack, tError
 
   validateKey pUserOrShared
@@ -260,25 +261,27 @@ command prefsSetPref pKey, pValue, pUserOrShared
   if useMacOSExternal(pUserOrShared) then
     if the keys of pValue is not empty then
       put "_LCA" & arrayEncode(pValue) into pValue
-    end if
-
-    if pValue is strictly a binary string then
       osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
     else
-      # encode strings as UTF8 or this will fail in LC 8.
-      osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform("user")
+      if pValue contains null or pType is "binary" then
+        osxHLPrefSetBinary pKey, "pValue", prefFilenameForPlatform("user")
+      else
+        # encode strings as UTF8 or this will fail in LC 8.
+        osxHLPrefSetString pKey, textEncode(pValue, "utf8"), prefFilenameForPlatform("user")
+      end if
     end if
     put the result into tError
 
   else if useMacOSExtension(pUserOrShared) then
     if the keys of pValue is not empty then
       put "_LCA" & arrayEncode(pValue) into pValue
-    end if
-
-    if pValue is strictly a binary string then
       get NSUserDefaultsSetDataForKey(pKey, pValue)
     else
-      get NSUserDefaultsSetStringForKey(pKey, pValue)
+      if pValue contains null or pType is "binary" then
+        get NSUserDefaultsSetDataForKey(pKey, pValue)
+      else
+        get NSUserDefaultsSetStringForKey(pKey, pValue)
+      end if
     end if
     put the result into tError
   else
