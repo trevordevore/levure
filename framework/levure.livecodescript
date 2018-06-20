@@ -1651,8 +1651,8 @@ private command loadExtensions pArrayA
     if tExtA["engine version"] is not empty and not _useFileWithThisEngine(tExtA["engine version"]) then next repeat
     if tExtA["platform"] is not empty and tTargetPlatform is not among the items of tExtA["platform"] then next repeat
 
-    if tExtA["resource path"] is not empty then
-      load extension from file tExtA["filename"] with resource path tExtA["resource path"]
+    if tExtA["resource folder"] is not empty then
+      load extension from file tExtA["filename"] with resource path tExtA["resource folder"]
     else
       load extension from file tExtA["filename"]
     end if
