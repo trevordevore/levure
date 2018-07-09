@@ -1201,6 +1201,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
 
         if tError is empty then
           replace (xHelperA["filename"] & "/") with empty in xHelperA["extensions"][i]["filename"]
+          delete local xHelperA["extensions"][i]["source"]
 
           # Create new array with excluded elements removed
           add 1 to tIndex
