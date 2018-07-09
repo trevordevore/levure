@@ -1048,7 +1048,7 @@ end _packageHelpers
 
 
 private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolder, pExecutableOutputFolder
-  local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFolder
+  local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFolder, tFolderA
   local tKey, i
   local tRootFolder
   local tIndex, tHelpersA
@@ -1216,8 +1216,9 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
       end if
     end if
 
-    # Move over any other folders
-    repeat for each line tFolder in _folderListing(xHelperA["filename"])
+    # folders
+    repeat for each element tFolderA in xHelperA["package folders"]
+      put xHelperA["filename"] & "/" & tFolderA["filename"] into tFolder
       if not (the last item of tFolder begins with ".") AND not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
         log "  Adding helper additional folder:" && tFolder
         log "    to folder:" && tDestFolder & "/" & the last item of tFolder
