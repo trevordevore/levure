@@ -357,6 +357,7 @@ private function _createCopyFilesListFromFolder pFolder
   local tFiles, tFolders
 
   put _fileListing(pFolder) into tFiles
+  filter tFiles without ".*" # .DS_Store
   if tFiles is not empty then put cr after tFiles
   put _folderListing(pFolder) into tFolders
   repeat for each line tFolder in tFolders
