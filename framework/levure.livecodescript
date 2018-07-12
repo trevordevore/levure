@@ -10,6 +10,7 @@ constant kLiveCodeModule = "lcm"
 constant kLevureErr = "levureerr,"
 constant kUIKey = "ui"
 constant kUITemplatesKey = "templates"
+constant kNestedKeysDelimiter = ">"
 
 local sAppFolder              # Folder where the `app` stack resides
 local sAppA
@@ -822,7 +823,7 @@ function levureGetUIStacks
 
   repeat for each key tKey in sAppA["registered components"]["ui"]
     put tKey into tLookupA
-    split tLookupA by "|"
+    split tLookupA by kNestedKeysDelimiter
 
     repeat with i = 1 to the number of elements of sAppA[tLookupA]
       add 1 to j
@@ -1155,7 +1156,7 @@ command levureLoadAppConfig pBuildProfile
         put empty into tFilesA
         put 0 into j
 
-        split tKey by "|"
+        split tKey by kNestedKeysDelimiter
 
         repeat with i = 1 to the number of elements of sAppA[tKey]
           add 1 to j
@@ -1179,7 +1180,7 @@ command levureLoadAppConfig pBuildProfile
         put empty into tFilesA
         put 0 into j
 
-        split tKey by "|"
+        split tKey by kNestedKeysDelimiter
 
         repeat with i = 1 to the number of elements of sAppA[tKey]
           add 1 to j
@@ -1390,7 +1391,7 @@ private command loadAppAssets
     local tKey
 
     repeat for each key tKey in sAppA["registered components"]["ui"]
-      split tKey by "|"
+      split tKey by kNestedKeysDelimiter
 
       repeat with i = 1 to the number of elements of sAppA[tKey]
         put sAppA[tKey][i]["name"] & "," & \
@@ -1498,7 +1499,7 @@ private command _loadRegisteredKeyFiles pKey
   put sAppA["registered components"]["files"][pKey]["callback stackfile"] into tCallbackStack
 
   if tCallbackStack is not empty then
-    split pKey by "|"
+    split pKey by kNestedKeysDelimiter
 
     repeat with i = 1 to the number of elements of sAppA[pKey]
       dispatch "loadRegisteredKeyFile" to stack tCallbackStack with sAppA[pKey][i]
@@ -2223,7 +2224,7 @@ private command expandPackagedAppArrayFilenames @xAppA, pRootFolder
   end if
 
   repeat for each item tKey in tAssets
-    split tKey by "|"
+    split tKey by kNestedKeysDelimiter
 
     repeat with i = 1 to the number of elements of xAppA[tKey]
       replaceVariablesInPaths xAppA[tKey][i]
