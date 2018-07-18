@@ -33,6 +33,8 @@ preferences filename:
     linux:
 ui:
   - folder: ./ui
+templates:
+  - folder: ./templates
 libraries:
   - folder: ./libraries
 frontscripts:
