@@ -44,7 +44,7 @@ You can specify which types of messages will be logged. The types are `developer
 |------------|---------------|
 | `developer` | messages logged with `loggerLogMsg`|
 | `network` | messages logged by libURL |
-| `msg` | `put` messages with no target |
+| `msg` | `put` messages with no target (empty messages will be ignored) |
 | `extensions` | `log` messages from LiveCode builder extensions. |
 
 There are two commands you can use to configure the types of messages to log:

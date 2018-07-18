@@ -179,7 +179,7 @@ url protocols:
 
 Each time your application starts up on Windows the helper will call `fileSystemRegisterURLProtocol` to make sure that your application is registered to handle the protocol.
 
-Note: On OS X you need to manually add your protocol to the `Info.plist` file.
+Note: On macOS and iOS you need to manually add your protocol to the `Info.plist` file.
 
 ```
 <array>
@@ -323,6 +323,7 @@ The helper does not currently provide an API for working with security scoped fi
 - [fileSystemURLsToProcessOnOpen](#fileSystemURLsToProcessOnOpen)
 >
 - [ProcessCommandLineParameters](#ProcessCommandLineParameters)
+- [urlWakeUp](#urlWakeUp)
 
 
 <br>
@@ -722,6 +723,28 @@ extensions are extracted and made available to the application for processing.
 If the application is running then `ProcessFiles` or `ProcessURL`
 will be sent to the `app` stack. If the application is still loading then the files and urls will
 be accessible using the `fileSystemFilesToProcessOnOpen()` and `fileSystemURLsToProcessOnOpen()` functions.
+
+
+<br>
+
+## <a name="urlWakeUp"></a>urlWakeUp
+
+**Type**: command
+
+**Syntax**: `urlWakeUp <pUrl>`
+
+**Summary**: Process the file/url so that levure handlers can be used for processing the request.
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUrl` |  If this is a file then it starts with file:// |
+
+**Description**:
+
+If a url caused the OS to open the app then this is called before levure app finishes loading.
+It can be handled like other events triggered by file/url open requests.
 
 
 

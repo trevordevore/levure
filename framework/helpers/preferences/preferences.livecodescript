@@ -195,7 +195,7 @@ Description:
 Use this handler if you would like to reset all preferences to their default values as defined
 in `prefs.yml` and `prefs_shared.yml`.
 
-Note that on OS X this command currently does not work.
+Note that on macOS this command currently does not work.
 */
 command prefsReset pUserOrShared
   validateKey pUserOrShared
@@ -248,7 +248,7 @@ Summary: Sets an application preference.
 pKey: Name of preference to set.
 pValue: Value to set preference to. This can be a string or an array.
 pUserOrShared: Preferences category. "user" or "shared". Default is "user".
-pType: Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary.
+pType: Pass in "binary" to force pref to be stored as binary (macOS and iOS). By default if value contains NULL then it will be stored as binary.
 
 Returns: error message
 */
@@ -257,7 +257,7 @@ command prefsSetPref pKey, pValue, pUserOrShared, pType
 
   validateKey pUserOrShared
 
-  # OS X external behavior
+  # macOS external behavior
   if useMacOSExternal(pUserOrShared) then
     if the keys of pValue is not empty then
       put "_LCA" & arrayEncode(pValue) into pValue
@@ -375,7 +375,7 @@ function prefsIsPrefSet pKey, pUserOrShared
 
   validateKey pUserOrShared
 
-  ## OS X external behavior
+  ## macOS external behavior
   if useMacOSExternal(pUserOrShared) then
 
     return osxHLPrefExists(pKey, prefFilenameForPlatform("user"))

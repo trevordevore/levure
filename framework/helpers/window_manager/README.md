@@ -1049,9 +1049,5 @@ The stack must have a mode no higher than pMode and be visible.
 
 **Returns**: Boolean
 
-**Description**:
-
-
-
 
 

@@ -51,7 +51,7 @@ put 35 into tMementoA["id"]
 
 ### Memento array types
 
-Each memento array must have a `type` key. The `type` tells the `undoStoreMemento` message what type of memento to store.
+Each memento array must have a `type` key. The `type` tells the `undoStoreMementos` message what type of memento to store.
 
 By default the Undo Manager defines three types that you can assign to a memento array.
 
@@ -69,7 +69,7 @@ Each type has an inverse type. When calling `undoUndo` and an undo action is pro
 
 ### Undo action mementos
 
-Each undo action has a "mementos" property which is a numerical indexed array. Each numeric element is a memento array. The undo action `mementos` key must have at least one memento array. A simple `mementos` key with one memento array would be constructed thusly:
+Each undo action has a "mementos" property which is a numerically indexed array. Each numeric element is a memento array. The undo action `mementos` key must have at least one memento array. A simple `mementos` key with one memento array would be constructed thusly:
 
 ```
 local tMementosA, tMementoA
@@ -87,7 +87,7 @@ The Undo Manager helper provides an API that coordinates the storing and process
 What the helper does do is manage undo actions. Here is a description of the life of an undo action:
 
 1. When the user performs an action the developer adds an undo action to an undo stack. The undo action has a bare bones `mementos` key associated with it.
-2. The `undoStoreMemento` message is dispatched to `the target`, once for each memento array in the `mementos` of the undo action, when an undo action is added. In the `undoStoreMemento` handler the developer generates the memento necessary to reverse the action. The Undo Manager will store this memento for use later on.
+2. The `undoStoreMementos` message is dispatched to `the target` when an undo action is added. In the `undoStoreMementos` handler the developer generates the memento(s) necessary to reverse the action. The Undo Manager will store these memento(s) for use later on.
 3. When the user chooses to undo an action and `undoUndo` is called the Undo Manager dispatches `undoRestoreMementos` to `the target`. The message handler is responsible for using the undo action's mementos to restore the application to the correct state. The undo action is moved to the redo queue and each memento is assigned the inverse of it's current `type`. E.g. if the memento's type is `create` then it would be set to `delete`.
 
 Here are some diagrams showing what happens when adding an undo action and undoing an action.
@@ -104,11 +104,11 @@ Here are some diagrams showing what happens when adding an undo action and undoi
 
 Each time the user performs an action that can be undone the developer adds an undo action to an undo stack. The undo action has one or more mementos associated with it. These mementos are stored in the `mementos` key of an undo action. The `mementos` key is a numerically indexed array where each index is a `memento` array which has the information necessary to reverse the action. For example, if you created a new object then you probably need one memento array that has the information needed to delete that object if the user decides to undo the action.
 
-Mementos for an undo action will be populated primarily in the `undoStoreMemento` handler. However, you do need to provide some basic information about the undo action mementos when you call `undoAddAction`.
+Mementos for an undo action will be populated primarily in the `undoStoreMementos` handler. However, you do need to provide some basic information about the undo action mementos when you call `undoAddAction`.
 
-An undo action is added to the undo queue using the `undoAddAction` command. The undo action can then be processed when the user undoes or redoes the action. Each time the the user undoes or redoes the action the undo action memento(s) needs to be updated. Because of this need to update the memento(s) throughout the life of the undo action the memento(s) is updated using the `undoStoreMemento` callback.
+An undo action is added to the undo queue using the `undoAddAction` command. The undo action can then be processed when the user undoes or redoes the action. Each time the the user undoes or redoes the action the undo action memento(s) needs to be updated. Because of this need to update the memento(s) throughout the life of the undo action the memento(s) is updated using the `undoStoreMementos` callback.
 
-The `undoStoreMemento` callback is first called by `undoAddAction`. The callback will subsequently be called when calling `undoUndo` and `undoRedo`. The mementos array that you pass to `undoAddAction` should contain the minimum amount of information necessary for `undoStoreMemento` callback to store the actual memento. For example, you could just pass in a reference to a LiveCode control if you are changing properties on the control. The `undoStoreMemento` callback would use the control reference to store the current state of the properties.
+The `undoStoreMementos` callback is first called by `undoAddAction`. The callback will subsequently be called when calling `undoUndo` and `undoRedo`. The mementos array that you pass to `undoAddAction` should contain the minimum amount of information necessary for `undoStoreMementos` callback to store the actual memento. For example, you could just pass in a reference to a LiveCode control if you are changing properties on the control. The `undoStoreMementos` callback would use the control reference to store the current state of the properties.
 
 ## Restoring mementos
 
@@ -126,7 +126,7 @@ Here is an example of how you would add a single memento array to an undo action
 
 # Create the memento array used to reverse the undo action. Since the code is creating content the
 # memento array will use the `create` type – you will undo a creation action. Store the minimum amount of information
-# that the `undoStoreMemento` callback will need to fill in the memento.
+# that the `undoStoreMementos` callback will need to fill in the memento.
 # In this case the callback just needs the id of the content that was created.
 local tMementoA, tMementosA
 
@@ -139,32 +139,34 @@ put tMementoA into tMementosA[1]
 undoAddAction "document 1", "Add Content", tMementosA
 ```
 
-No that an undo action has been added to the "document 1" undo stack, let's look at the code that fills in the memento array. The memento is filled in based on the action being performed. As you look at the code below keep in mind that after a user undoes an action the user then has to be able to redo the action. The `undoStoreMemento` callback will need to be able to create mementos for both undo and redo requests. Also note that the `pUndoObjectA` parameter is passed in by reference. The callback will be updating the memento array(s) and the Undo Manager will store any modifications made to the parameter. `pUndoObjectA` will be passed to `undoRestoreMemento` later on.
+Now that an undo action has been added to the "document 1" undo stack, let's look at the code that fills in the memento array. The memento is filled in based on the action being performed. As you look at the code below keep in mind that after a user undoes an action the user then has to be able to redo the action. The `undoStoreMementos` callback will need to be able to create mementos for both undo and redo requests. Also note that the `pUndoObjectA` parameter is passed in by reference. The callback will be updating the memento array(s) and the Undo Manager will store any modifications made to the parameter. `pUndoObjectA` will be passed to `undoRestoreMementos` later on.
 
 **Important!** Be aware of when you are calling `undoAddAction` in your code. If the user is deleting an object and you delete the object before calling `undoAddAction` then your application may not be able to generate a memento because the object doesn't exist. In such cases call `undoAddAction` before you delete the object. If an error occurs while deleting the object you can use `undoRemoveLatest` to remove the undo action from the undo stack.
 
 ```
-command undoStoreMemento pUndoStack, @pMementoA
+command undoStoreMementos pUndoStack, @pMementoAs
   local i
 
-  switch pMementoA["type"]
-    case "create"
-      # Add keys to memento array necessary to undo the create action
-      _StoreMementoToUndoCreateAction pMementoA
-      break
+  repeat with i = 1 to the number of elements of pMementosA
+    switch pMementosA[i]["type"]
+      case "create"
+        # Add keys to memento array necessary to undo the create action
+        _StoreMementoToUndoCreateAction pMementosA[i]
+        break
 
-    case "delete"
-      # Add keys to memento array that will be required to undo the delete action
-      _StoreMementoToUndoDeleteAction pMementoA
-      break
+      case "delete"
+        # Add keys to memento array that will be required to undo the delete action
+        _StoreMementoToUndoDeleteAction pMementosA[i]
+        break
 
-    case "update"
-      # Add keys to memento array that will allow the code to restore properties.
-      _StoreMementoToUndoUpdateAction pMementoA
-      break
+      case "update"
+        # Add keys to memento array that will allow the code to restore properties.
+        _StoreMementoToUndoUpdateAction pMementosA[i]
+        break
 
-  end switch
-end undoStoreMemento
+    end switch
+  end repeat
+end undoStoreMementos
 
 
 private command _StoreMementoToUndoCreateAction @pMementoA
@@ -217,31 +219,34 @@ end undoRestoreMementos
 
 The Undo Manager has built in support for edits made during a single field editing session. The undo stack covers any edits made in a field after openField and before closeField/exitField. To turn this feature on call `undoRegisterEditFieldType` when your app starts up. After calling `undoRegisterEditFieldType` any calls to handlers such as `undoCanUndo` and `undoUndo` will automatically target the "edit field" undo stack if the user is currently editing text in a field. Once focus leaves the field then calls to handlers such as `undoCanUndo` will target the specified undo stack.
 
+When undoing changes in a field the `textChanged` message is sent for each memento that is processed in `undoRestoreMementos` (there should only be one memento). In addition, after all mementos have been processed the `EditFieldMementosRestored` message is sent to the field. This is a good place to sync up the UI if your app requires it.
+
 <br>
 
 ## API
 
 - [undoRestoreMementos](#undoRestoreMementos)
-- [undoStoreMemento](#undoStoreMemento)
+- [undoStoreMementos](#undoStoreMementos)
 - [undoRestoreMementos](#undoRestoreMementos)
-- [undoStoreMemento](#undoStoreMemento)- [undoAddAction](#undoAddAction)
+- [undoStoreMementos](#undoStoreMementos)- [undoAddAction](#undoAddAction)
 - [undoCanRedo](#undoCanRedo)
 - [undoCanUndo](#undoCanUndo)
 - [undoCleanupStack](#undoCleanupStack)
 - [undoGetMaxUndos](#undoGetMaxUndos)
 >
 - [undoGetNextUndoInStack](#undoGetNextUndoInStack)
+- [undoGetTargetForStackCallbacks](#undoGetTargetForStackCallbacks)
 - [undoPrintLog](#undoPrintLog)
 - [undoRedo](#undoRedo)
 - [undoRedoActionName](#undoRedoActionName)
-- [undoRegisterEditFieldType](#undoRegisterEditFieldType)
 >
+- [undoRegisterEditFieldType](#undoRegisterEditFieldType)
 - [undoRegisterType](#undoRegisterType)
 - [undoRemoveLatest](#undoRemoveLatest)
 - [undoReset](#undoReset)
 - [undoSetMaxUndos](#undoSetMaxUndos)
-- [undoSetTargetForStackCallbacks](#undoSetTargetForStackCallbacks)
 >
+- [undoSetTargetForStackCallbacks](#undoSetTargetForStackCallbacks)
 - [undoUndo](#undoUndo)
 - [undoUndoActionName](#undoUndoActionName)
 
@@ -259,11 +264,11 @@ The Undo Manager has built in support for edits made during a single field editi
 
 <br>
 
-## <a name="undoStoreMemento"></a>undoStoreMemento
+## <a name="undoStoreMementos"></a>undoStoreMementos
 
 **Type**: command
 
-**Syntax**: `undoStoreMemento <pUndoStack>,<pMementoA>`
+**Syntax**: `undoStoreMementos <pUndoStack>,<pMementosA>`
 
 **Summary**: Stores a memento for a field prior to changes being made.
 
@@ -281,11 +286,11 @@ The Undo Manager has built in support for edits made during a single field editi
 
 <br>
 
-## <a name="undoStoreMemento"></a>undoStoreMemento
+## <a name="undoStoreMementos"></a>undoStoreMementos
 
 **Type**: command
 
-**Syntax**: `undoStoreMemento <pUndoStack>,<pMementoA>`
+**Syntax**: `undoStoreMementos <pUndoStack>,<pMementosA>`
 
 **Summary**: Stores a memento for a field prior to changes being made.
 
@@ -415,11 +420,29 @@ Use this for comparisons to determine if a new undo action should be added to th
 
 <br>
 
+## <a name="undoGetTargetForStackCallbacks"></a>undoGetTargetForStackCallbacks
+
+**Type**: function
+
+**Syntax**: `undoGetTargetForStackCallbacks(<pUndoStack>)`
+
+**Summary**: Returns the target that messages are sent to for an undo stack.
+
+**Returns**: Object reference
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pUndoStack` |  The undo stack of interest. |
+
+<br>
+
 ## <a name="undoPrintLog"></a>undoPrintLog
 
-**Type**: command
+**Type**: function
 
-**Syntax**: `undoPrintLog `
+**Syntax**: `undoPrintLog()`
 
 **Summary**: Prints the undo log array. Use for troublehsooting.
 

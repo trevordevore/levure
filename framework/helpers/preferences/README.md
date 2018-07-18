@@ -126,9 +126,10 @@ Levure will automatically call `prefsSave` when your application is running as a
 - [prefsGetDefaults](#prefsGetDefaults)
 - [prefsGetPref](#prefsGetPref)
 - [prefsGetPreferenceFile](#prefsGetPreferenceFile)
+- [prefsIsCategoryConfigured](#prefsIsCategoryConfigured)
 - [prefsIsPrefSet](#prefsIsPrefSet)
-- [prefsReload](#prefsReload)
 >
+- [prefsReload](#prefsReload)
 - [prefsReset](#prefsReset)
 - [prefsSave](#prefsSave)
 - [prefsSetPref](#prefsSetPref)
@@ -191,9 +192,20 @@ Levure will automatically call `prefsSave` when your application is running as a
 
 **Description**:
 
-Returns the filename of the preference file. If an external is being used on OS X
-then empty will be returned.
+Returns the filename of the preference file.
 
+
+<br>
+
+## <a name="prefsIsCategoryConfigured"></a>prefsIsCategoryConfigured
+
+**Type**: function
+
+**Syntax**: `prefsIsCategoryConfigured(<pUserOrShared>)`
+
+**Summary**: Use this to check if preferences have been configured for "user" or "shared".
+
+**Returns**: Boolean
 
 <br>
 
@@ -237,7 +249,7 @@ then empty will be returned.
 This handler will clear out any values that are stored internally and reloads
 preferences from the file on disk.
 
-Note that this command does nothing on OS X which handles preferences using Cocoa
+Note that this command does nothing on macOS or iOS which handle preferences using the NSUserDefaults
 APIs.
 
 
@@ -264,7 +276,7 @@ APIs.
 Use this handler if you would like to reset all preferences to their default values as defined
 in `prefs.yml` and `prefs_shared.yml`.
 
-Note that on OS X this command currently does not work.
+Note that on macOS this command currently does not work.
 
 
 <br>
@@ -310,7 +322,7 @@ store changes on disk use this command.
 | `pKey` |  Name of preference to set. |
 | `pValue` |  Value to set preference to. This can be a string or an array. |
 | `pUserOrShared` |  Preferences category. "user" or "shared". Default is "user". |
-| `pType` |  Pass in "binary" to force pref to be stored as binary (OS X). By default if value contains NULL then it will be stored as binary. |
+| `pType` |  Pass in "binary" to force pref to be stored as binary (macOS and iOS). By default if value contains NULL then it will be stored as binary. |
 
 
 
