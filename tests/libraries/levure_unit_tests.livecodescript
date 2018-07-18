@@ -32,7 +32,7 @@ command TestPreferences
   put "∂©Ekl" into tA["text"]
 
   /*
-  Need way of resetting prefs on OS X. Retry once we can convert to a module.
+  Need way of resetting prefs on macOS. Retry once we can convert to a module.
 
   put appGetDefaultPrefs("shared") into tDefaultPrefsA
   verify_equal tDefaultPrefsA, tA, "shared default prefs do not match"

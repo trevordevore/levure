@@ -2132,7 +2132,7 @@ private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
 
     if pAppA["macos signing certificate"] is not empty then
 
-      log "Signing application for OS X using cert:" && pAppA["macos signing certificate"]
+      log "Signing application for macOS using cert:" && pAppA["macos signing certificate"]
 
       local tCmd
 
@@ -2305,7 +2305,7 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFile
     if tError is not empty then exit repeat
   end repeat
 
-  # On Mavericks and above additional signing is required. Anything that can contain code (or that OS X thinks can contain code)
+  # On Mavericks and above additional signing is required. Anything that can contain code (or that macOS thinks can contain code)
   if tError is empty then
     if pSignFiles then # don't sign if part of a bundle
       local tFilesWOExt, tCmd
@@ -2541,7 +2541,7 @@ private command _fileCopyFolder pSrcFolder, pDestFolder
     put _escapeForShell(pDestFolder) into pDestFolder
     put shell ("ditto" && pSrcFolder && pDestFolder) into tResult
     if tResult contains "operation not permitted" then
-      # OS X sandbox may not let us copy some metadata.
+      # macOS sandbox may not let us copy some metadata.
       # Don't know why but it happens. Saw it when copying from temp folder to temp folder.
       put shell ("ditto --norsrc" && pSrcFolder && pDestFolder) into tResult
     end if

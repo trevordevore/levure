@@ -2092,7 +2092,7 @@ end levureStandaloneStackName
 Summary: Returns the path to the folder the application standalone is in.
 
 Description:
-On OS X the path points to the folder where the application bundle is located,
+On macOS the path points to the folder where the application bundle is located,
 not the actual executable file inside of the application bundle.
 
 If called in the IDE this returns the path where the standalone.livecode stack file is located.
