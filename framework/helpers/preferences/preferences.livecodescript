@@ -18,7 +18,7 @@ on libraryStack
   end if
 
   # Set target suite on macOS
-  if useMacOSExtension("user") then
+  if useNSUserDefaultsExtension("user") then
     get NSUserDefaultsInitWithSuiteName(prefFilenameForPlatform("user"))
   end if
 end libraryStack
@@ -54,15 +54,15 @@ private function useMacOSExternal pUserOrShared
 end useMacOSExternal
 
 
-private function useMacOSExtension pUserOrShared
+private function useNSUserDefaultsExtension pUserOrShared
   if sUseExtension is empty then
     set the wholematches to true
-    put the platform is "macos" and "community.livecode.trevordevore.nsuserdefaults" \
+    put the platform is among the items of "macos,iphone" and "community.livecode.trevordevore.nsuserdefaults" \
           is among the lines of the loadedExtensions into sUseExtension
   end if
 
   return sUseExtension and (pUserOrShared is "user")
-end useMacOSExtension
+end useNSUserDefaultsExtension
 
 
 /**
@@ -202,7 +202,7 @@ command prefsReset pUserOrShared
 
   if useMacOSExternal(pUserOrShared) then
     // Not available
-  else if useMacOSExtension(pUserOrShared) then
+  else if useNSUserDefaultsExtension(pUserOrShared) then
     get NSUserDefaultsRemovePersistentDomainForName(prefFilenameForPlatform("user"))
   else
     put empty into sPrefsA[pUserOrShared]
@@ -272,7 +272,7 @@ command prefsSetPref pKey, pValue, pUserOrShared, pType
     end if
     put the result into tError
 
-  else if useMacOSExtension(pUserOrShared) then
+  else if useNSUserDefaultsExtension(pUserOrShared) then
     if the keys of pValue is not empty then
       put "_LCA" & arrayEncode(pValue) into pValue
       get NSUserDefaultsSetDataForKey(pKey, pValue)
@@ -341,7 +341,7 @@ function prefsGetPref pKey, pUserOrShared
         end switch
       end if
 
-    else if useMacOSExtension(pUserOrShared) then
+    else if useNSUserDefaultsExtension(pUserOrShared) then
       local tError
 
       put NSUserDefaultsValueForKey(pKey) into tValue
@@ -380,7 +380,7 @@ function prefsIsPrefSet pKey, pUserOrShared
 
     return osxHLPrefExists(pKey, prefFilenameForPlatform("user"))
 
-  else if useMacOSExtension(pUserOrShared) then
+  else if useNSUserDefaultsExtension(pUserOrShared) then
 
     return NSUserDefaultsDefaultHasBeenSet(pKey)
 
@@ -415,7 +415,7 @@ command prefsSave pUserOrShared
       osxHLPrefSavePrefs prefFilenameForPlatform("user")
       put the result into tError
 
-    else if useMacOSExtension(pUserOrShared) then
+    else if useNSUserDefaultsExtension(pUserOrShared) then
       # Nothing to do.
     else
 
