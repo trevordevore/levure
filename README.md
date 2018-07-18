@@ -25,16 +25,10 @@ Want to help this project? There are a number of ways to contribute.
 
 - Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
 - Need to decide how errors should be reported when loading helpers. Should a developer throw an error or use some other mechanism? Ideally the application should report the error to the end user and then quit. We don't want the application hanging around if an error occurs on loading.
-- Create module for iOS prefs that uses NSUserDefaults. (2018-05-28: Trevor DeVore is working on an FFI module for this.)
-- Move preferences external for OS X into a module. (2018-05-28: Trevor DeVore is working on an FFI module for this.)
 - Create a helper component for the MAS (security-scoped bookmarks and licensing). (2018-05-28: Trevor DeVore is working on an FFI module for this.)
   - secscopGetBookmarkFromURL(pUTF8Filename) to generate bookmark data for a filename
   - secscopInitializeURLFromBookmarkData(pBookmarkData) to generate security scoped filenames using bookmark data
   - secscopStopUsingURL(pSecurityScopedFilename) to release a security scoped filename.
-- Help with an auto update helper component
+- Help with an auto update helper component (2018-07-18: Trevor DeVore is working on FFI modules for both of these.)
   - Needs module wrapped around WinSparkle: https://winsparkle.org
   - Needs module wrapped around latest Sparkle: https://sparkle-project.org
-
-# Known Issues
-
-- If you use scripts for all behaviors then you have to manually construct behaviors with behaviors when a stack opens. A script only stack can't have a behavior property assigned to it. This is not an issue for behaviors loaded through the `behaviors` key in `app.yml` as the `LoadBehavior` message is dispatched to each stack and it can set its own behavior. For behaviors that are part of your `ui` components you need to make sure that you assign the parent behavior somewhere else (e.g. in a `preopenstack` message or in the `InitializeApplicaiton` message).
