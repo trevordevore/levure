@@ -124,6 +124,7 @@ command CreateApplicationFilesAndFolders
     create folder tFolder & "/helpers"
     create folder tFolder & "/libraries"
     create folder tFolder & "/ui"
+    create folder tFolder & "/templates"
     create folder tFolder & "/assets"
   end if
 
