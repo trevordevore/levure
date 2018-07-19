@@ -19,7 +19,9 @@ on libraryStack
 
   # Set target suite on macOS
   if useNSUserDefaultsExtension("user") then
-    get NSUserDefaultsInitWithSuiteName(prefFilenameForPlatform("user"))
+    if filenameForPlatform("user") is not empty then
+      get NSUserDefaultsInitWithSuiteName(filenameForPlatform("user"))
+    end if
   end if
 end libraryStack
 
