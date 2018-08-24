@@ -76,6 +76,9 @@ command undoStoreMementos pUndoStack, @pMementosA
       put the long id of the selectedField into pMementosA[i]["control"]
     end if
     put word 1 to 4 of the selectedchunk into pMementosA[i]["control selected chunk"]
+    if codepointToNum(the last char of the selectedtext) is among the items of "10,11" then
+      subtract 1 from word 4 of pMementosA[i]["control selected chunk"]
+    end if
 
     local tControl
 
