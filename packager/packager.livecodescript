@@ -213,9 +213,10 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
         # Refresh after having unloaded for standalone builder
         levureLoadAppConfig pBuildProfile
 
-        _dispatchFinalizeBuildForPlatform pBuildProfile, tPlatform, sAppA, tAppFolder, tOutputFolder & "/" & tPlatform
+        _dispatchFinalizeBuildForPlatform pBuildProfile, tPlatform, tAppA, tAppFolder, tOutputFolder & "/" & tPlatform
 
         # dispatch and then sign macos bundle
+        # Use original sAppA as it has certificate information not found in pruned version.
         if tPlatform is "macos" then
           _signMacOSApplication pBuildProfile, sAppA, tOutputFolder & "/" & tPlatform
           put the result into tError
@@ -439,7 +440,7 @@ private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pApp
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching finalizePackageForPlatform to stack" && tFilename
 
-    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pAppFolder, pOutputFolder
+    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizeBuildForPlatform

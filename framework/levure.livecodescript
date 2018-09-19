@@ -150,7 +150,7 @@ sections of your `app.yml` file will affect how the application is packaged. Bel
 The `packager callback stackfiles` property in `app.yml` points to a stack that will receive the
 `finalizePackagedAssets pBuildProfile, pBuildProfile, @xAppA, pAppFolder`,
 `finalizeStandaloneForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pFolderSavedIn`,
-`finalizePackageForPlatform pBuildProfile, pPlatform, pAppFolder, pOutputFolder`,
+`finalizePackageForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder`,
 and `packagingComplete pBuildProfile, pOutputFolder` messages.
 
 The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on macOS.
