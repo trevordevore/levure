@@ -24,4 +24,5 @@ Visit the [Levure Wiki](https://github.com/trevordevore/levure/wiki/) to get sta
 Want to help this project? There are a number of ways to contribute.
 
 - Review the [wiki](https://github.com/trevordevore/levure/wiki/) and submit improvements.
+- Create Helpers and make them available to the community. You can add them to the [3rd party helpers page](https://github.com/trevordevore/levure/wiki/3rd-party-helpers).
 - Need to decide how errors should be reported when loading helpers. Should a developer throw an error or use some other mechanism? Ideally the application should report the error to the end user and then quit. We don't want the application hanging around if an error occurs on loading.
