@@ -1020,8 +1020,12 @@ command levureLoadAppConfig pBuildProfile
     expandPackagedAppArrayFilenames sAppA, sAppFolder
 
     put expandHelperAssetsFileReferenceArray(pBuildProfile, sAppA["helpers"], sAppFolder) into sAppA["helpers"]
-    resolveHelperAssets pBuildProfile
     put the result into tError
+
+    if tError is empty then
+      resolveHelperAssets pBuildProfile
+      put the result into tError
+    end if
 
     if tError is empty then
       ##########
@@ -1081,116 +1085,122 @@ command levureLoadAppConfig pBuildProfile
 
       if the number of elements of tFilesA > 0 then
         put expandHelperAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA["helpers"]
-        resolveHelperAssets pBuildProfile
         put the result into tError
+
+        if tError is empty then
+          resolveHelperAssets pBuildProfile
+          put the result into tError
+        end if
       end if
 
       ##########
       # Get keys registered by helpers
       ##########
-      local tKeyIndex, tKind, tCallbackStack, k
+      if tError is empty then
+        local tKeyIndex, tKind, tCallbackStack, k
 
-      repeat with i = 1 to the number of elements of sAppA["helpers"]
-        repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
-          put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
-          put sAppA["helpers"][i]["register components"][tKeyIndex]["kind"] into tKind
+        repeat with i = 1 to the number of elements of sAppA["helpers"]
+          repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
+            put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
+            put sAppA["helpers"][i]["register components"][tKeyIndex]["kind"] into tKind
 
-          switch tKind
-            case "ui"
-              if tKey is not among the keys of sAppA["registered components"][tKind] then
-                put empty into sAppA["registered components"][tKind][tKey]
-                put sAppA["helpers"][i]["register components"][tKeyIndex]["encrypt binary stacks"] is not false \
-                      into sAppA["registered components"][tKind][tKey]["encrypt binary stacks"]
-              end if
-            case "files"
-              if tKey is not among the keys of sAppA["registered components"][tKind] then
-                put empty into sAppA["registered components"][tKind][tKey]
-                put sAppA["helpers"][i]["register components"][tKeyIndex]["distribute"] is not false \
-                      into sAppA["registered components"][tKind][tKey]["distribute"]
-              end if
-              break
-            case "copy files"
-              # Copy files are only loaded in development
-              if the environment is "development" then
+            switch tKind
+              case "ui"
                 if tKey is not among the keys of sAppA["registered components"][tKind] then
                   put empty into sAppA["registered components"][tKind][tKey]
-                  put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] \
-                        into sAppA["registered components"][tKind][tKey]["target platform"]
-                  put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] \
-                        into sAppA["registered components"][tKind][tKey]["destination"]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["encrypt binary stacks"] is not false \
+                        into sAppA["registered components"][tKind][tKey]["encrypt binary stacks"]
                 end if
-              end if
-              break
-          end switch
+              case "files"
+                if tKey is not among the keys of sAppA["registered components"][tKind] then
+                  put empty into sAppA["registered components"][tKind][tKey]
+                  put sAppA["helpers"][i]["register components"][tKeyIndex]["distribute"] is not false \
+                        into sAppA["registered components"][tKind][tKey]["distribute"]
+                end if
+                break
+              case "copy files"
+                # Copy files are only loaded in development
+                if the environment is "development" then
+                  if tKey is not among the keys of sAppA["registered components"][tKind] then
+                    put empty into sAppA["registered components"][tKind][tKey]
+                    put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] \
+                          into sAppA["registered components"][tKind][tKey]["target platform"]
+                    put sAppA["helpers"][i]["register components"][tKeyIndex]["destination"] \
+                          into sAppA["registered components"][tKind][tKey]["destination"]
+                  end if
+                end if
+                break
+            end switch
 
-          if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
-            put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
-                    into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+            if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
+              put resolveFilenameReference(sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], sAppA["helpers"][i]["filename"]) \
+                      into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+            end if
+          end repeat
+
+          # Register callbacks defined in helper
+          if the environment is "development" then
+            if sAppA["helpers"][i]["packager callbacks stackfile"] is not empty then
+              put resolveFilenameReference(sAppA["helpers"][i]["packager callbacks stackfile"], sAppA["helpers"][i]["filename"]) \
+                    into line (the number of lines of sAppA["packager callbacks stackfiles"] + 1) \
+                    of sAppA["packager callbacks stackfiles"]
+            end if
+          end if
+
+        end repeat
+
+        ##########
+        ## Load all behaviors into memory.
+        ## When retrieving UI stack names the UI stack will be brought into memory.
+        ## This will load any stacks listed in the stackfiles property of the UI stack.
+        ## If one of those stacks relies on a behavior then that behavior must be loaded
+        ## beforehand.
+        ##########
+        loadAllBehaviorsIntoMemory
+
+        ##########
+        # ui components (includes "ui" key by default)
+        ##########
+        repeat for each key tKey in sAppA["registered components"]["ui"]
+          put empty into tFilesA
+          put 0 into j
+
+          split tKey by kNestedKeysDelimiter
+
+          repeat with i = 1 to the number of elements of sAppA[tKey]
+            add 1 to j
+            put sAppA[tKey][i] into tFilesA[j]
+          end repeat
+
+          if the number of elements of tFilesA > 0 then
+            put expandUIAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
+          end if
+
+          # Stacks acting as templates will not have binary stacks encrypted
+          if sAppA["registered components"]["ui"][tKey]["encrypt binary stacks"] is false then
+            dontEncryptBinaryStacks sAppA[tKey]
           end if
         end repeat
 
-        # Register callbacks defined in helper
-        if the environment is "development" then
-          if sAppA["helpers"][i]["packager callbacks stackfile"] is not empty then
-            put resolveFilenameReference(sAppA["helpers"][i]["packager callbacks stackfile"], sAppA["helpers"][i]["filename"]) \
-                  into line (the number of lines of sAppA["packager callbacks stackfiles"] + 1) \
-                  of sAppA["packager callbacks stackfiles"]
+        ##########
+        # files components
+        ##########
+        repeat for each key tKey in sAppA["registered components"]["files"]
+          put empty into tFilesA
+          put 0 into j
+
+          split tKey by kNestedKeysDelimiter
+
+          repeat with i = 1 to the number of elements of sAppA[tKey]
+            add 1 to j
+            put sAppA[tKey][i] into tFilesA[j]
+          end repeat
+
+          if the number of elements of tFilesA > 0 then
+            put expandFileAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
           end if
-        end if
-
-      end repeat
-
-      ##########
-      ## Load all behaviors into memory.
-      ## When retrieving UI stack names the UI stack will be brought into memory.
-      ## This will load any stacks listed in the stackfiles property of the UI stack.
-      ## If one of those stacks relies on a behavior then that behavior must be loaded
-      ## beforehand.
-      ##########
-      loadAllBehaviorsIntoMemory
-
-      ##########
-      # ui components (includes "ui" key by default)
-      ##########
-      repeat for each key tKey in sAppA["registered components"]["ui"]
-        put empty into tFilesA
-        put 0 into j
-
-        split tKey by kNestedKeysDelimiter
-
-        repeat with i = 1 to the number of elements of sAppA[tKey]
-          add 1 to j
-          put sAppA[tKey][i] into tFilesA[j]
         end repeat
-
-        if the number of elements of tFilesA > 0 then
-          put expandUIAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
-        end if
-
-        # Stacks acting as templates will not have binary stacks encrypted
-        if sAppA["registered components"]["ui"][tKey]["encrypt binary stacks"] is false then
-          dontEncryptBinaryStacks sAppA[tKey]
-        end if
-      end repeat
-
-      ##########
-      # files components
-      ##########
-      repeat for each key tKey in sAppA["registered components"]["files"]
-        put empty into tFilesA
-        put 0 into j
-
-        split tKey by kNestedKeysDelimiter
-
-        repeat with i = 1 to the number of elements of sAppA[tKey]
-          add 1 to j
-          put sAppA[tKey][i] into tFilesA[j]
-        end repeat
-
-        if the number of elements of tFilesA > 0 then
-          put expandFileAssetsFileReferenceArray(pBuildProfile, tFilesA, sAppFolder) into sAppA[tKey]
-        end if
-      end repeat
+      end if
     end if
   end if
 
@@ -2351,6 +2361,8 @@ private function expandHelperAssetsFileReferenceArray pBuildProfile, pFilesA, pR
           if tError is empty then
             add 1 to j
             put tFileA into tFilesA[j]
+          else
+            exit repeat
           end if
         end if
       end repeat
@@ -2367,8 +2379,14 @@ private function expandHelperAssetsFileReferenceArray pBuildProfile, pFilesA, pR
         if tError is empty then
           add 1 to j
           put pFilesA[i] into tFilesA[j]
+        else
+          exit repeat
         end if
       end if
+    end if
+
+    if tError is not empty then
+      exit repeat
     end if
   end repeat
 
