@@ -2890,7 +2890,7 @@ function yamlFileToArray pFilename
     if the result is empty then
       return it for value
     else
-      return the result for error
+      return "File:"&pFilename&CR&the result for error
     end if
   else
     return tError for error
@@ -2969,11 +2969,14 @@ command YAMLToArray pYaml
   local tReferences
   local tMultiLineMode
   local tCharNo
+  local lineNumber = 0
 
   put kMultiLineModeNone into tMultiLineMode
 
   local tMultiLine
   repeat for each line tLine in pYaml
+    add 1 to lineNumber
+
     -- ignore directives
     if tLine begins with "%" then
       next repeat
@@ -3072,7 +3075,7 @@ command YAMLToArray pYaml
           delete variable tPathLists[tIndex]
         end repeat
       else if tPathElement > tElements + 1 then
-        return "invalid YAML" for error
+        return "Line:"&lineNumber&CR&quote&tLine&quote&CR&"Invalid YAML - line indented too far" for error
       end if
 
       put tListItem into tPathLists[tPathElement]
@@ -3099,7 +3102,7 @@ command YAMLToArray pYaml
       __ClearQuotes tKey
 
       if tKey is empty then
-        return "invalid YAML" for error
+        return "Line:"&lineNumber&CR&"Invalid YAML - key is empty" for error
       end if
 
       put false into tPathLists[tPathElement]
