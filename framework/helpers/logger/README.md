@@ -67,7 +67,7 @@ loggerGetTypes()
 ```
 Will return
 ```
-developer,network,msg,extensions,errors
+developer,network,msg,extensions
 ```
 
 
@@ -153,7 +153,7 @@ The [`loggerOpenLogMonitor`](#loggerOpenLogMonitor) command will open a palette 
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`. |
 
 <br>
 
@@ -251,7 +251,7 @@ InitializeApplication
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`. |
 
 <br>
 
@@ -313,7 +313,7 @@ You can target the "console", a file, or a field. "console" writes the log messa
 
 | Name | Description |
 |:---- |:----------- |
-| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`. |
 
 **Description**:
 
@@ -341,7 +341,7 @@ Use this command to filter the types of messages that are logged.
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`. |
 
 <br>
 
@@ -439,7 +439,7 @@ InitializeApplication
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`. |
 
 <br>
 
@@ -501,7 +501,7 @@ You can target the "console", a file, or a field. "console" writes the log messa
 
 | Name | Description |
 |:---- |:----------- |
-| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
+| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`. |
 
 **Description**:
 
