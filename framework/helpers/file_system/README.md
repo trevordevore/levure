@@ -398,7 +398,7 @@ in your application using the `file extensions` key of the `app.yml` file. The s
 JPEG file|jpg|JPEG
 ```
 
-**Example**:
+**Examples**:
 ```
 # app.yml
 file extensions:
@@ -440,7 +440,7 @@ PNG file|png|PNG
 GIF file|gif|GIF
 ```
 
-**Example**:
+**Examples**:
 ```
 # app.yml
 file extension groups:
@@ -466,7 +466,7 @@ file extension groups:
 |:---- |:----------- |
 | `pFileExtGroupName` |  A file extension group name that has been defined in the `file extension groups` key of the `app.yml` file. |
 
-**Example**:
+**Examples**:
 ```
 put fileSystemFileExtensionGroupExtensions("Select Image", "Image Files") into theExtensions
 jpeg
@@ -496,7 +496,7 @@ gif
 | `pFileExtGroupName` |  A file extension group name that has been defined in the `file extension groups` key of the `app.yml` file. |
 | `pCategoryName` |  A category of file extensions within pFileExtGroupName. |
 
-**Example**:
+**Examples**:
 ```
 # app.yml
 file extension groups:

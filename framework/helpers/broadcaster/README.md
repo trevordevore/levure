@@ -96,7 +96,7 @@ end UpdateUIWithDefaultTextSize
 
 Typically `pBroadcasts` will only contain one broadcast to send, especially if you are using `pParamsPackageA`.
 
-**Example**:
+**Examples**:
 ```
 # Notify listeners that a document was updated by someone.
 put 1 into tParamsA["document id"]
@@ -128,7 +128,7 @@ broadcasterBroadcast "app", "document updated", tParamsA
 
 Use this form to broadcast a message outside of the current event loop.
 
-**Example**:
+**Examples**:
 ```
 # Notify listeners after the window has closed
 on closeStack
@@ -208,7 +208,7 @@ Broadcasts are separated into different catgories. For example, the Preferences 
 broadcasting messages. Broadcasts generated from your app might use the `app` category. Categories are simply a means of organizing broadcasts
 based on who is generating the broadcast.
 
-**Example**:
+**Examples**:
 ```
 # When used with the `Preferences` helper an object can be notified when a preference is changed.
 broadcasterListenForBroadcast "prefs", "default text size", the long id of me, "UpdateDefaultTextSize"
