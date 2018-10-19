@@ -70,11 +70,12 @@ end loggerGetTarget
 /**
 Summary: Set the type of messages to log.
 
-pTypes: A comma-delimited list of types to log. `developer`, `network`, `msg`, `extensions`.
+pTypes: A comma-delimited list of types to log.
 
 Description:
 Use this command to filter the types of messages that are logged.
 
+`all` : All currently supported message types.
 `developer`: Any message logged using `loggerLogMsg`.
 `network`: Messages logged by libURL.
 `msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
