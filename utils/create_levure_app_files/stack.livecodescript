@@ -8,6 +8,9 @@ command uiCreateLevureApp
   put it into tOutputFolder
 
   if tOutputFolder is not empty then
+    show msg
+    put "Create Levure App" & cr
+
     CreateLevureApp tOutputFolder
   end if
 end uiCreateLevureApp
@@ -117,6 +120,7 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
+    put "Create levure folders" & cr after msg
     create folder sSettingsA["target folder"] & "/builds"
     create folder tFolder & "/backscripts"
     create folder tFolder & "/behaviors"
@@ -129,6 +133,7 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
+    put "Create app.yml and app.livecodescript" & cr after msg
     put DefaultAppYaml() into url("binfile:" & tFolder & "/app.yml")
     put DefaultAppScript() into url("binfile:" & tFolder & "/app.livecodescript")
   end if
@@ -136,6 +141,7 @@ command CreateApplicationFilesAndFolders
   if tError is empty then
     local tBehaviorFile
 
+    put "Create sample window files/folders" & cr after msg
     create folder tFolder & "/ui/sample_window"
     create folder tFolder & "/ui/sample_window/behaviors"
 
@@ -157,6 +163,7 @@ command CreateStandaloneStackfile
   local tError
 
   if tError is empty then
+    put "Create standalone.livecodescript" & cr after msg
     clone stack "LevureStandaloneTemplate" as "LevureStandalone"
     set the stackfiles of stack "LevureStandalone" to "levureFramework,../levure/framework/levure.livecodescript"
     set the behavior of stack "LevureStandalone" to the long id of stack (sSettingsA["target folder"] & "/levure/framework/levure.livecodescript")
@@ -177,6 +184,7 @@ command SetupGitInFolder
   set the defaultFolder to sSettingsA["target folder"]
 
   if tError is empty then
+    put "Setup git" & cr after msg
     put shell(sSettingsA["git folder"] & "git init") into tResult
     if the result is not empty then
       put tResult into tError
@@ -184,6 +192,7 @@ command SetupGitInFolder
   end if
 
   if tError is empty then
+    put "Setup Levure as submodule" & cr after msg
     put shell(sSettingsA["git folder"] & "git submodule add https://github.com/trevordevore/levure.git levure") into tResult
     if the result is not empty then
       put tResult into tError
@@ -207,6 +216,7 @@ command AddFilesToGit
   set the defaultFolder to sSettingsA["target folder"]
 
   if tError is empty then
+    put "Add files to git" & cr after msg
     put shell(sSettingsA["git folder"] & "git add .") into tResult
     if the result is not empty then
       put tResult into tError
@@ -233,11 +243,13 @@ command UnzipLevureFiles pFilename
   local tError
 
   if tError is empty then
+    put "Unzip Levure" & cr after msg
     revZipOpenArchive pFilename, "read"
     put the result into tError
   end if
 
   if tError is empty then
+    put "Reflate Levure" & cr after msg
     zipDecompressArchiveToFolder pFilename, sSettingsA["target folder"], empty, "UnzipPackageCallback"
     put the result into tError
   end if
@@ -254,6 +266,7 @@ end UnzipPackageCallback
 
 
 command AppProjectCompleted
+  put "Done" after msg
   answer "Your Levure project has been created."
 end AppProjectCompleted
 
@@ -436,6 +449,8 @@ end CardOf
 
 command fileCreateAllFoldersInPath pPath, pRootPath, pPerms
   local theCheck,tError,thePathSegment
+
+  put "Create" && pPath & cr after msg
 
   ## Watch for double slashes /Folder/To//Something//
   ## You will not enter a never ending loop if you aren't careful.
