@@ -38,26 +38,39 @@ You configure the Logger helper by specifying two settings:
 
 ### Specifying which types of messages to log
 
-You can specify which types of messages will be logged. The types are `developer`, `network`, `msg`, and `extensions`.
+You can specify which types of messages will be logged. The types are 'all', `developer`, `network`, `msg`, and `extensions`.
 
 |  Type  |  Description  |
 |------------|---------------|
+| `all` | log all messages that Levure tracks.  Messages that are added to the list in the future will be automatically added. |
 | `developer` | messages logged with `loggerLogMsg`|
 | `network` | messages logged by libURL |
 | `msg` | `put` messages with no target (empty messages will be ignored) |
 | `extensions` | `log` messages from LiveCode builder extensions. |
 
-There are two commands you can use to configure the types of messages to log:
+There are three commands you can use to configure the types of messages to log:
 
 * `loggerSetTypes pTypes`: Pass in a comma-delimted list of types of messages to log.
 * `loggerAddType pType`: Specify that a specific type of message should be logged.
-
-You can also remove a type of message from logging by calling `loggerRemoveType pType`. `loggerGetTypes()` returns a CR-delimited list of types that are being logged.
+* `loggerRemoveType pType`: Do not log a specific type of message.
 
 ```
 # Only log developer and internet log messages
 loggerSetTypes "developer,network"
 ```
+
+
+`loggerGetTypes()` returns a comma-delimited list of types that are being logged.  NOTE:  `all` is not a type.  The specific types that are active are returned.
+```
+loggerSetTypes ("all")
+loggerGetTypes()
+```
+Will return
+```
+developer,network,msg,extensions,errors
+```
+
+
 
 ### Specifying where to log messages
 
@@ -140,7 +153,7 @@ The [`loggerOpenLogMonitor`](#loggerOpenLogMonitor) command will open a palette 
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 <br>
 
@@ -238,7 +251,7 @@ InitializeApplication
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 <br>
 
@@ -300,12 +313,13 @@ You can target the "console", a file, or a field. "console" writes the log messa
 
 | Name | Description |
 |:---- |:----------- |
-| `pTypes` |  A comma-delimited list of types to log. `developer`, `network`, `msg`, `extensions`. |
+| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 **Description**:
 
 Use this command to filter the types of messages that are logged.
 
+`all`: All messages that Levure tracks.  Messages that are added to the list in the future will be automatically added.
 `developer`: Any message logged using `loggerLogMsg`.
 `network`: Messages logged by libURL.
 `msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
@@ -327,7 +341,7 @@ Use this command to filter the types of messages that are logged.
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 <br>
 
@@ -425,7 +439,7 @@ InitializeApplication
 
 | Name | Description |
 |:---- |:----------- |
-| `pType` |  `developer`, `network`, `msg`, `extensions`. |
+| `pType` |  `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 <br>
 
@@ -487,12 +501,13 @@ You can target the "console", a file, or a field. "console" writes the log messa
 
 | Name | Description |
 |:---- |:----------- |
-| `pTypes` |  A comma-delimited list of types to log. `developer`, `network`, `msg`, `extensions`. |
+| `pTypes` |  A comma-delimited list of types to log. `all`, `developer`, `network`, `msg`, `extensions`, `errors`. |
 
 **Description**:
 
 Use this command to filter the types of messages that are logged.
 
+`all` : All message types that Levure currently supports
 `developer`: Any message logged using `loggerLogMsg`.
 `network`: Messages logged by libURL.
 `msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
