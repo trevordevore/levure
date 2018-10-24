@@ -1,0 +1,23 @@
+{
+	"folders":
+	[
+		{
+			"folder_exclude_patterns":
+			[
+				"builds"
+			],
+			"path": "app/",
+			"name": "<appname>",
+		}
+	],
+	"livecode":
+	{
+  		"notify_on_save": true,
+  		"notify_server":
+  		{
+    		"host": "localhost",
+    		"port": 61373,
+    		"debug": false
+  		}
+	}
+}
