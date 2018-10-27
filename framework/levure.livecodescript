@@ -742,31 +742,60 @@ end levureAppGetENV
 /**
 Summary: Use to check if a property name is among the keys in the application configuration array.
 
-Syntax: levureAppHasProperty <pProp>[, pSubKey, SubSubKey, ...]
+Parameters:
+pProp: The property to check. This can be a string or an indexed lookup array. If a string then nested keys can be separated by the `>` character.
+
+Syntax: levureAppHasProperty(<pProp>)
+Syntax: levureAppHasProperty(<pIndexedArray>)
 
 Description:
 This handler targets the internal array that was created when the app.yml file was loaded. If it is possible
 that an application property doesn't exist then use this function before calling `levureAppGet()` or
 `levureAppSet`. Both handlers will throw an error if the target property doesn't exist.
 
+Example:
+put levureAppHasProperty("preferences filename>user>default")
+
+Example:
+# Use an indexed lookup array
+put "preferences filename" into tIndexA[1]
+put "user" into tIndexA[2]
+put "default" into tIndexA[3]
+put levureAppHasProperty(tIndexA)
+
 Returns: True/False
 */
 function levureAppHasProperty pProp
-  if the paramcount is 1 then
-    return pProp is among the keys of sAppA
-  else
-    local i, tIndexA
+  local tIndexA
 
-    repeat with i = 1 to the paramcount - 1
-      put param(i) into tIndexA[i]
-    end repeat
-    return param(the paramcount) is among the keys of sAppA[tIndexA]
+  set the itemDelimiter to ">"
+  if the number of items of pProp > 1 then
+    split pProp by ">"
+  end if
+
+  if pProp is an array then
+    put pProp into tIndexA
+    put tIndexA[the number of elements of tIndexA] into pProp
+    delete variable tIndexA[the number of elements of tIndexA]
+  end if
+
+  if tIndexA is an array then
+    return pProp is among the keys of sAppA[tIndexA]
+  else
+    return pProp is among the keys of sAppA
   end if
 end levureAppHasProperty
 
 
 /**
 Summary: Gets an app property.
+
+Parameters:
+pProp: The property to check. This can be a string or an indexed lookup array. If a string then nested keys can be separated by the `>` character.
+pCheckExistence: Pass in `true` to throw an error if `pProp` does not exist in the internal `sAppA` array. This can be used to ensure that a valid setting is being added to `app.yml`.
+
+Syntax: levureAppGet(<pProp>)
+Syntax: levureAppGet(<pIndexedArray>)
 
 Description:
 This handler targets the internal array that was created when the app.yml file
@@ -775,28 +804,59 @@ was loaded.
 If the property passed in does not exist then an error will be thrown.
 
 Example:
-put levureAppGet("multiple instances")
+put levureAppGet("preferences filename>user>default")
 
-# Get a multi-dimensional value
-put "preferences filename" into tLookupA[1]
-put "shared" into tLookupA[2]
-put "macos" into tLookupA[3]
-put levureAppGet(tLookupA)
+Example:
+# Use an indexed lookup array
+put "preferences filename" into tIndexA[1]
+put "user" into tIndexA[2]
+put "default" into tIndexA[3]
+put levureAppGet(tIndexA)
 
 Returns: Mixed as it depends on property value
 */
-function levureAppGet pProp
-  # todo: validate that array index lookup is valid
-  if pProp is an array or pProp is among the keys of sAppA then
-    return sAppA[pProp]
+function levureAppGet pProp, pCheckExistence
+  local tIndexA
+
+  put pCheckExistence is true into pCheckExistence
+
+  set the itemDelimiter to ">"
+  if pProp is not an array and the number of items of pProp > 1 then
+    split pProp by ">"
+  end if
+
+  if pProp is an array then
+    put pProp into tIndexA
+    put tIndexA[the number of elements of tIndexA] into pProp
+    delete variable tIndexA[the number of elements of tIndexA]
+  end if
+
+  if the number of elements of tIndexA > 1 then
+    if not pCheckExistence or pProp is among the keys of sAppA[tIndexA] then
+      return sAppA[tIndexA][pProp]
+    else
+      throw kLevureErr & "invalid levure app property:" && _printPropParameter(pProp, tIndexA)
+    end if
   else
-    throw kLevureErr & "invalid levure app property:" && pProp
+    if not pCheckExistence or pProp is among the keys of sAppA then
+      return sAppA[pProp]
+    else
+      throw kLevureErr & "invalid levure app property:" && _printPropParameter(pProp, tIndexA)
+    end if
   end if
 end levureAppGet
 
 
 /**
 Summary: Sets an app property for the life of the current session.
+
+Parameters:
+pProp: The property to check. This can be a string or an indexed lookup array. If a string then nested keys can be separated by the `>` character.
+pValue: The value to set the property to.
+pCheckExistence: Pass in `true` to throw an error if `pProp` does not exist in the internal `sAppA` array. This can be used to ensure that a valid setting is being added to `app.yml`.
+
+Syntax: levureAppSet <pProp>, <pValue>
+Syntax: levureAppSet <pIndexedArray>, <pValue>
 
 Description:
 This handler targets the internal array that was created when the app.yml file
@@ -806,22 +866,57 @@ file is not updated.
 Example:
 levureAppSet "multiple instances", true
 
-# Set a multi-dimensional property
-put "preferences filename" into tLookupA[1]
-put "shared" into tLookupA[2]
-put "macos" into tLookupA[3]
-levureAppSet tLookupA, "com.mycompanyname.myapp-shared"
+Example:
+put "preferences filename" into tIndexA[1]
+put "user" into tIndexA[2]
+put "default" into tIndexA[3]
+levureAppSet tIndexA, "com.mycompanyname.myapp-shared"
 
 Returns: Empty
 */
-command levureAppSet pProp, pValue
-  if pProp is an array or pProp is among the keys of sAppA then
-    put pValue into sAppA[pProp]
-  else
-    throw kLevureErr & "invalid levure app property:" && pProp
+command levureAppSet pProp, pValue, pCheckExistence
+  local tIndexA
+
+  put pCheckExistence is true into pCheckExistence
+
+  set the itemDelimiter to ">"
+  if pProp is not an array and the number of items of pProp > 1 then
+    split pProp by ">"
   end if
+
+  if pProp is an array then
+    put pProp into tIndexA
+    put tIndexA[the number of elements of tIndexA] into pProp
+    delete variable tIndexA[the number of elements of tIndexA]
+  end if
+
+  if the number of elements of tIndexA > 1 then
+    if not pCheckExistence or pProp is among the keys of sAppA[tIndexA] then
+      put pValue into sAppA[tIndexA][pProp]
+    else
+      throw kLevureErr & "invalid levure app property:" && _printPropParameter(pProp, tIndexA)
+    end if
+  else
+    if not pCheckExistence or pProp is among the keys of sAppA then
+      put pValue into sAppA[pProp]
+    else
+      throw kLevureErr & "invalid levure app property:" && _printPropParameter(pProp, tIndexA)
+    end if
+  end if
+
   return empty for error
 end levureAppSet
+
+
+private function _printPropParameter pProp, pIndexA
+  local i, tProp
+
+  repeat with i = 1 to the number of elements of pIndexA
+    put pIndexA[i] & " > " after tProp
+  end repeat
+  put pProp after tProp
+  return tProp
+end _printPropParameter
 
 
 /**
