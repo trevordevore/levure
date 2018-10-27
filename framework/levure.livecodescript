@@ -742,15 +742,26 @@ end levureAppGetENV
 /**
 Summary: Use to check if a property name is among the keys in the application configuration array.
 
-Returns: True/False
+Syntax: levureAppHasProperty <pProp>[, pSubKey, SubSubKey, ...]
 
 Description:
 This handler targets the internal array that was created when the app.yml file was loaded. If it is possible
 that an application property doesn't exist then use this function before calling `levureAppGet()` or
 `levureAppSet`. Both handlers will throw an error if the target property doesn't exist.
+
+Returns: True/False
 */
 function levureAppHasProperty pProp
-  return pProp is among the keys of sAppA
+  if the paramcount is 1 then
+    return pProp is among the keys of sAppA
+  else
+    local i, tIndexA
+
+    repeat with i = 1 to the paramcount - 1
+      put param(i) into tIndexA[i]
+    end repeat
+    return param(the paramcount) is among the keys of sAppA[tIndexA]
+  end if
 end levureAppHasProperty
 
 
