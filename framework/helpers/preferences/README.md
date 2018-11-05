@@ -134,7 +134,6 @@ Levure will automatically call `prefsSave` when your application is running as a
 - [prefsSave](#prefsSave)
 - [prefsSetPref](#prefsSetPref)
 
-
 <br>
 
 ## <a name="prefsGetDefaults"></a>prefsGetDefaults

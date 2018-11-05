@@ -115,929 +115,33 @@ The library manages the menu of a stack in the following ways:
 
 ## API
 
+- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
 - [openCard](#openCard)
 - [windowCalculateRectForWindow](#windowCalculateRectForWindow)
 - [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
 - [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
-- [windowClearWindowCache](#windowClearWindowCache)
 >
+- [windowClearWindowCache](#windowClearWindowCache)
 - [windowGetProperty](#windowGetProperty)
 - [windowGoStack](#windowGoStack)
 - [windowHasCardBeenOpened](#windowHasCardBeenOpened)
 - [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
-- [windowIsManaged](#windowIsManaged)
 >
+- [windowIsManaged](#windowIsManaged)
 - [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowResizeMenu](#windowResizeMenu)
 - [windowResolveTargetStack](#windowResolveTargetStack)
 - [windowSaveWindowPosition](#windowSaveWindowPosition)
-- [windowSetCardInitializedState](#windowSetCardInitializedState)
 >
+- [windowSetCardInitializedState](#windowSetCardInitializedState)
 - [windowSetInitializedState](#windowSetInitializedState)
 - [windowSetProperty](#windowSetProperty)
 - [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
 - [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
+>
 - [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)
-- [openCard](#openCard)
-- [windowCalculateRectForWindow](#windowCalculateRectForWindow)
-- [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
-- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
-- [windowClearWindowCache](#windowClearWindowCache)
->
-- [windowGetProperty](#windowGetProperty)
-- [windowGoStack](#windowGoStack)
-- [windowHasCardBeenOpened](#windowHasCardBeenOpened)
-- [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
-- [windowIsManaged](#windowIsManaged)
->
-- [windowIsPropertyManaged](#windowIsPropertyManaged)
-- [windowResizeMenu](#windowResizeMenu)
-- [windowResolveTargetStack](#windowResolveTargetStack)
-- [windowSaveWindowPosition](#windowSaveWindowPosition)
-- [windowSetCardInitializedState](#windowSetCardInitializedState)
->
-- [windowSetInitializedState](#windowSetInitializedState)
-- [windowSetProperty](#windowSetProperty)
-- [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
-- [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
-- [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
-
 
 <br>
-
-## <a name="openCard"></a>openCard
-
-**Type**: command
-
-**Syntax**: `openCard `
-
-**Summary**: Marks the current card as initialized.
-
-**Description**:
-
-Your application MUST pass the openCard message so that it reaches this library. Otherwise the library
-cannot track whether or not cards or stacks have been opened in the current session.
-
-
-<br>
-
-## <a name="windowCalculateRectForWindow"></a>windowCalculateRectForWindow
-
-**Type**: function
-
-**Syntax**: `windowCalculateRectForWindow(<pStackName>,<pScreenRect>,<pRect>,<pLoc>)`
-
-**Summary**: Calculates the rect that should be used to open a stack window.
-
-**Returns**: rectangle
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  Name of the target stack
-[pScreenRect]: Optional screen rect to use to contrain the stack window.
-[pRect]: Optional rect for the stack window.
-[pLoc]: Optional loc. |
-
-**Description**:
-
-The rect returned can be used to set `the effective rect` of the stack. The rect will
-size the stack window such that it is entirely visible on the screen it is displayed on.
-
-
-<br>
-
-## <a name="windowCheckWindowAfterDesktopChanged"></a>windowCheckWindowAfterDesktopChanged
-
-**Type**: command
-
-**Syntax**: `windowCheckWindowAfterDesktopChanged <pStackName>`
-
-**Summary**: Positions a window after the desktop has changed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-After the desktop changes two things must be checked:
-1. That the stack size isn't too lage for the monitor the stack is opening on.
-2. That the entire stack will appear on the monitor.
-
-
-<br>
-
-## <a name="windowCheckWindowAfterMove"></a>windowCheckWindowAfterMove
-
-**Type**: command
-
-**Syntax**: `windowCheckWindowAfterMove <pStackName>`
-
-**Summary**: Positions a window after the user moves it.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-After the user moves a stack window two things need to be checked:
-1. That the stack size isn't too lage for the monitor the stack is now on.
-2. That the top and bottom of the title bar are in an actionable area of the screen.
-
-
-<br>
-
-## <a name="windowClearWindowCache"></a>windowClearWindowCache
-
-**Type**: command
-
-**Syntax**: `windowClearWindowCache <pStackName>`
-
-**Summary**: Clears the internal librar cache for a stack.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-**Description**:
-
-This handler should be called when closing a managed stack that has `destroyStack` set to true.
-
-
-<br>
-
-## <a name="windowGetProperty"></a>windowGetProperty
-
-**Type**: function
-
-**Syntax**: `windowGetProperty(<pStackName>,<pProperty>)`
-
-**Summary**: Returns a window manager property for a stack.
-
-**Returns**: mixed
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pProperty` |  The property to get. |
-| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
-
-**Description**:
-
-The Window Manager library uses properties assigned to a stack to determine
-whether or not the library is managed by the library. The properties are stored
-in the uWindowManager custom property set. This handler accesses that property set.
-
-
-<br>
-
-## <a name="windowGoStack"></a>windowGoStack
-
-**Type**: command
-
-**Syntax**: `windowGoStack <pStackName>,<pMode>`
-
-**Summary**: Opens a stack window and loads the card that was open the last time the stack window was closed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pMode` |  The mode to open window in.  Default is "toplevel". |
-
-**Description**:
-
-If the stack window has not been opened before then it goes to card 1. Stack window must be in
-memory.
-
-
-<br>
-
-## <a name="windowHasCardBeenOpened"></a>windowHasCardBeenOpened
-
-**Type**: function
-
-**Syntax**: `windowHasCardBeenOpened(<pStackName>,<pCard>)`
-
-**Summary**: Returns whether or not a card has been opened at least once during the current session.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pCard` |  The name of the target card. The default is `this card`. |
-
-**Description**:
-
-If you want to know if a card has been opened in your own code you should use the `windowHasCardBeenOpened` handler.
-
-
-<br>
-
-## <a name="windowHasWindowBeenOpened"></a>windowHasWindowBeenOpened
-
-**Type**: function
-
-**Syntax**: `windowHasWindowBeenOpened(<pStackName>)`
-
-**Summary**: Returns true if the window has been initialized, false otherwise.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-<br>
-
-## <a name="windowIsManaged"></a>windowIsManaged
-
-**Type**: function
-
-**Syntax**: `windowIsManaged(<pStackName>)`
-
-**Summary**: Summary Returns true if a window is being managed by this library.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-**Description**:
-
-A stack is considered to be manaaged by this library if the
-`uWindowManager["managed properties"]` custom property is not empty.
-
-
-<br>
-
-## <a name="windowIsPropertyManaged"></a>windowIsPropertyManaged
-
-**Type**: function
-
-**Syntax**: `windowIsPropertyManaged(<pWindow>,<pProperty>)`
-
-**Summary**: Summary Returns true if a specific property of the window is being managed by this library.
-
-**Returns**: true/false
-
-**Description**:
-
-A property is considered to be manaaged by this library if the
-`uWindowManager["managed properties"]` custom property is `all` or contains the property.
-
-
-<br>
-
-## <a name="windowResizeMenu"></a>windowResizeMenu
-
-**Type**: command
-
-**Syntax**: `windowResizeMenu <pStackName>`
-
-**Summary**: Resizes a stack's menu to fill the width of the stack.
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-A stack's menu is the group name assigned to the `menubar` property of the stack.
-
-
-<br>
-
-## <a name="windowResolveTargetStack"></a>windowResolveTargetStack
-
-**Type**: function
-
-**Syntax**: `windowResolveTargetStack()`
-
-**Summary**: Determines the stack of the current event's target.
-
-**Returns**: stack name
-
-<br>
-
-## <a name="windowSaveWindowPosition"></a>windowSaveWindowPosition
-
-**Type**: command
-
-**Syntax**: `windowSaveWindowPosition <pStackName>`
-
-**Summary**: Saves the coordinates of the stack in preferences.
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-This handler requires the Preferences helper.
-
-
-<br>
-
-## <a name="windowSetCardInitializedState"></a>windowSetCardInitializedState
-
-**Type**: command
-
-**Syntax**: `windowSetCardInitializedState <pStackName>,<pCard>,<pIsInit>`
-
-**Summary**: Sets the initialized state of a card.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pCard` |  The name of the target card. The default is `this card`. |
-| `pIsInit` |  true/false |
-
-<br>
-
-## <a name="windowSetInitializedState"></a>windowSetInitializedState
-
-**Type**: command
-
-**Syntax**: `windowSetInitializedState <pStackName>,<pIsInit>`
-
-**Summary**: Sets the initialized state of a window.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pIsInit` |  true/false |
-
-<br>
-
-## <a name="windowSetProperty"></a>windowSetProperty
-
-**Type**: command
-
-**Syntax**: `windowSetProperty <pStackName>,<pProperty>,<pValue>`
-
-**Summary**: Use this command to set Window Manager library properties on a stack.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pProperty` |  The property to set. |
-| `pValue` |  The value to set the property to. |
-| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
-
-<br>
-
-## <a name="windowSetWindowRectBeforeOpening"></a>windowSetWindowRectBeforeOpening
-
-**Type**: command
-
-**Syntax**: `windowSetWindowRectBeforeOpening <pStackName>,<pRestoreFromPrefs>,<pScreenNo>`
-
-**Summary**: Called during preOpenStack to position a window before it is displayed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-| `pRestoreFromPrefs` |  Boolean value specifying whether or not the handler will look for previous stack window rect in prefs.
-[pScreenNo]: The screen number to display the stack on. Default is 1. This will be ignored if pRestoreFromPrefs is true. |
-
-**Description**:
-
-After determining the rect to use the handler then alters the rect as needed in order to ensure the following:
-
-1. That the stack size isn't too lage for the monitor the stack is opening on.
-2. That the entire stack will appear on the monitor.
-
-
-<br>
-
-## <a name="windowTopMostWindowOfMode"></a>windowTopMostWindowOfMode
-
-**Type**: function
-
-**Syntax**: `windowTopMostWindowOfMode(<pMode>)`
-
-**Summary**: Returns the name of the frontmost stack with a mode of pMode.
-
-**Returns**: Stack name or empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pMode` |  An integer representing the mode the stack must have. See the `mode` propery for stacks in the dictionary for more information. |
-
-**Description**:
-
-The stack must have the same mode as pMode and be visible.
-
-
-<br>
-
-## <a name="windowTopMostWindowWithModeOfCeiling"></a>windowTopMostWindowWithModeOfCeiling
-
-**Type**: function
-
-**Syntax**: `windowTopMostWindowWithModeOfCeiling(<pMode>)`
-
-**Summary**: Returns the name of the frontmost stack of with mode of pMode or lower.
-
-**Returns**: Stack name or empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pMode` |  The maximum mode the returned stack can have. |
-
-**Description**:
-
-The stack must have a mode no higher than pMode and be visible.
-
-
-
-
-## <a name="openCard"></a>openCard
-
-**Type**: command
-
-**Syntax**: `openCard `
-
-**Summary**: Marks the current card as initialized.
-
-**Description**:
-
-Your application MUST pass the openCard message so that it reaches this library. Otherwise the library
-cannot track whether or not cards or stacks have been opened in the current session.
-
-
-<br>
-
-## <a name="windowCalculateRectForWindow"></a>windowCalculateRectForWindow
-
-**Type**: function
-
-**Syntax**: `windowCalculateRectForWindow(<pStackName>,<pScreenRect>,<pRect>,<pLoc>)`
-
-**Summary**: Calculates the rect that should be used to open a stack window.
-
-**Returns**: rectangle
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  Name of the target stack
-[pScreenRect]: Optional screen rect to use to contrain the stack window.
-[pRect]: Optional rect for the stack window.
-[pLoc]: Optional loc. |
-
-**Description**:
-
-The rect returned can be used to set `the effective rect` of the stack. The rect will
-size the stack window such that it is entirely visible on the screen it is displayed on.
-
-
-<br>
-
-## <a name="windowCheckWindowAfterDesktopChanged"></a>windowCheckWindowAfterDesktopChanged
-
-**Type**: command
-
-**Syntax**: `windowCheckWindowAfterDesktopChanged <pStackName>`
-
-**Summary**: Positions a window after the desktop has changed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-After the desktop changes two things must be checked:
-1. That the stack size isn't too lage for the monitor the stack is opening on.
-2. That the entire stack will appear on the monitor.
-
-
-<br>
-
-## <a name="windowCheckWindowAfterMove"></a>windowCheckWindowAfterMove
-
-**Type**: command
-
-**Syntax**: `windowCheckWindowAfterMove <pStackName>`
-
-**Summary**: Positions a window after the user moves it.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-After the user moves a stack window two things need to be checked:
-1. That the stack size isn't too lage for the monitor the stack is now on.
-2. That the top and bottom of the title bar are in an actionable area of the screen.
-
-
-<br>
-
-## <a name="windowClearWindowCache"></a>windowClearWindowCache
-
-**Type**: command
-
-**Syntax**: `windowClearWindowCache <pStackName>`
-
-**Summary**: Clears the internal librar cache for a stack.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-**Description**:
-
-This handler should be called when closing a managed stack that has `destroyStack` set to true.
-
-
-<br>
-
-## <a name="windowGetProperty"></a>windowGetProperty
-
-**Type**: function
-
-**Syntax**: `windowGetProperty(<pStackName>,<pProperty>)`
-
-**Summary**: Returns a window manager property for a stack.
-
-**Returns**: mixed
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pProperty` |  The property to get. |
-| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
-
-**Description**:
-
-The Window Manager library uses properties assigned to a stack to determine
-whether or not the library is managed by the library. The properties are stored
-in the uWindowManager custom property set. This handler accesses that property set.
-
-
-<br>
-
-## <a name="windowGoStack"></a>windowGoStack
-
-**Type**: command
-
-**Syntax**: `windowGoStack <pStackName>,<pMode>`
-
-**Summary**: Opens a stack window and loads the card that was open the last time the stack window was closed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pMode` |  The mode to open window in.  Default is "toplevel". |
-
-**Description**:
-
-If the stack window has not been opened before then it goes to card 1. Stack window must be in
-memory.
-
-
-<br>
-
-## <a name="windowHasCardBeenOpened"></a>windowHasCardBeenOpened
-
-**Type**: function
-
-**Syntax**: `windowHasCardBeenOpened(<pStackName>,<pCard>)`
-
-**Summary**: Returns whether or not a card has been opened at least once during the current session.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pCard` |  The name of the target card. The default is `this card`. |
-
-**Description**:
-
-If you want to know if a card has been opened in your own code you should use the `windowHasCardBeenOpened` handler.
-
-
-<br>
-
-## <a name="windowHasWindowBeenOpened"></a>windowHasWindowBeenOpened
-
-**Type**: function
-
-**Syntax**: `windowHasWindowBeenOpened(<pStackName>)`
-
-**Summary**: Returns true if the window has been initialized, false otherwise.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-<br>
-
-## <a name="windowIsManaged"></a>windowIsManaged
-
-**Type**: function
-
-**Syntax**: `windowIsManaged(<pStackName>)`
-
-**Summary**: Summary Returns true if a window is being managed by this library.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-
-**Description**:
-
-A stack is considered to be manaaged by this library if the
-`uWindowManager["managed properties"]` custom property is not empty.
-
-
-<br>
-
-## <a name="windowIsPropertyManaged"></a>windowIsPropertyManaged
-
-**Type**: function
-
-**Syntax**: `windowIsPropertyManaged(<pWindow>,<pProperty>)`
-
-**Summary**: Summary Returns true if a specific property of the window is being managed by this library.
-
-**Returns**: true/false
-
-**Description**:
-
-A property is considered to be manaaged by this library if the
-`uWindowManager["managed properties"]` custom property is `all` or contains the property.
-
-
-<br>
-
-## <a name="windowResizeMenu"></a>windowResizeMenu
-
-**Type**: command
-
-**Syntax**: `windowResizeMenu <pStackName>`
-
-**Summary**: Resizes a stack's menu to fill the width of the stack.
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-A stack's menu is the group name assigned to the `menubar` property of the stack.
-
-
-<br>
-
-## <a name="windowResolveTargetStack"></a>windowResolveTargetStack
-
-**Type**: function
-
-**Syntax**: `windowResolveTargetStack()`
-
-**Summary**: Determines the stack of the current event's target.
-
-**Returns**: stack name
-
-<br>
-
-## <a name="windowSaveWindowPosition"></a>windowSaveWindowPosition
-
-**Type**: command
-
-**Syntax**: `windowSaveWindowPosition <pStackName>`
-
-**Summary**: Saves the coordinates of the stack in preferences.
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-
-**Description**:
-
-This handler requires the Preferences helper.
-
-
-<br>
-
-## <a name="windowSetCardInitializedState"></a>windowSetCardInitializedState
-
-**Type**: command
-
-**Syntax**: `windowSetCardInitializedState <pStackName>,<pCard>,<pIsInit>`
-
-**Summary**: Sets the initialized state of a card.
-
-**Returns**: true/false
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pCard` |  The name of the target card. The default is `this card`. |
-| `pIsInit` |  true/false |
-
-<br>
-
-## <a name="windowSetInitializedState"></a>windowSetInitializedState
-
-**Type**: command
-
-**Syntax**: `windowSetInitializedState <pStackName>,<pIsInit>`
-
-**Summary**: Sets the initialized state of a window.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. The default is `this stack`. |
-| `pIsInit` |  true/false |
-
-<br>
-
-## <a name="windowSetProperty"></a>windowSetProperty
-
-**Type**: command
-
-**Syntax**: `windowSetProperty <pStackName>,<pProperty>,<pValue>`
-
-**Summary**: Use this command to set Window Manager library properties on a stack.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pProperty` |  The property to set. |
-| `pValue` |  The value to set the property to. |
-| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
-
-<br>
-
-## <a name="windowSetWindowRectBeforeOpening"></a>windowSetWindowRectBeforeOpening
-
-**Type**: command
-
-**Syntax**: `windowSetWindowRectBeforeOpening <pStackName>,<pRestoreFromPrefs>,<pScreenNo>`
-
-**Summary**: Called during preOpenStack to position a window before it is displayed.
-
-**Returns**: empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pStackName` |  The name of the target stack. |
-| `pRestoreFromPrefs` |  Boolean value specifying whether or not the handler will look for previous stack window rect in prefs.
-[pScreenNo]: The screen number to display the stack on. Default is 1. This will be ignored if pRestoreFromPrefs is true. |
-
-**Description**:
-
-After determining the rect to use the handler then alters the rect as needed in order to ensure the following:
-
-1. That the stack size isn't too lage for the monitor the stack is opening on.
-2. That the entire stack will appear on the monitor.
-
-
-<br>
-
-## <a name="windowTopMostWindowOfMode"></a>windowTopMostWindowOfMode
-
-**Type**: function
-
-**Syntax**: `windowTopMostWindowOfMode(<pMode>)`
-
-**Summary**: Returns the name of the frontmost stack with a mode of pMode.
-
-**Returns**: Stack name or empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pMode` |  An integer representing the mode the stack must have. See the `mode` propery for stacks in the dictionary for more information. |
-
-**Description**:
-
-The stack must have the same mode as pMode and be visible.
-
-
-<br>
-
-## <a name="windowTopMostWindowWithModeOfCeiling"></a>windowTopMostWindowWithModeOfCeiling
-
-**Type**: function
-
-**Syntax**: `windowTopMostWindowWithModeOfCeiling(<pMode>)`
-
-**Summary**: Returns the name of the frontmost stack of with mode of pMode or lower.
-
-**Returns**: Stack name or empty
-
-**Parameters**:
-
-| Name | Description |
-|:---- |:----------- |
-| `pMode` |  The maximum mode the returned stack can have. |
-
-**Description**:
-
-The stack must have a mode no higher than pMode and be visible.
-
 
 ## <a name="windowWasVisibleInPreOpenStack"></a>windowWasVisibleInPreOpenStack
 
@@ -1048,6 +152,446 @@ The stack must have a mode no higher than pMode and be visible.
 **Summary**: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
 
 **Returns**: Boolean
+
+
+
+<br>
+
+## <a name="openCard"></a>openCard
+
+**Type**: command
+
+**Syntax**: `openCard `
+
+**Summary**: Marks the current card as initialized.
+
+**Description**:
+
+Your application MUST pass the openCard message so that it reaches this library. Otherwise the library
+cannot track whether or not cards or stacks have been opened in the current session.
+
+
+<br>
+
+## <a name="windowCalculateRectForWindow"></a>windowCalculateRectForWindow
+
+**Type**: function
+
+**Syntax**: `windowCalculateRectForWindow(<pStackName>,<pScreenRect>,<pRect>,<pLoc>)`
+
+**Summary**: Calculates the rect that should be used to open a stack window.
+
+**Returns**: rectangle
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  Name of the target stack
+[pScreenRect]: Optional screen rect to use to contrain the stack window.
+[pRect]: Optional rect for the stack window.
+[pLoc]: Optional loc. |
+
+**Description**:
+
+The rect returned can be used to set `the effective rect` of the stack. The rect will
+size the stack window such that it is entirely visible on the screen it is displayed on.
+
+
+<br>
+
+## <a name="windowCheckWindowAfterDesktopChanged"></a>windowCheckWindowAfterDesktopChanged
+
+**Type**: command
+
+**Syntax**: `windowCheckWindowAfterDesktopChanged <pStackName>`
+
+**Summary**: Positions a window after the desktop has changed.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+After the desktop changes two things must be checked:
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
+
+
+<br>
+
+## <a name="windowCheckWindowAfterMove"></a>windowCheckWindowAfterMove
+
+**Type**: command
+
+**Syntax**: `windowCheckWindowAfterMove <pStackName>`
+
+**Summary**: Positions a window after the user moves it.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+After the user moves a stack window two things need to be checked:
+1. That the stack size isn't too lage for the monitor the stack is now on.
+2. That the top and bottom of the title bar are in an actionable area of the screen.
+
+
+<br>
+
+## <a name="windowClearWindowCache"></a>windowClearWindowCache
+
+**Type**: command
+
+**Syntax**: `windowClearWindowCache <pStackName>`
+
+**Summary**: Clears the internal librar cache for a stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+
+**Description**:
+
+This handler should be called when closing a managed stack that has `destroyStack` set to true.
+
+
+<br>
+
+## <a name="windowGetProperty"></a>windowGetProperty
+
+**Type**: function
+
+**Syntax**: `windowGetProperty(<pStackName>,<pProperty>)`
+
+**Summary**: Returns a window manager property for a stack.
+
+**Returns**: mixed
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pProperty` |  The property to get. |
+| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
+
+**Description**:
+
+The Window Manager library uses properties assigned to a stack to determine
+whether or not the library is managed by the library. The properties are stored
+in the uWindowManager custom property set. This handler accesses that property set.
+
+
+<br>
+
+## <a name="windowGoStack"></a>windowGoStack
+
+**Type**: command
+
+**Syntax**: `windowGoStack <pStackName>,<pMode>`
+
+**Summary**: Opens a stack window and loads the card that was open the last time the stack window was closed.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+| `pMode` |  The mode to open window in.  Default is "toplevel". |
+
+**Description**:
+
+If the stack window has not been opened before then it goes to card 1. Stack window must be in
+memory.
+
+
+<br>
+
+## <a name="windowHasCardBeenOpened"></a>windowHasCardBeenOpened
+
+**Type**: function
+
+**Syntax**: `windowHasCardBeenOpened(<pStackName>,<pCard>)`
+
+**Summary**: Returns whether or not a card has been opened at least once during the current session.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+| `pCard` |  The name of the target card. The default is `this card`. |
+
+**Description**:
+
+If you want to know if a card has been opened in your own code you should use the `windowHasCardBeenOpened` handler.
+
+
+<br>
+
+## <a name="windowHasWindowBeenOpened"></a>windowHasWindowBeenOpened
+
+**Type**: function
+
+**Syntax**: `windowHasWindowBeenOpened(<pStackName>)`
+
+**Summary**: Returns true if the window has been initialized, false otherwise.
+
+**Returns**: true/false
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+
+<br>
+
+## <a name="windowIsManaged"></a>windowIsManaged
+
+**Type**: function
+
+**Syntax**: `windowIsManaged(<pStackName>)`
+
+**Summary**: Summary Returns true if a window is being managed by this library.
+
+**Returns**: true/false
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+
+**Description**:
+
+A stack is considered to be manaaged by this library if the
+`uWindowManager["managed properties"]` custom property is not empty.
+
+
+<br>
+
+## <a name="windowIsPropertyManaged"></a>windowIsPropertyManaged
+
+**Type**: function
+
+**Syntax**: `windowIsPropertyManaged(<pWindow>,<pProperty>)`
+
+**Summary**: Summary Returns true if a specific property of the window is being managed by this library.
+
+**Returns**: true/false
+
+**Description**:
+
+A property is considered to be manaaged by this library if the
+`uWindowManager["managed properties"]` custom property is `all` or contains the property.
+
+
+<br>
+
+## <a name="windowResizeMenu"></a>windowResizeMenu
+
+**Type**: command
+
+**Syntax**: `windowResizeMenu <pStackName>`
+
+**Summary**: Resizes a stack's menu to fill the width of the stack.
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+A stack's menu is the group name assigned to the `menubar` property of the stack.
+
+
+<br>
+
+## <a name="windowResolveTargetStack"></a>windowResolveTargetStack
+
+**Type**: function
+
+**Syntax**: `windowResolveTargetStack()`
+
+**Summary**: Determines the stack of the current event's target.
+
+**Returns**: stack name
+
+<br>
+
+## <a name="windowSaveWindowPosition"></a>windowSaveWindowPosition
+
+**Type**: command
+
+**Syntax**: `windowSaveWindowPosition <pStackName>`
+
+**Summary**: Saves the coordinates of the stack in preferences.
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+This handler requires the Preferences helper.
+
+
+<br>
+
+## <a name="windowSetCardInitializedState"></a>windowSetCardInitializedState
+
+**Type**: command
+
+**Syntax**: `windowSetCardInitializedState <pStackName>,<pCard>,<pIsInit>`
+
+**Summary**: Sets the initialized state of a card.
+
+**Returns**: true/false
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+| `pCard` |  The name of the target card. The default is `this card`. |
+| `pIsInit` |  true/false |
+
+<br>
+
+## <a name="windowSetInitializedState"></a>windowSetInitializedState
+
+**Type**: command
+
+**Syntax**: `windowSetInitializedState <pStackName>,<pIsInit>`
+
+**Summary**: Sets the initialized state of a window.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. The default is `this stack`. |
+| `pIsInit` |  true/false |
+
+<br>
+
+## <a name="windowSetProperty"></a>windowSetProperty
+
+**Type**: command
+
+**Syntax**: `windowSetProperty <pStackName>,<pProperty>,<pValue>`
+
+**Summary**: Use this command to set Window Manager library properties on a stack.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pProperty` |  The property to set. |
+| `pValue` |  The value to set the property to. |
+| `pStackName` |  The name of the stack the property is attached to. If empty then the owner of the target is assumed. |
+
+<br>
+
+## <a name="windowSetWindowRectBeforeOpening"></a>windowSetWindowRectBeforeOpening
+
+**Type**: command
+
+**Syntax**: `windowSetWindowRectBeforeOpening <pStackName>,<pRestoreFromPrefs>,<pScreenNo>`
+
+**Summary**: Called during preOpenStack to position a window before it is displayed.
+
+**Returns**: empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+| `pRestoreFromPrefs` |  Boolean value specifying whether or not the handler will look for previous stack window rect in prefs.
+[pScreenNo]: The screen number to display the stack on. Default is 1. This will be ignored if pRestoreFromPrefs is true. |
+
+**Description**:
+
+After determining the rect to use the handler then alters the rect as needed in order to ensure the following:
+
+1. That the stack size isn't too lage for the monitor the stack is opening on.
+2. That the entire stack will appear on the monitor.
+
+
+<br>
+
+## <a name="windowTopMostWindowOfMode"></a>windowTopMostWindowOfMode
+
+**Type**: function
+
+**Syntax**: `windowTopMostWindowOfMode(<pMode>)`
+
+**Summary**: Returns the name of the frontmost stack with a mode of pMode.
+
+**Returns**: Stack name or empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMode` |  An integer representing the mode the stack must have. See the `mode` propery for stacks in the dictionary for more information. |
+
+**Description**:
+
+The stack must have the same mode as pMode and be visible.
+
+
+<br>
+
+## <a name="windowTopMostWindowWithModeOfCeiling"></a>windowTopMostWindowWithModeOfCeiling
+
+**Type**: function
+
+**Syntax**: `windowTopMostWindowWithModeOfCeiling(<pMode>)`
+
+**Summary**: Returns the name of the frontmost stack of with mode of pMode or lower.
+
+**Returns**: Stack name or empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMode` |  The maximum mode the returned stack can have. |
+
+**Description**:
+
+The stack must have a mode no higher than pMode and be visible.
+
 
 
 

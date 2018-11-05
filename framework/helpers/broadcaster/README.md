@@ -71,7 +71,6 @@ end UpdateUIWithDefaultTextSize
 - [broadcasterListenForBroadcasts](#broadcasterListenForBroadcasts)
 - [broadcasterStopListeningForBroadcasts](#broadcasterStopListeningForBroadcasts)
 
-
 <br>
 
 ## <a name="broadcasterBroadcast"></a>broadcasterBroadcast

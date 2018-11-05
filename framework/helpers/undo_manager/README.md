@@ -227,30 +227,28 @@ When undoing changes in a field the `textChanged` message is sent for each memen
 
 - [undoRestoreMementos](#undoRestoreMementos)
 - [undoStoreMementos](#undoStoreMementos)
-- [undoRestoreMementos](#undoRestoreMementos)
-- [undoStoreMementos](#undoStoreMementos)- [undoAddAction](#undoAddAction)
+- [undoAddAction](#undoAddAction)
 - [undoCanRedo](#undoCanRedo)
 - [undoCanUndo](#undoCanUndo)
+>
 - [undoCleanupStack](#undoCleanupStack)
 - [undoGetMaxUndos](#undoGetMaxUndos)
->
 - [undoGetNextUndoInStack](#undoGetNextUndoInStack)
 - [undoGetTargetForStackCallbacks](#undoGetTargetForStackCallbacks)
 - [undoPrintLog](#undoPrintLog)
+>
 - [undoRedo](#undoRedo)
 - [undoRedoActionName](#undoRedoActionName)
->
 - [undoRegisterEditFieldType](#undoRegisterEditFieldType)
 - [undoRegisterType](#undoRegisterType)
 - [undoRemoveLatest](#undoRemoveLatest)
+>
 - [undoReset](#undoReset)
 - [undoSetMaxUndos](#undoSetMaxUndos)
->
 - [undoSetTargetForStackCallbacks](#undoSetTargetForStackCallbacks)
 - [undoUndo](#undoUndo)
 - [undoUndoActionName](#undoUndoActionName)
 
-
 <br>
 
 ## <a name="undoRestoreMementos"></a>undoRestoreMementos
@@ -275,25 +273,7 @@ When undoing changes in a field the `textChanged` message is sent for each memen
 
 
 
-## <a name="undoRestoreMementos"></a>undoRestoreMementos
-
-**Type**: command
-
-**Syntax**: `undoRestoreMementos <pUndoStack>,<pMementosA>`
-
-**Summary**: Restores mementos for a field edit.
-
-
 <br>
-
-## <a name="undoStoreMementos"></a>undoStoreMementos
-
-**Type**: command
-
-**Syntax**: `undoStoreMementos <pUndoStack>,<pMementosA>`
-
-**Summary**: Stores a memento for a field prior to changes being made.
-
 
 ## <a name="undoAddAction"></a>undoAddAction
 

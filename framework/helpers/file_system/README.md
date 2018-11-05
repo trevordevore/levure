@@ -325,7 +325,6 @@ The helper does not currently provide an API for working with security scoped fi
 - [ProcessCommandLineParameters](#ProcessCommandLineParameters)
 - [urlWakeUp](#urlWakeUp)
 
-
 <br>
 
 ## <a name="appleEvent"></a>appleEvent
