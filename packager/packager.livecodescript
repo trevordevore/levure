@@ -231,7 +231,14 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
 
       # If not building standalone then leave folder in place. We are building for a simulator.
       if tBuildStandalone and there is a folder tCopyFilesTempFolder then
+        local tDeleteError
+
         _deleteFolder tCopyFilesTempFolder
+        put _errorMsg("Error cleaning up copy files temp folder [" & tCopyFilesTempFolder & "]", the result) into tDeleteError
+
+        if tDeleteError is not empty then
+          log tDeleteError
+        end if
       end if
 
       if tError is not empty then
