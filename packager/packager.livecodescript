@@ -707,6 +707,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     put the short name of stack tTempStandaloneStack into tStack
     put specialFolderPath("temporary") into tTempBuildFolder
     put "/revstandalone" & the milliseconds after tTempBuildFolder
+
+    create folder tTempBuildFolder
+    put _errorMsg("creating folder" && tTempBuildFolder, the result) into tError
+  end if
+
+  if tError is empty then
     # Assign defaultBuildFolder so that IDE doesn't ask you to save stack
     set the cRevStandaloneSettings["defaultBuildFolder"] of stack tTempStandaloneStack to tTempBuildFolder
     try
