@@ -446,6 +446,15 @@ command levureInitializeFramework
   end if
 
   if tError is empty then
+    createApplicationDataFolders
+    put the result into tError
+  end if
+
+  if tError is empty then
+    dispatch "PreloadApplication" to stack kAppStackName
+  end if
+
+  if tError is empty then
     loadExternals sAppA["externals to load"]
     put the result into tError
   end if
@@ -465,15 +474,6 @@ command levureInitializeFramework
         exit repeat
       end if
     end repeat
-  end if
-
-  if tError is empty then
-    createApplicationDataFolders
-    put the result into tError
-  end if
-
-  if tError is empty then
-    dispatch "PreloadApplication" to stack kAppStackName
   end if
 
   if tError is empty then
