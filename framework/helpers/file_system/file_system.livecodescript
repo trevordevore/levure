@@ -738,7 +738,8 @@ Returns: CR-delimited list
 
 Description:
 Each line of the returned list will be prefixed with a tab and will have special characters escaped
-for display in a menu.
+for display in a menu. The filename will be urlencoded so make sure to urldecode it in your `menuPick`
+handler.
 */
 function fileSystemRecentlyOpenedMenuText pCategory
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
