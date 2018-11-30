@@ -298,7 +298,7 @@ put fileSystemSecurityBookmarkForRecentlyOpenedFile("articles", tFilename) into 
 # Use tSecurityBookmark to generate a security scoped filename...
 ```
 
-The helper does not currently provide an API for working with security scoped filenames. You will need an external to help you manage them on macos.
+The helper does not currently provide an API for working with security scoped filenames. Consider using the [sandbox](https://github.com/trevordevore/levurehelper-sandbox) helper if you are working in a sandboxed enviroment on macOS.
 
 <br>
 
