@@ -199,16 +199,16 @@ Note: On macOS and iOS you need to manually add your protocol to the `Info.plist
 By configuring `file extensions` the File System helper can help you process requests to open supported files. The helper does two things:
 
 1. Creates a list of supported files that were passed to the application on the command line.
-2. Sends the `ProcessFiles` message to `app.yml` whenever the operating system requests that your application open a supported file.
+2. Sends the `ProcessFiles` message to `app.livecodescript` whenever the operating system requests that your application open a supported file.
 
 When an application is launched the command line parameters will be checked for files with supported extensions. A CR-delimited list of files is stored and will be accessible via the `fileSystemFilesToProcessOnOpen()` function. You can then check this function in the `OpenApplication` message. Here is an example:
 
 ```
-# app.yml
+# app.livecodescript
 
 command OpenApplication
   if fileSystemFilesToProcessOnOpen() is not empty then
-    ProcessMyFiles fileSystemFilesToProcessOnOpen()
+    ProcessMyFiles fileSystemFilesToProcessOnOpen() # YOU MUST WRITE A 'PROCESSMYFILES' ROUTINE
   end if
 end OpenApplication
 ```
@@ -216,10 +216,10 @@ end OpenApplication
 If the operating system notifies your application that a supported file should be opened (e.g. the user drops a file on your application) then the `ProcessFiles` message will be sent. Here is an example:
 
 ```
-# app.yml
+# app.livecodescript
 
 command ProcessFiles pFiles
-  ProcessMyFiles pFiles
+  ProcessMyFiles pFiles # YOU MUST WRITE A 'PROCESSMYFILES' ROUTINE
 end ProcessFiles
 ```
 
@@ -229,11 +229,11 @@ A similiar function and message exist for URLs.
 
 
 ```
-# app.yml
+# app.livecodescript
 
 command OpenApplication
   if fileSystemURLsToProcessOnOpen() is not empty then
-    ProcessMyURL fileSystemURLsToProcessOnOpen()
+    ProcessMyURL fileSystemURLsToProcessOnOpen() # YOU MUST WRITE A 'PROCESSMYURL' ROUTINE
   end if
 end OpenApplication
 ```
@@ -242,10 +242,10 @@ end OpenApplication
 
 
 ```
-# app.yml
+# app.livecodescript
 
 command ProcessURL pURL
-  ProcessMyFiles pURL
+  ProcessMyURL pURL # YOU MUST WRITE A 'PROCESSMYURL' ROUTINE
 end ProcessURL
 ```
 
