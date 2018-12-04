@@ -1838,13 +1838,25 @@ private command buildExtensions pArrayA, pOnlyBuildMissing
   repeat with i = 1 to the number of elements of pArrayA
     if pOnlyBuildMissing and there is a file pArrayA[i]["filename"] then next repeat
 
-    if there is a file pArrayA[i]["source"] then
+    local tFilesA
+    put empty into tFilesA
+    if pArrayA[i]["source"] is an array then
+      repeat with j = 1 to the number of elements of pArrayA[i]["source"]
+        if there is a file pArrayA[i]["source"][j] then
+          put pArrayA[i]["source"][j] into tFilesA[j]
+        end if
+      end repeat
+    else if there is a file pArrayA[i]["source"] then
+      put pArrayA[i]["source"] into tFilesA[1]
+    end if
+
+    if item 2 of extents(tFilesA) is the number of elements in tFilesA then
       create folder tTempFolder
       put the result into tError
 
       -- build in temp folder
       if tError is empty then
-        buildExtension pArrayA[i]["source"], tTempFolder
+        buildExtension tFilesA, tTempFolder
         put the result into tError
       end if
 
@@ -1867,7 +1879,7 @@ private command buildExtensions pArrayA, pOnlyBuildMissing
 end buildExtensions
 
 
-private command buildExtension pFilename, pOutputFolder
+private command buildExtension pFilesA, pOutputFolder
   local tCmd
 
   # Path to compiler
@@ -1886,10 +1898,10 @@ private command buildExtension pFilename, pOutputFolder
   # Installed module path
   put shellFormat(revIDESpecialFolderPath("user extensions") & "/interface", "modulepath") after tCmd
 
-  # Look in folder of pFilename as well as 'lci' subdirectory of pFilename folder.
+  # Look in folder of pFilesA[1] as well as 'lci' subdirectory of pFilesA[1] folder.
   set the itemDelimiter to "/"
-  put shellFormat(item 1 to -2 of pFilename, "modulepath") after tCmd
-  put shellFormat(item 1 to -2 of pFilename & "/lci", "modulepath") after tCmd
+  put shellFormat(item 1 to -2 of pFilesA[1], "modulepath") after tCmd
+  put shellFormat(item 1 to -2 of pFilesA[1] & "/lci", "modulepath") after tCmd
 
   # The manifest target
   put shellFormat(pOutputFolder & "/manifest.xml", "manifest") after tCmd
@@ -1898,7 +1910,9 @@ private command buildExtension pFilename, pOutputFolder
   put shellFormat(pOutputFolder & "/module.lcm", "output") after tCmd
 
   # Target the .lcb file
-  put shellFormat(pFilename) after tCmd
+  repeat with i = the number of elements of pFilesA down to 1
+    put shellFormat(pFilesA[i]) after tCmd
+  end repeat
 
   local tHideConsoleWindows
   put the hideConsoleWindows into tHideConsoleWindows
@@ -2045,7 +2059,13 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
       end if
 
       if tConfigA["extensions"][j]["source"] is not empty then
-        put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], xHelperA["filename"]) into tConfigA["extensions"][j]["source"]
+        if tConfigA["extensions"][j]["source"] is an array then
+          repeat with k = 1 to the number of elements of tConfigA["extensions"][j]["source"]
+            put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"][k], xHelperA["filename"]) into tConfigA["extensions"][j]["source"][k]
+          end repeat
+        else
+          put resolveRelativeFilenameReference(tConfigA["extensions"][j]["source"], xHelperA["filename"]) into tConfigA["extensions"][j]["source"]
+        end if
       end if
     end repeat
 
@@ -2382,8 +2402,14 @@ private function expandMessagePathAssetsFileReferenceArray pBuildProfile, pFiles
         put pFilesA[i]["filename"] into tFilesA[j]["filename"]
 
         if "source" is among the keys of pFilesA[i] then
-          put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
-                into tFilesA[j]["source"]
+          if pFilesA[i]["source"] is an array then
+            repeat with k = 1 to the number of elements of pFilesA[i]["source"]
+              put resolveRelativeFilenameReference(pFilesA[i]["source"][k], pRootFolder) into tFilesA[j]["source"][k]
+            end repeat
+          else
+            put resolveFilenameReference(pFilesA[i]["source"], pRootFolder) \
+                  into tFilesA[j]["source"]
+          end if
         end if
         repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
           if tProp is among the keys of pFilesA[i] then
@@ -2693,10 +2719,20 @@ private command replaceVariablesInPaths @pFilesA
   repeat with i = 1 to the number of elements of pFilesA
     repeat for each item tKey in "filename,folder,source"
       if tKey is among the keys of pFilesA[i] then
-        replace "[[USER_EXTENSIONS]]" with tUserExtensionsFolder in pFilesA[i][tKey]
+        if pFilesA[i][tKey] is an array then
+          repeat with j = 1 to the number of elements of pFilesA[i][tKey]
+            replace "[[USER_EXTENSIONS]]" with tUserExtensionsFolder in pFilesA[i][tKey][j]
 
-        if pFilesA[i][tKey] contains "[[FRAMEWORK]]" then
-          replace "[[FRAMEWORK]]" with tFrameworkFolder in pFilesA[i][tKey]
+            if pFilesA[i][tKey][j] contains "[[FRAMEWORK]]" then
+              replace "[[FRAMEWORK]]" with tFrameworkFolder in pFilesA[i][tKey][j]
+            end if
+          end repeat
+        else
+          replace "[[USER_EXTENSIONS]]" with tUserExtensionsFolder in pFilesA[i][tKey]
+
+          if pFilesA[i][tKey] contains "[[FRAMEWORK]]" then
+            replace "[[FRAMEWORK]]" with tFrameworkFolder in pFilesA[i][tKey]
+          end if
         end if
       end if
     end repeat
