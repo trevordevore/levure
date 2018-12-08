@@ -831,7 +831,7 @@ function levureAppGet pProp, pCheckExistence
     delete variable tIndexA[the number of elements of tIndexA]
   end if
 
-  if the number of elements of tIndexA > 1 then
+  if the number of elements of tIndexA >= 1 then
     if not pCheckExistence or pProp is among the keys of sAppA[tIndexA] then
       return sAppA[tIndexA][pProp]
     else
