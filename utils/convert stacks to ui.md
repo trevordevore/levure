@@ -4,7 +4,7 @@ If you are going to version control your stacks then you should have each stack 
 There are several ways to do that:
 - Geoff Canyon's Navigator has functionality built-in to break out your scripts.  You can [download it on dropbox](https://www.dropbox.com/s/kz3zqi4botzglgq/navigator.zip?dl=1) or [clone or fork it on github](https://github.com/gcanyon/navigator)
 - The [Levure videos on YouTube](https://www.youtube.com/watch?v=eyggLzIbeSU) demonstrate how to do it manually.
-- We have also included two scripts which can aid you in converting your stacks.
+- This repo includes two scripts which can aid you in converting your stacks.
 
 ## Save a stack in memory to a stack file on disk
 
