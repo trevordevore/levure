@@ -7,26 +7,21 @@ local sTargetFolder
 command uiCreateLevureApp
   local tOutputFolder
 
+  put field "appName" into sAppName
   put the hilite of button "useSublimeText" into sUseSublimeText
 
-  if sUseSublimeText then
-    put field "appName" into sAppName
-
-    if sAppName is empty then
-      beep
-      answer "Please specify a name for the app."
-      exit to top
-    end if 
-  else # not sUseSublimeText
-    put empty into sAppName 
-  end if #sUseSublimeText
+  if sAppName is empty then
+    beep
+    answer "Please specify a name for the app."
+    exit to top
+  end if
 
   answer folder "Select your application folder"
   put it into sTargetFolder
 
   if sTargetFolder is not empty then
-    show msg
-    put "Create Levure App" & cr
+    put empty
+    _log "Create Levure App"
 
     CreateLevureApp
   end if
@@ -45,8 +40,6 @@ command CreateLevureApp
       put "/" after sSettingsA["git folder"]
     end if
   end if
-
-  put sTargetFolder into sSettingsA["target folder"]
 
   if the hilite of button "UseGit" then
     CreateApplicationFilesAndFolders
@@ -137,7 +130,7 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
-    put "Create levure folders" & cr after msg
+    _log "Create levure folders"
     create folder sTargetFolder & "/builds"
     create folder tFolder & "/backscripts"
     create folder tFolder & "/behaviors"
@@ -150,7 +143,7 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
-    put "Create app.yml and app.livecodescript" & cr after msg
+    _log "Create app.yml and app.livecodescript"
     put DefaultAppYaml() into url("binfile:" & tFolder & "/app.yml")
     put DefaultAppScript() into url("binfile:" & tFolder & "/app.livecodescript")
   end if
@@ -164,7 +157,7 @@ command CreateApplicationFilesAndFolders
   if tError is empty then
     local tBehaviorFile
 
-    put "Create sample window files/folders" & cr after msg
+    _log "Create sample window files/folders"
     create folder tFolder & "/ui/sample_window"
     create folder tFolder & "/ui/sample_window/behaviors"
 
@@ -186,14 +179,24 @@ command CreateStandaloneStackfile
   local tError
 
   if tError is empty then
-    put "Create standalone.livecodescript" & cr after msg
-    clone stack "LevureStandaloneTemplate" as "LevureStandalone"
-    set the stackfiles of stack "LevureStandalone" to "levureFramework,../levure/framework/levure.livecodescript"
-    set the behavior of stack "LevureStandalone" to the long id of stack (sTargetFolder & "/levure/framework/levure.livecodescript")
+    local tStackName
+
+    _log "Create standalone.livecodescript"
+
+    put sAppName into tStackName
+    if word 1 to -1 of tStackName is empty or there is a stack tStackName then put "LevureStandalone" into tStackName
+
+    clone stack "LevureStandaloneTemplate" as tStackName
+    set the stackfiles of stack tStackName to "levureFramework,../levure/framework/levure.livecodescript"
+    set the behavior of stack tStackName to the long id of stack (sTargetFolder & "/levure/framework/levure.livecodescript")
     # levureFramework was loaded into memory when assigned as the behavior
     delete stack "levureFramework"
-    save stack "LevureStandalone" as (sTargetFolder & "/app/standalone.livecode")
-    delete stack "LevureStandalone"
+
+    set the title of stack tStackName to sAppName
+    set the cRevStandaloneSettings["name"] of stack tStackName to sAppName
+
+    save stack sAppName as (sTargetFolder & "/app/standalone.livecode")
+    delete stack sAppName
   end if
 
   return tError
@@ -207,7 +210,7 @@ command SetupGitInFolder
   set the defaultFolder to sTargetFolder
 
   if tError is empty then
-    put "Setup git" & cr after msg
+    _log "Setup git"
     put shell(sSettingsA["git folder"] & "git init") into tResult
     if the result is not empty then
       put tResult into tError
@@ -215,7 +218,7 @@ command SetupGitInFolder
   end if
 
   if tError is empty then
-    put "Setup Levure as submodule" & cr after msg
+    _log "Setup Levure as submodule"
     put shell(sSettingsA["git folder"] & "git submodule add https://github.com/trevordevore/levure.git levure") into tResult
     if the result is not empty then
       put tResult into tError
@@ -239,7 +242,7 @@ command AddFilesToGit
   set the defaultFolder to sTargetFolder
 
   if tError is empty then
-    put "Add files to git" & cr after msg
+    _log "Add files to git"
     put shell(sSettingsA["git folder"] & "git add .") into tResult
     if the result is not empty then
       put tResult into tError
@@ -253,25 +256,38 @@ end AddfilesToGit
 
 
 private function DefaultAppYaml
-  put the uAppYAML of this stack into theYAML
-  replace "<appname>" with sAppname in theYAML
-  return theYAML for value
+  local tYAML
+
+  put the uAppYAML of this stack into tYAML
+  replace "<appname>" with sAppname in tYAML
+  return tYAML for value
 end DefaultAppYaml
 
 
 private function DefaultAppScript
+  local tScript, tLineNo
+
+  put the uAppStackScript of this stack into tScript
+
   if sUseSublimeText then
-    return the uSublimeAppStackScript of this stack
-  else 
-    return the uNonSublimeAppStackScript of this stack
-  end if 
+    put lineoffset("levureLoadExternalEditorServer", tScript) into tLineNo
+    if tLineNo > 0 then
+      delete char 1 to 3 of word 1 of line tLineNo-1 of tScript
+      delete char 1 to 3 of word 1 of line tLineNo of tScript
+      delete char 1 to 3 of word 1 of line tLineNo+1 of tScript
+    end if
+  end if
+
+  return tScript
 end DefaultAppScript
 
 
 private function DefaultSublimeProject
-  put the uSublimeProject of this stack into theSublimeProject
-  replace "<appname>" with sAppname in theSublimeProject
-  return theSublimeProject
+  local tSublimeProject
+
+  put the uSublimeProject of this stack into tSublimeProject
+  replace "<appname>" with sAppname in tSublimeProject
+  return tSublimeProject
 end DefaultSublimeProject
 
 
@@ -279,13 +295,13 @@ command UnzipLevureFiles pFilename
   local tError
 
   if tError is empty then
-    put "Unzip Levure" & cr after msg
+    _log "Unzip Levure"
     revZipOpenArchive pFilename, "read"
     put the result into tError
   end if
 
   if tError is empty then
-    put "Reflate Levure" & cr after msg
+    _log "Reflate Levure"
     zipDecompressArchiveToFolder pFilename, sTargetFolder, empty, "UnzipPackageCallback"
     put the result into tError
   end if
@@ -302,7 +318,7 @@ end UnzipPackageCallback
 
 
 command AppProjectCompleted
-  put "Done" after msg
+  _log "Done"
   answer "Your Levure project has been created."
 end AppProjectCompleted
 
@@ -312,6 +328,11 @@ command AnswerError pMsg, pError
     answer error "An error occurred while" && pMsg && "[" && pError & "]."
   end if
 end AnswerError
+
+
+command _log pMsg
+  put pMsg & cr after msg
+end _log
 
 
 /**
@@ -486,8 +507,6 @@ end CardOf
 command fileCreateAllFoldersInPath pPath, pRootPath, pPerms
   local theCheck,tError,thePathSegment
 
-  put "Create" && pPath & cr after msg
-
   ## Watch for double slashes /Folder/To//Something//
   ## You will not enter a never ending loop if you aren't careful.
   _stripDoubleSlash pPath
@@ -575,7 +594,7 @@ on fileSetPermissions pFile, pOwner, pGroup, pAll
   put _escapeForShell(pFile) into pFile
 
   switch the platform
-  case "Win32"
+    case "Win32"
       /*
       Displays or changes file attributes.
       ATTRIB [+R | -R] [+A | -A] [+S | -S] [+H | -H] [[drive:][path]filename]  [/S] [/D]
@@ -591,12 +610,12 @@ on fileSetPermissions pFile, pOwner, pGroup, pAll
       */
 
       switch pOwner
-      case "read"
-        put "+r" into pOwner
-        break
-      case "write"
-        put "-r" into pOwner
-        break
+        case "read"
+          put "+r" into pOwner
+          break
+        case "write"
+          put "-r" into pOwner
+          break
       end switch
       put shell (format ("attrib %s %s", pOwner, pFile) ) into theResult
       break
@@ -607,7 +626,7 @@ on fileSetPermissions pFile, pOwner, pGroup, pAll
       put _executableBitFromType(pAll) into pAll
       put shell(format("chmod %u%u%u %s ", pOwner, pGroup, pAll, pFile)) into theResult
       break
-    end SWITCH
+    end switch
 
     if the result is not empty then
       put line 1 of theResult into tError
