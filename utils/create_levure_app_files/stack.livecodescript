@@ -1,22 +1,34 @@
 local sSettingsA
+local sAppName
+local sUseSublimeText
+local sTargetFolder
 
 
 command uiCreateLevureApp
   local tOutputFolder
 
+  put field "appName" into sAppName
+  put the hilite of button "useSublimeText" into sUseSublimeText
+
+  if sAppName is empty then
+    beep
+    answer "Please specify a name for the app."
+    exit to top
+  end if
+
   answer folder "Select your application folder"
-  put it into tOutputFolder
+  put it into sTargetFolder
 
-  if tOutputFolder is not empty then
-    show msg
-    put "Create Levure App" & cr
+  if sTargetFolder is not empty then
+    put empty
+    _log "Create Levure App"
 
-    CreateLevureApp tOutputFolder
+    CreateLevureApp
   end if
 end uiCreateLevureApp
 
 
-command CreateLevureApp pFolder
+command CreateLevureApp
   local tError
 
   put empty into sSettingsA
@@ -28,8 +40,6 @@ command CreateLevureApp pFolder
       put "/" after sSettingsA["git folder"]
     end if
   end if
-
-  put pFolder into sSettingsA["target folder"]
 
   if the hilite of button "UseGit" then
     CreateApplicationFilesAndFolders
@@ -69,7 +79,7 @@ command LevureZipDownloadComplete pUrl, pUrlStatus
   if pUrlStatus is "cached" then
     local tFilename
 
-    put sSettingsA["target folder"] & "/levure-master.zip" into tFilename
+    put sTargetFolder & "/levure-master.zip" into tFilename
     put url pUrl into URL ("binfile:" & tFilename)
     UnzipLevureFiles tFilename
     put the result into tError
@@ -79,7 +89,7 @@ command LevureZipDownloadComplete pUrl, pUrlStatus
 
     if tError is empty then
       delete char -4 to -1 of tFilename
-      rename folder tFilename to sSettingsA["target folder"] & "/levure"
+      rename folder tFilename to sTargetFolder & "/levure"
       put the result into tError
     end if
 
@@ -114,14 +124,14 @@ command CreateApplicationFilesAndFolders
   if tError is empty then
     local tFolder
 
-    put sSettingsA["target folder"] & "/app" into tFolder
-    fileCreateAllFoldersInPath tFolder, sSettingsA["target folder"]
+    put sTargetFolder & "/app" into tFolder
+    fileCreateAllFoldersInPath tFolder, sTargetFolder
     put the result into tError
   end if
 
   if tError is empty then
-    put "Create levure folders" & cr after msg
-    create folder sSettingsA["target folder"] & "/builds"
+    _log "Create levure folders"
+    create folder sTargetFolder & "/builds"
     create folder tFolder & "/backscripts"
     create folder tFolder & "/behaviors"
     create folder tFolder & "/frontscripts"
@@ -133,15 +143,21 @@ command CreateApplicationFilesAndFolders
   end if
 
   if tError is empty then
-    put "Create app.yml and app.livecodescript" & cr after msg
+    _log "Create app.yml and app.livecodescript"
     put DefaultAppYaml() into url("binfile:" & tFolder & "/app.yml")
     put DefaultAppScript() into url("binfile:" & tFolder & "/app.livecodescript")
   end if
 
+  if tError is empty and sUseSublimeText then
+    put DefaultSublimeProject() into url("binfile:" & sTargetFolder & slash & sAppname & ".sublime-project")
+    put the result into tError
+  end if
+
+
   if tError is empty then
     local tBehaviorFile
 
-    put "Create sample window files/folders" & cr after msg
+    _log "Create sample window files/folders"
     create folder tFolder & "/ui/sample_window"
     create folder tFolder & "/ui/sample_window/behaviors"
 
@@ -163,14 +179,24 @@ command CreateStandaloneStackfile
   local tError
 
   if tError is empty then
-    put "Create standalone.livecodescript" & cr after msg
-    clone stack "LevureStandaloneTemplate" as "LevureStandalone"
-    set the stackfiles of stack "LevureStandalone" to "levureFramework,../levure/framework/levure.livecodescript"
-    set the behavior of stack "LevureStandalone" to the long id of stack (sSettingsA["target folder"] & "/levure/framework/levure.livecodescript")
+    local tStackName
+
+    _log "Create standalone.livecodescript"
+
+    put sAppName into tStackName
+    if word 1 to -1 of tStackName is empty or there is a stack tStackName then put "LevureStandalone" into tStackName
+
+    clone stack "LevureStandaloneTemplate" as tStackName
+    set the stackfiles of stack tStackName to "levureFramework,../levure/framework/levure.livecodescript"
+    set the behavior of stack tStackName to the long id of stack (sTargetFolder & "/levure/framework/levure.livecodescript")
     # levureFramework was loaded into memory when assigned as the behavior
     delete stack "levureFramework"
-    save stack "LevureStandalone" as (sSettingsA["target folder"] & "/app/standalone.livecode")
-    delete stack "LevureStandalone"
+
+    set the title of stack tStackName to sAppName
+    set the cRevStandaloneSettings["name"] of stack tStackName to sAppName
+
+    save stack sAppName as (sTargetFolder & "/app/standalone.livecode")
+    delete stack sAppName
   end if
 
   return tError
@@ -181,10 +207,10 @@ command SetupGitInFolder
   local tFolder, tResult, tError
 
   put the defaultFolder into tFolder
-  set the defaultFolder to sSettingsA["target folder"]
+  set the defaultFolder to sTargetFolder
 
   if tError is empty then
-    put "Setup git" & cr after msg
+    _log "Setup git"
     put shell(sSettingsA["git folder"] & "git init") into tResult
     if the result is not empty then
       put tResult into tError
@@ -192,7 +218,7 @@ command SetupGitInFolder
   end if
 
   if tError is empty then
-    put "Setup Levure as submodule" & cr after msg
+    _log "Setup Levure as submodule"
     put shell(sSettingsA["git folder"] & "git submodule add https://github.com/trevordevore/levure.git levure") into tResult
     if the result is not empty then
       put tResult into tError
@@ -200,7 +226,7 @@ command SetupGitInFolder
   end if
 
   if tError is empty then
-    put the uGitIgnoreFile of this stack into url("binfile:" & sSettingsA["target folder"] & "/.gitignore")
+    put the uGitIgnoreFile of this stack into url("binfile:" & sTargetFolder & "/.gitignore")
   end if
 
   set the defaultFolder to tFolder
@@ -213,10 +239,10 @@ command AddFilesToGit
   local tFolder, tResult, tError
 
   put the defaultFolder into tFolder
-  set the defaultFolder to sSettingsA["target folder"]
+  set the defaultFolder to sTargetFolder
 
   if tError is empty then
-    put "Add files to git" & cr after msg
+    _log "Add files to git"
     put shell(sSettingsA["git folder"] & "git add .") into tResult
     if the result is not empty then
       put tResult into tError
@@ -230,27 +256,53 @@ end AddfilesToGit
 
 
 private function DefaultAppYaml
-  return the uAppYAML of this stack
+  local tYAML
+
+  put the uAppYAML of this stack into tYAML
+  replace "<appname>" with sAppname in tYAML
+  return tYAML for value
 end DefaultAppYaml
 
 
 private function DefaultAppScript
-  return the uAppStackScript of this stack
+  local tScript, tLineNo
+
+  put the uAppStackScript of this stack into tScript
+
+  if sUseSublimeText then
+    put lineoffset("levureLoadExternalEditorServer", tScript) into tLineNo
+    if tLineNo > 0 then
+      delete char 1 to 3 of word 1 of line tLineNo-1 of tScript
+      delete char 1 to 3 of word 1 of line tLineNo of tScript
+      delete char 1 to 3 of word 1 of line tLineNo+1 of tScript
+    end if
+  end if
+
+  return tScript
 end DefaultAppScript
+
+
+private function DefaultSublimeProject
+  local tSublimeProject
+
+  put the uSublimeProject of this stack into tSublimeProject
+  replace "<appname>" with sAppname in tSublimeProject
+  return tSublimeProject
+end DefaultSublimeProject
 
 
 command UnzipLevureFiles pFilename
   local tError
 
   if tError is empty then
-    put "Unzip Levure" & cr after msg
+    _log "Unzip Levure"
     revZipOpenArchive pFilename, "read"
     put the result into tError
   end if
 
   if tError is empty then
-    put "Reflate Levure" & cr after msg
-    zipDecompressArchiveToFolder pFilename, sSettingsA["target folder"], empty, "UnzipPackageCallback"
+    _log "Reflate Levure"
+    zipDecompressArchiveToFolder pFilename, sTargetFolder, empty, "UnzipPackageCallback"
     put the result into tError
   end if
 
@@ -266,7 +318,7 @@ end UnzipPackageCallback
 
 
 command AppProjectCompleted
-  put "Done" after msg
+  _log "Done"
   answer "Your Levure project has been created."
 end AppProjectCompleted
 
@@ -276,6 +328,11 @@ command AnswerError pMsg, pError
     answer error "An error occurred while" && pMsg && "[" && pError & "]."
   end if
 end AnswerError
+
+
+command _log pMsg
+  put pMsg & cr after msg
+end _log
 
 
 /**
@@ -450,8 +507,6 @@ end CardOf
 command fileCreateAllFoldersInPath pPath, pRootPath, pPerms
   local theCheck,tError,thePathSegment
 
-  put "Create" && pPath & cr after msg
-
   ## Watch for double slashes /Folder/To//Something//
   ## You will not enter a never ending loop if you aren't careful.
   _stripDoubleSlash pPath
@@ -571,18 +626,18 @@ on fileSetPermissions pFile, pOwner, pGroup, pAll
       put _executableBitFromType(pAll) into pAll
       put shell(format("chmod %u%u%u %s ", pOwner, pGroup, pAll, pFile)) into theResult
       break
-  end SWITCH
+    end switch
 
-  if the result is not empty then
-    put line 1 of theResult into tError
-  end if
+    if the result is not empty then
+      put line 1 of theResult into tError
+    end if
 
-  return tError
-end fileSetPermissions
+    return tError
+  end fileSetPermissions
 
 
-private function _executableBitFromType pType
-  switch pType
+  private function _executableBitFromType pType
+    switch pType
     case "execute"
       put 7 into pType
       break
@@ -594,26 +649,26 @@ private function _executableBitFromType pType
       break
     default
       put 0 into pType
-  end switch
-  return pType
-end _executableBitFromType
+    end switch
+    return pType
+  end _executableBitFromType
 
 
-private function _escapeForShell pStr
-  local theChar,theSpecialChars
+  private function _escapeForShell pStr
+    local theChar,theSpecialChars
 
-  if the platform is "win32" then
-    replace "/" with "\" in pStr
-    put quote & pStr & quote into pStr
-  else
-    put "\" & space & quote & "'`<>!;()[]?#$^&*=|" into theSpecialChars
-    repeat for each char theChar in theSpecialChars
-      replace theChar with ("\" & theChar) in pStr
-    end REPEAT
-  end if
+    if the platform is "win32" then
+      replace "/" with "\" in pStr
+      put quote & pStr & quote into pStr
+    else
+      put "\" & space & quote & "'`<>!;()[]?#$^&*=|" into theSpecialChars
+      repeat for each char theChar in theSpecialChars
+        replace theChar with ("\" & theChar) in pStr
+      end REPEAT
+    end if
 
-  return pStr
-end _escapeForShell
+    return pStr
+  end _escapeForShell
 
 
 ## Used for removing multiple slashes from folder paths

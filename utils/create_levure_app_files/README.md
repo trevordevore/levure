@@ -1,0 +1,2 @@
+This folder contains the files that have the master/most-current versions of the various files that Levure creates when it creates an app.
+The contents of these files are assigned to scripts and properties of the `create-levure-application.livecode` stack when it is saved. If you modify one of these files make sure you laod the `create-levure-application.livecode` stack in the LiveCode IDE and save it.
