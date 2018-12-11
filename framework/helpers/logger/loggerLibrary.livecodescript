@@ -6,10 +6,12 @@ local sLogA
 local sNetworkFilters
 local sColDelim, sRowDelim
 local sIncludeLogTypeBool
+local sLoggingSuspended
 
 
 on libraryStack
   if the target is not me then pass libraryStack
+  put false into sLoggingSuspended
   #<Initial settings>
     #<log types>
       put "developer" into logtypes #default
@@ -352,9 +354,30 @@ command loggerLogMsg pMsg, pLogType
 end loggerLogMsg
 
 
+
+/**
+Summary: Suspends logging
+*/
+command loggerSuspend
+  put true into sLoggingSuspended
+end loggerSuspend
+
+
+
+/**
+Summary: Resumes logging
+*/
+command loggerResume
+  put false into sLoggingSuspended
+end loggerResume
+
+
+
 private command _log pMsg, logType
   local tError
   local msgInfo
+
+  if sLoggingSuspended then return empty for error
 
   #<build log entry>
     put _squareBracket(the internet date) & sColDelim into msgInfo #date/time stamp
