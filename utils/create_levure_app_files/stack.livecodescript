@@ -219,7 +219,7 @@ command SetupGitInFolder
 
   if tError is empty then
     _log "Setup Levure as submodule"
-    put shell(sSettingsA["git folder"] & "git submodule add https://github.com/trevordevore/levure.git levure") into tResult
+    put shell(sSettingsA["git folder"] & "git submodule add -b master https://github.com/trevordevore/levure.git levure") into tResult
     if the result is not empty then
       put tResult into tError
     end if
