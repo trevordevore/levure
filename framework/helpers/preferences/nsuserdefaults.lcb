@@ -21,7 +21,7 @@ library community.livecode.trevordevore.nsuserdefaults
   private foreign handler ObjC_NSUserDefaultsStandardUserDefaults() \
         returns ObjcId \
         binds to "objc:NSUserDefaults.+standardUserDefaults"
-  private foreign handler ObjC_NSUserDefaultsInitWithSuiteName (in pObj as ObjcId, in pSuiteName as ObjcId) \
+  private foreign handler ObjC_NSUserDefaultsInitWithSuiteName (in pObj as ObjcRetainedId, in pSuiteName as ObjcId) \
         returns ObjcId \
         binds to "objc:NSUserDefaults.-initWithSuiteName:"
   private foreign handler ObjC_NSUserDefaultsObjectForKey (in pObj as ObjcId, in defaultName as ObjcId) \
