@@ -1,6 +1,8 @@
 script "Levure Framework Application Packager"
 constant kStandaloneBuilderPlatforms = "MacOSX x86-32,MacOSX x86-64,Windows,Linux,Linux x64,Linux armv6-hf,iOS,Android,Emscripten"
 constant kPlatformsThatCantTest = "iOS,Android,Emscripten"
+constant kNestedKeysDelimiter = ">"
+
 local sAppA, sPassword, sBuildLogFile, sCallbackStacksA, sBuildStandaloneA
 
 on libraryStack
@@ -1269,7 +1271,7 @@ private command _packageUI pBuildProfile, pPlatform, @xAppA, pOutputFolder
     put 0 into tIndex
 
     put tKey into tLookupA
-    split tLookupA by "|"
+    split tLookupA by kNestedKeysDelimiter
 
     if the number of elements of xAppA[tLookupA] > 0 then
       log "Packaging" && tKey
@@ -1359,7 +1361,7 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
     put empty into tCompsA
 
     put tKey into tLookupA
-    split tLookupA by "|"
+    split tLookupA by kNestedKeysDelimiter
 
     if the number of elements of xAppA[tLookupA] > 0 then
       log "Packaging" && tKey
