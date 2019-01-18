@@ -1194,6 +1194,7 @@ command levureLoadAppConfig pBuildProfile
         put the result into tError
 
         if tError is empty then
+          sortHelpersBasedOnDependencies
           resolveHelperAssets pBuildProfile
           put the result into tError
         end if
@@ -1945,6 +1946,93 @@ private function shellFormat pArg, pSwitch
 
   return tOutput & quote & pArg & quote & " "
 end shellFormat
+
+
+/**
+Summary: Reorders helpers so that dependencies are loaded before dependents.
+
+Description:
+If a helper is dependent on another helper then behaviors in the dependency
+must be loaded first. This handler will reorder helpers so that the load
+order is correct.
+
+Returns: nothing
+*/
+private command sortHelpersBasedOnDependencies
+  local tHelperA, tHelpersA, tIndexesToProcess, tIndex, tNewIndex
+  local tLoadedHelpersA, tSkip
+
+  lookForCircularDependenciesInHelpers
+
+  put the keys of sAppA["helpers"] into tIndexesToProcess
+  sort lines of tIndexesToProcess numeric ascending
+
+  repeat until tIndexesToProcess is empty
+    put line 1 of tIndexesToProcess into tIndex
+    put sAppA["helpers"][tIndex] into tHelperA
+
+    put false into tSkip
+
+    repeat for each item tHelperName in tHelperA["dependencies"]
+      if tHelperName is not among the keys of tLoadedHelpersA then
+
+        # Move this helper to the end of the list
+        put tIndex into line (the number of lines of tIndexesToProcess + 1) of tIndexesToProcess
+
+        put true into tSkip
+        exit repeat
+      end if
+    end repeat
+
+    if not tSkip then
+      add 1 to tNewIndex
+      put tHelperA into tHelpersA[tNewIndex]
+      put empty into tLoadedHelpersA[ tHelperA["name"] ]
+    end if
+
+    delete line 1 of tIndexesToProcess
+  end repeat
+
+  put tHelpersA into sAppA["helpers"]
+end sortHelpersBasedOnDependencies
+
+
+/**
+Summary: Performs a simple check for circular dependencies.
+
+Description:
+The check only looks for circular dependencies between A and B.
+It doesn't look for circular connections between A, B, and C where
+A depends on B and B depends on C but C depends on A.
+
+Returns: nothing
+*/
+private command lookForCircularDependenciesInHelpers
+  local tHelperA, tDependenciesA
+  local tHelperName, tDependentName
+
+  # Create lookup area of each helper's dependencies
+  repeat for each element tHelperA in sAppA["helpers"]
+    if word 1 to -1 of tHelperA["name"] is not empty then
+      repeat for each item tHelperName in tHelperA["dependencies"]
+        put tHelperA["name"] & "," after tDependenciesA[tHelperName]
+      end repeat
+    end if
+  end repeat
+
+  # Now see if any of a helper depends on any of it's dependents.
+  repeat for each element tHelperA in sAppA["helpers"]
+    if word 1 to -1 of tHelperA["name"] is not empty then
+      repeat for each item tDependentName in tDependenciesA[ tHelperA["name"] ]
+        if tHelperA["name"] is among the items of tDependenciesA[tDependentName] then
+          throw kLevureErr & "circular dependency detected in" && \
+                quote & tHelperA["name"] & quote && "and" && \
+                quote & tDependentName & quote && "helpers"
+        end if
+      end repeat
+    end if
+  end repeat
+end lookForCircularDependenciesInHelpers
 
 
 private command resolveHelperAssets pBuildProfile
