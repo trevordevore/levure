@@ -1962,7 +1962,7 @@ private command sortHelpersBasedOnDependencies
   local tHelperA, tHelpersA, tIndexesToProcess, tIndex, tNewIndex
   local tLoadedHelpersA, tSkip
 
-  lookForCircularDependenciesInHelpers
+  verifyDependenciesInHelpers
 
   put the keys of sAppA["helpers"] into tIndexesToProcess
   sort lines of tIndexesToProcess numeric ascending
@@ -1998,7 +1998,7 @@ end sortHelpersBasedOnDependencies
 
 
 /**
-Summary: Performs a simple check for circular dependencies.
+Summary: Checks that all dependencies are present and performs a simple check for circular dependencies.
 
 Description:
 The check only looks for circular dependencies between A and B.
@@ -2007,20 +2007,35 @@ A depends on B and B depends on C but C depends on A.
 
 Returns: nothing
 */
-private command lookForCircularDependenciesInHelpers
-  local tHelperA, tDependenciesA
+private command verifyDependenciesInHelpers
+  local tHelperA, tHelperNamesA, tDependenciesA
   local tHelperName, tDependentName
 
-  # Create lookup area of each helper's dependencies
+  # Create lookups
+  # 1) All loaded helper names
+  # 2) List of helpers that depende on a helper
   repeat for each element tHelperA in sAppA["helpers"]
     if word 1 to -1 of tHelperA["name"] is not empty then
+      put empty into tHelperNamesA[tHelperA["name"]]
+
       repeat for each item tHelperName in tHelperA["dependencies"]
         put tHelperA["name"] & "," after tDependenciesA[tHelperName]
       end repeat
     end if
   end repeat
 
-  # Now see if any of a helper depends on any of it's dependents.
+  # Make sure each listed dependency is present
+  repeat for each element tHelperA in sAppA["helpers"]
+    repeat for each item tHelperName in tHelperA["dependencies"]
+      if tHelperName is not among the keys of tHelperNamesA then
+        throw kLevureErr & quote & tHelperName & quote && \
+              "dependency not found for helper" && \
+              quote & tHelperA["name"] & quote
+      end if
+    end repeat
+  end repeat
+
+  # Now see if a helper depends on any of it's dependents.
   repeat for each element tHelperA in sAppA["helpers"]
     if word 1 to -1 of tHelperA["name"] is not empty then
       repeat for each item tDependentName in tDependenciesA[ tHelperA["name"] ]
@@ -2032,7 +2047,7 @@ private command lookForCircularDependenciesInHelpers
       end repeat
     end if
   end repeat
-end lookForCircularDependenciesInHelpers
+end verifyDependenciesInHelpers
 
 
 private command resolveHelperAssets pBuildProfile
