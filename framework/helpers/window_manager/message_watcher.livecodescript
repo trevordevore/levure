@@ -74,28 +74,28 @@ on preOpenStack
       set the editmenus of tStack to true
     end if
 
-    # Last Updated 2017-09-01: If the window size is being managed then hide the stack. Ideally the stack would be resized here
-    # but the LiveCode engine doesn't allow you to set `the effective rect` in `preOpenStack`. `openStack` is the first
-    # handler where you can set the effective rect.
-    if not tIsInit and windowIsPropertyManaged(tStackName, "rect") then
-      put the visible of tStack into sVisibleStateInPreOpenStackA[tStackName]
-      if sVisibleStateInPreOpenStackA[tStackName] then
-        set the visible of tStack to false
+    # Branch behavior based on whether or not engine supports setting the `effective rect` in `preOpenStack`.
+    if effectiveRectWorksInEngine() then
+      _resizeWindowAndMenu tStackName, tStack, tIsInit
+
+      if windowIsPropertyManaged(tStackName, "messages") then
+        dispatch "PreOpenWindow" to tCard with tIsInit
+        _dispatchResizeView the long id of the current card of tStack
       end if
-    end if
-
-    ## DISPATCH MESSAGE
-    if windowIsPropertyManaged(tStackName, "messages") then
-      dispatch "PreOpenWindow" to tCard with tIsInit
-    end if
-
-    ## SET COLOR AND MENU EDITING
-    if not tIsInit and windowIsPropertyManaged(tStackName, "menu") then
-      if there is a group (the menubar of tStack) of tStack then
-        set backgroundcolor of group (the menubar of tStack) of tStack to effective backgroundcolor of tStack
+    else
+      # If engine doesn't support setting `effective rect` in `preOpenStack` then hide stack here
+      # and adjust rect in `openStack`.
+      if not tIsInit and windowIsPropertyManaged(tStackName, "rect") and not effectiveRectWorksInEngine() then
+        put the visible of tStack into sVisibleStateInPreOpenStackA[tStackName]
+        if sVisibleStateInPreOpenStackA[tStackName] then
+          set the visible of tStack to false
+        end if
       end if
 
-      windowResizeMenu tStackName
+      ## DISPATCH MESSAGE
+      if windowIsPropertyManaged(tStackName, "messages") then
+        dispatch "PreOpenWindow" to tCard with tIsInit
+      end if
     end if
   end if
 
@@ -156,31 +156,27 @@ on openStack
   put windowResolveTargetStack() into tStack
 
   if tStack is not empty then
-    local tStackName
+    local tStackName, tCard
 
     put the short name of tStack into tStackName
+    put the long id of the current card of tStack into tCard
     put windowIsPropertyManaged(tStackName, "messages") into tMsgsAreManaged
 
-    ## Position window
-    # Last Updated 2017-09-01: This is the first message where `the effective rect` can be set. Set the rect,
-    # dispatch the `ResizeView` message, and show the stack.
     local tIsInit
     put windowHasWindowBeenOpened(tStackName) into tIsInit
 
-    if not tIsInit and windowIsPropertyManaged(tStackName, "rect") then
-      local restoreRectFromPrefs
-
-      put true into restoreRectFromPrefs
-      windowSetWindowRectBeforeOpening tStackName, restoreRectFromPrefs
+    # Branch behavior based on whether or not engine supports setting the `effective rect` in `preOpenStack`.
+    if effectiveRectWorksInEngine() then
+      if tMsgsAreManaged then
+        dispatch "OpenWindow" to the current card of tStack with tIsInit
+      end if
+    else
+      _resizeWindowAndMenu tStackName, tStack, tIsInit
 
       if tMsgsAreManaged then
         _dispatchResizeView the long id of the current card of tStack
+        dispatch "OpenWindow" to the current card of tStack with windowHasWindowBeenOpened(tStackName)
       end if
-    end if
-
-    ## DISPATCH MESSAGE
-    if tMsgsAreManaged then
-      dispatch "OpenWindow" to the current card of tStack with windowHasWindowBeenOpened(tStackName)
     end if
   end if
 
@@ -297,3 +293,44 @@ command PreShutdownApplication
 
   pass PreShutdownApplication
 end PreShutdownApplication
+
+
+private command _resizeWindowAndMenu pStackName, pStack, pIsInit
+  if not pIsInit and windowIsPropertyManaged(pStackName, "rect") then
+    local restoreRectFromPrefs
+
+    put true into restoreRectFromPrefs
+    windowSetWindowRectBeforeOpening pStackName, restoreRectFromPrefs
+  end if
+
+  ## SET COLOR AND MENU EDITING
+  if not pIsInit and windowIsPropertyManaged(pStackName, "menu") then
+    if there is a group (the menubar of pStack) of pStack then
+      set backgroundcolor of group (the menubar of pStack) of pStack to effective backgroundcolor of pStack
+    end if
+
+    windowResizeMenu pStackName
+  end if
+end _resizeWindowAndMenu
+
+
+/**
+Summary: Only use effectiveRect in `preOpenStack` with supported engines.
+
+Description:
+LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
+
+https://quality.livecode.com/show_bug.cgi?id=18997
+
+Returns: Boolean
+*/
+function effectiveRectWorksInEngine
+  local tVersion
+
+  set the itemDelimiter to "."
+
+  put the trueWord 1 of the version into tVersion
+  return item 1 of tVersion > 9 \
+        or item 1 of tVersion is 9 and \
+        (item 2 of tVersion >= 1 or item 3 of tVersion >= 3)
+end effectiveRectWorksInEngine

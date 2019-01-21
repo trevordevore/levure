@@ -393,13 +393,6 @@ command windowSetWindowRectBeforeOpening pStackName, pRestoreFromPrefs, pScreenN
   if the effective rect of stack pStackName is not tRect then
     local msgsAreLocked
 
-    # Quirk workaround: On macos item 4 of tRect will be reduced by 23 points after setting the
-    # `effective rect` below. It seems that setting the rect during preopenstack triggers the stack
-    # to scroll and it affects the rect. Manually adding in the 23 pixels fixes the issue.
-    -- if the vscroll of stack pStackName > 0 then
-    --   add 23 to item 4 of tRect
-    -- end if
-
     put the lockmessages into msgsAreLocked
     lock messages ## Don't send resizeStack message
     set the effective rect of stack pStackName to tRect
