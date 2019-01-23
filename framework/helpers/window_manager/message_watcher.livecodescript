@@ -85,7 +85,7 @@ on preOpenStack
     else
       # If engine doesn't support setting `effective rect` in `preOpenStack` then hide stack here
       # and adjust rect in `openStack`.
-      if not tIsInit and windowIsPropertyManaged(tStackName, "rect") and not effectiveRectWorksInEngine() then
+      if not tIsInit and windowIsPropertyManaged(tStackName, "rect") then
         put the visible of tStack into sVisibleStateInPreOpenStackA[tStackName]
         if sVisibleStateInPreOpenStackA[tStackName] then
           set the visible of tStack to false
