@@ -519,10 +519,12 @@ private function _calculateWindowRect pStackName, pDefaultScreenRect, pDefaultRe
   end if
 
   # Now add the decorations
-  subtract sFrameA[tStyle]["left"] from item 1 of tRect
-  subtract sFrameA[tStyle]["top"] from item 2 of tRect
-  add sFrameA[tStyle]["right"] to item 3 of tRect
-  add sFrameA[tStyle]["bottom"] to item 4 of tRect
+  if the windowShape of stack pStackName is 0 then
+    subtract sFrameA[tStyle]["left"] from item 1 of tRect
+    subtract sFrameA[tStyle]["top"] from item 2 of tRect
+    add sFrameA[tStyle]["right"] to item 3 of tRect
+    add sFrameA[tStyle]["bottom"] to item 4 of tRect
+  end if
 
   # Adjust loc using differences in frame sizes on left/right and top/bottom
   subtract floor(abs(sFrameA[tStyle]["left"]-sFrameA[tStyle]["right"])/2) from item 1 of tLoc
