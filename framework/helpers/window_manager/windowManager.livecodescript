@@ -456,8 +456,8 @@ private function _calculateWindowRect pStackName, pDefaultScreenRect, pDefaultRe
   # Rect
   # Don't touch rect of a stack that isn't resizable
   # We only care about the loc from the value stored in prefs
-  if tRect is not a rect and not the resizable of tStack then
-    put the rect of tStack into tRect
+  if tRect is not a rect or not the resizable of tStack then
+    put the effective rect of tStack into tRect
   end if
 
   if tRect is not a rect then
