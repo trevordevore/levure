@@ -304,13 +304,13 @@ end _determineSigningCertificate
 
 
 private command _setPassword pStackName, pPassword
-  if revLicenseType() is not "community" then
-    if pPassword is not empty then
+  if pPassword is not empty then
+    if revLicenseType() is not "community" then
       log "  Encrypting stack" && pStackName
       set the password of stack pStackName to pPassword
+    else
+      log "  Skipping encryption in Community edition" && pStackName
     end if
-  else
-    log "  Skipping encryption in Community edition" && pStackName
   end if
   return empty
 end _setPassword
@@ -1910,9 +1910,11 @@ private command _performPackagingPrechecks pStandaloneStackFilename, @xBuildProf
     end if
   end if
 
-  # Check if encryption is supposed to happen but password is missing
-  if tError is empty then
-    if xBuildProfile is not "test" AND levureAppGet("encrypt stacks") then
+  # Get password for encryption
+  if tError is empty and xBuildProfile is not "test" then
+    if levureAppGet("encrypt stacks") is "random" then
+      put uuid() into sPassword
+    else if levureAppGet("encrypt stacks") is "password" or levureAppGet("encrypt stacks") is true then
       put levureAppGet("password") into sPassword
 
       if sPassword is empty then
