@@ -583,6 +583,36 @@ end windowCheckWindowAfterDesktopChanged
 
 
 /**
+Summary: Moves a stack window so that is entirely on the screen associated with the window.
+
+Parameters:
+pStackName: The name of the target stack.
+
+Description:
+This command can be used to ensure a window remains entirely onscreen if the
+window width or height can increase by clicking a button in the UI. This assumes,
+of course, that the window dimensions are not larger than the screen dimensions.
+
+Returns: nothing
+*/
+command windowEnsureWindowIsEntirelyOnScreen pStackName
+  local tScreenRect, tEffectiveRect, tRect
+
+  put line (the screen of stack pStackName) of the working screenrects into tScreenRect
+  put the effective rect of stack pStackName into tEffectiveRect
+  put the rect of stack pStackName into tRect
+
+  put _shiftWindowOnScreen(tScreenRect, tEffectiveRect) into tEffectiveRect
+
+  if the effective rect of stack pStackName is not tEffectiveRect then
+    set the effective rect of stack pStackName to tEffectiveRect
+  end if
+
+  return empty
+end windowEnsureWindowIsEntirelyOnScreen
+
+
+/**
 Summary: Positions a window after the user moves it.
 
 pStackName: The name of the target stack.
