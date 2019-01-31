@@ -922,12 +922,23 @@ end _printPropParameter
 /**
 Summary: Returns an array of all `ui` category assets.
 
+Parameters:
+pFilterByKeys: If you only want UI components of a specific key(s) then pass in a list using this parameter.
+
+Example:
+put levureGetUIStacks() into tAllUIStacksA
+put levureGetUIStacks("templates") into tTemplateUIStacksA
+
 Returns: Numerically indexed array. "name", "filename", and "key". "key" is the key the UI assets is listed under in app.yml.
  */
-function levureGetUIStacks
+function levureGetUIStacks pFilterByKeys
   local tKey, tLookupA, i, j, tStacksA
 
+  set the wholematches to true
+
   repeat for each key tKey in sAppA["registered components"]["ui"]
+    if pFilterByKeys is not empty and tKey is not among the items of pFilterByKeys then next repeat
+
     put tKey into tLookupA
     split tLookupA by kNestedKeysDelimiter
 
