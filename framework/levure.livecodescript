@@ -2525,7 +2525,7 @@ private function expandMessagePathAssetsFileReferenceArray pBuildProfile, pFiles
                   into tFilesA[j]["source"]
           end if
         end if
-        repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload"
+        repeat for each item tProp in "distribute,build profiles filter,encrypt,autoload,platform,engine version"
           if tProp is among the keys of pFilesA[i] then
             put pFilesA[i][tProp] into tFilesA[j][tProp]
           end if
