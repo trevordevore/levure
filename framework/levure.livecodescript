@@ -1089,8 +1089,11 @@ command levureShutdownApplication
   repeat until the pendingMessages is empty
     cancel item 1 of line 1 of the pendingMessages
   end repeat
-  repeat until the openProcesses is empty
-    close process (line 1 of the openprocesses)
+
+  local tProcess
+
+  repeat for each line tProcess in the openProcesses
+    close process tProcess
   end repeat
 
   stop using me
