@@ -742,6 +742,19 @@ UTF-8 and the passed through `urlEncode()` and used as the tag for the menu line
 This function will grab the tag from the selected menu item, urldecode it and
 then convert the text back to LiveCode text.
 
+Example:
+on menuPick pItemName
+  set the itemdelimiter to "|"
+
+  switch item 1 of pItemName
+    case "open recent"
+      put fileSystemGetFilenameFromMenuOption(pItemName) into tFilename
+      uiOpenDocument tFilename
+      break
+    ...
+  end switch
+end menuPick
+
 Returns: String
 */
 function fileSystemGetFilenameFromMenuOption pMenuPickItem
