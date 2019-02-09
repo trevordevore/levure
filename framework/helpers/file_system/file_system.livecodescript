@@ -730,6 +730,27 @@ end fileSystemRecentlyOpened
 
 
 /**
+Summary: Extracts the filename from the parameter passed to a menuPick message.
+
+Parameters:
+pMenuPickItem: The first parameter passed to the `menuPick` message.
+
+Description:
+The `fileSystemRecentlyOpenedMenuText()` function is used to create menu items
+for a recently opened files menu. The full path to the file is encoded as
+UTF-8 and the passed through `urlEncode()` and used as the tag for the menu line.
+This function will grab the tag from the selected menu item, urldecode it and
+then convert the text back to LiveCode text.
+
+Returns: String
+*/
+function fileSystemGetFilenameFromMenuOption pMenuPickItem
+  set the itemdelimiter to "|"
+  return textDecode(URLDecode(item 2 of pMenuPickItem), "utf8")
+end fileSystemGetFilenameFromMenuOption
+
+
+/**
 Summary: Returns a list of recently opened files for a particular category which has been encoded for display in a menu.
 
 pCategory: The category to retrieve the list of recently opened files for.
@@ -738,8 +759,8 @@ Returns: CR-delimited list
 
 Description:
 Each line of the returned list will be prefixed with a tab and will have special characters escaped
-for display in a menu. The filename will be urlencoded so make sure to urldecode it in your `menuPick`
-handler.
+for display in a menu. The filename will be encoded as UTF-8 and urlencoded. To extract
+the filename in the `menuPick` message use the `fileSystemGetFilenameFromMenupick()` function.
 */
 function fileSystemRecentlyOpenedMenuText pCategory
   local tFile,tFileKeysA,tFilesA,tFileList,tFiles
@@ -762,7 +783,7 @@ function fileSystemRecentlyOpenedMenuText pCategory
 
     if char 1 of tKey is "/" then put ".." before tKey
     if the platform is "win32" then replace "/" with "\" in tKey
-    put tab & _encodeTextForMenu(tKey) & "/|" & urlencode(line tLineNo of tFilesA["tags"]) & cr after tFileList
+    put tab & _encodeTextForMenu(tKey) & "/|" & urlencode(textEncode(line tLineNo of tFilesA["tags"], "utf8")) & cr after tFileList
   end repeat
   delete the last char of tFileList
   return tFileList
