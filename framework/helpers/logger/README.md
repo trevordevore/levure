@@ -22,8 +22,8 @@ The Logger helper provides an API for managing how debug messages are logged in 
 Here is an example of what logger will output (when including the message type column)
 
 ```
-[Sat, 8 Dec 2018 09:33:26 -0500]		[developer]	This is a test
-[Sat, 8 Dec 2018 09:33:37 -0500]		[myTest]	You forgot something
+[Sat, 8 Dec 2018 09:33:26 -0500]        [developer] This is a test
+[Sat, 8 Dec 2018 09:33:37 -0500]        [myTest]    You forgot something
 ```
 
 ## Activate the Logger framework helper
@@ -160,4 +160,283 @@ The [`loggerOpenLogMonitor`](https://github.com/trevordevore/levure/wiki/helper-
 <br>
 
 ## API
+
+- [loggerAddType](#loggerAddType)
+- [loggerGetNetworkTrafficFilters](#loggerGetNetworkTrafficFilters)
+- [loggerGetTarget](#loggerGetTarget)
+- [loggerGetTypes](#loggerGetTypes)
+- [loggerLogMsg](#loggerLogMsg)
+>
+- [loggerOpenLogMonitor](#loggerOpenLogMonitor)
+- [loggerRemoveType](#loggerRemoveType)
+- [loggerResume](#loggerResume)
+- [loggerSetColumnDelimiter](#loggerSetColumnDelimiter)
+- [loggerSetIncludeLogType](#loggerSetIncludeLogType)
+>
+- [loggerSetNetworkTrafficFilters](#loggerSetNetworkTrafficFilters)
+- [loggerSetRowDelimiter](#loggerSetRowDelimiter)
+- [loggerSetTarget](#loggerSetTarget)
+- [loggerSetTypes](#loggerSetTypes)
+- [loggerSuspend](#loggerSuspend)
+
+<br>
+
+## <a name="loggerAddType"></a>loggerAddType
+
+**Type**: command
+
+**Syntax**: `loggerAddType <pType>`
+
+**Summary**: Start logging a specific message type.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pType` |  The type of message to start logging.  This can be one of Levure's special types or any one that you define. |
+
+<br>
+
+## <a name="loggerGetNetworkTrafficFilters"></a>loggerGetNetworkTrafficFilters
+
+**Type**: function
+
+**Syntax**: `loggerGetNetworkTrafficFilters()`
+
+**Summary**: Returns the list of filters that are being applied to libURL messages.
+
+<br>
+
+## <a name="loggerGetTarget"></a>loggerGetTarget
+
+**Type**: function
+
+**Syntax**: `loggerGetTarget()`
+
+**Summary**: Returns the current target where log messages are sent.
+
+**Returns**: empty, `console`, `<filename>`, or field reference
+
+<br>
+
+## <a name="loggerGetTypes"></a>loggerGetTypes
+
+**Type**: function
+
+**Syntax**: `loggerGetTypes()`
+
+**Summary**: Returns the types of messages that are being logged.
+
+**Returns**: Comma-delimited list
+
+<br>
+
+## <a name="loggerLogMsg"></a>loggerLogMsg
+
+**Type**: command
+
+**Syntax**: `loggerLogMsg <pMsg>,<pLogType>`
+
+**Summary**: Logs a message.
+
+**Returns**: Error message
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMsg` |  The message to log.
+[pLogType]:  Type of the message.  Default is `developer`. |
+
+<br>
+
+## <a name="loggerOpenLogMonitor"></a>loggerOpenLogMonitor
+
+**Type**: command
+
+**Syntax**: `loggerOpenLogMonitor `
+
+**Summary**: Opens a palette stack that displays log messages.
+
+**Returns**: Empty
+
+**Description**:
+
+Use the log monitor to aid in debugging. It can be used in the IDE or in a standalone. For
+example, if you want to open the logger whenever running a `test` standalone add the following
+script to `InitializeApplication`:
+
+```
+command InitializeApplication
+  if levureBuildProfile() is "test" then
+    loggerOpenLogMonitor
+  end if
+
+  #...
+InitializeApplication
+```
+
+<br>
+
+## <a name="loggerRemoveType"></a>loggerRemoveType
+
+**Type**: command
+
+**Syntax**: `loggerRemoveType <pType>`
+
+**Summary**: Stop logging a specific message type.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pType` |  The type of message to start logging.  This can be one of Levure's special types or any one that you define. |
+
+<br>
+
+## <a name="loggerResume"></a>loggerResume
+
+**Type**: command
+
+**Syntax**: `loggerResume `
+
+**Summary**: Resumes logging
+
+
+<br>
+
+## <a name="loggerSetColumnDelimiter"></a>loggerSetColumnDelimiter
+
+**Type**: command
+
+**Syntax**: `loggerSetColumnDelimiter <pColDelim>`
+
+**Summary**: Sets column delimiter in the log.
+
+**Returns**: Empty
+
+<br>
+
+## <a name="loggerSetIncludeLogType"></a>loggerSetIncludeLogType
+
+**Type**: command
+
+**Syntax**: `loggerSetIncludeLogType <pIncludeLogType>`
+
+**Summary**: Sets whether to include the log type in the log.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pIncludeLogType` |  Boolean specifying whether or not to include the log type in each entry. |
+
+**Description**:
+
+Each entry in the log can include the type or type of log entry (or not, your choice).
+This will be in its own column, surrounded by square brackets, e.g. [developer]
+
+<br>
+
+## <a name="loggerSetNetworkTrafficFilters"></a>loggerSetNetworkTrafficFilters
+
+**Type**: command
+
+**Syntax**: `loggerSetNetworkTrafficFilters <pFilters>`
+
+**Summary**: Registers regex filters that will be applied to libURL messages that are logged.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pFilters` |  A CR-delimited list of filters to apply to libURL messages. Each line is a tab-delimited list where item 1 is a regex pattern and item 2 is the value to use as a replacement. |
+
+**Description**:
+
+You can set network traffic log filters to remove sensitive data from logs that you generate.
+
+<br>
+
+## <a name="loggerSetRowDelimiter"></a>loggerSetRowDelimiter
+
+**Type**: command
+
+**Syntax**: `loggerSetRowDelimiter <pRowDelim>`
+
+**Summary**: Sets row delimiter in the log.
+
+**Returns**: Empty
+
+<br>
+
+## <a name="loggerSetTarget"></a>loggerSetTarget
+
+**Type**: command
+
+**Syntax**: `loggerSetTarget <pTarget>`
+
+**Summary**: Sets where log messages will be sent.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pTarget` |  `console`, `<filename>`, or field reference (e.g. `<the long id field>`). |
+
+**Description**:
+
+You can target the "console", a file, or a field. "console" writes the log message to `stdout`.
+
+<br>
+
+## <a name="loggerSetTypes"></a>loggerSetTypes
+
+**Type**: command
+
+**Syntax**: `loggerSetTypes <pTypes>`
+
+**Summary**: Set the type of messages to log.
+
+**Returns**: Empty
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pTypes` |  A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`.  You can also specify your own types. |
+
+**Description**:
+
+Use this command to filter the types of messages that are logged.  Types that are not specified are ignored.
+
+The following types receive special handling from Levure
+`all`: All of the below special message types
+`developer`: Default message logged using `loggerLogMsg`.
+`network`: Messages logged by libURL.
+`msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
+`extensions`: Messages logged by an extension using the `log` command in LiveCode Builder.
+
+<br>
+
+## <a name="loggerSuspend"></a>loggerSuspend
+
+**Type**: command
+
+**Syntax**: `loggerSuspend `
+
+**Summary**: Suspends logging
+
+
+
 
