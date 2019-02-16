@@ -8,7 +8,7 @@ end logChanged
 
 # libURL
 on ulLogIt pMsg
-  _loggeruLogIt pMsg
+  _loggerUlLogIt pMsg
   if not the result then pass ulLogIt
 end ulLogIt
 
