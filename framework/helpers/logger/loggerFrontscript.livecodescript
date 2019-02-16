@@ -1,4 +1,4 @@
-script "LoggerFrontScript"
+script "Logger FrontScript"
 # LCB
 on logChanged pMsg
   _loggerLogChanged pMsg
