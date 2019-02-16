@@ -115,31 +115,49 @@ The library manages the menu of a stack in the following ways:
 
 ## API
 
+- [effectiveRectWorksInEngine](#effectiveRectWorksInEngine)
 - [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
 - [openCard](#openCard)
 - [windowCalculateRectForWindow](#windowCalculateRectForWindow)
 - [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
-- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
 >
+- [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
 - [windowClearWindowCache](#windowClearWindowCache)
+- [windowEnsureWindowIsEntirelyOnScreen](#windowEnsureWindowIsEntirelyOnScreen)
 - [windowGetProperty](#windowGetProperty)
 - [windowGoStack](#windowGoStack)
+>
 - [windowHasCardBeenOpened](#windowHasCardBeenOpened)
 - [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
->
 - [windowIsManaged](#windowIsManaged)
 - [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowResizeMenu](#windowResizeMenu)
+>
 - [windowResolveTargetStack](#windowResolveTargetStack)
 - [windowSaveWindowPosition](#windowSaveWindowPosition)
->
 - [windowSetCardInitializedState](#windowSetCardInitializedState)
 - [windowSetInitializedState](#windowSetInitializedState)
 - [windowSetProperty](#windowSetProperty)
+>
 - [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
 - [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
->
 - [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)
+
+<br>
+
+## <a name="effectiveRectWorksInEngine"></a>effectiveRectWorksInEngine
+
+**Type**: function
+
+**Syntax**: `effectiveRectWorksInEngine()`
+
+**Summary**: Only use effectiveRect in `preOpenStack` with supported engines.
+
+**Returns**: Boolean
+
+**Description**:
+
+LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
 
 <br>
 
@@ -270,6 +288,30 @@ After the user moves a stack window two things need to be checked:
 
 This handler should be called when closing a managed stack that has `destroyStack` set to true.
 
+
+<br>
+
+## <a name="windowEnsureWindowIsEntirelyOnScreen"></a>windowEnsureWindowIsEntirelyOnScreen
+
+**Type**: command
+
+**Syntax**: `windowEnsureWindowIsEntirelyOnScreen <pStackName>`
+
+**Summary**: Moves a stack window so that is entirely on the screen associated with the window.
+
+**Returns**: nothing
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pStackName` |  The name of the target stack. |
+
+**Description**:
+
+This command can be used to ensure a window remains entirely onscreen if the
+window width or height can increase by clicking a button in the UI. This assumes,
+of course, that the window dimensions are not larger than the screen dimensions.
 
 <br>
 

@@ -208,7 +208,7 @@ When an application is launched the command line parameters will be checked for 
 
 command OpenApplication
   if fileSystemFilesToProcessOnOpen() is not empty then
-    ProcessMyFiles fileSystemFilesToProcessOnOpen() # YOU MUST WRITE A 'PROCESSMYFILES' ROUTINE
+    ProcessMyFiles fileSystemFilesToProcessOnOpen()  # YOU MUST WRITE A 'ProcessMyFiles' ROUTINE
   end if
 end OpenApplication
 ```
@@ -219,7 +219,7 @@ If the operating system notifies your application that a supported file should b
 # app.livecodescript
 
 command ProcessFiles pFiles
-  ProcessMyFiles pFiles # YOU MUST WRITE A 'PROCESSMYFILES' ROUTINE
+  ProcessMyFiles pFiles # YOU MUST WRITE A 'ProcessMyFiles' ROUTINE
 end ProcessFiles
 ```
 
@@ -233,7 +233,7 @@ A similiar function and message exist for URLs.
 
 command OpenApplication
   if fileSystemURLsToProcessOnOpen() is not empty then
-    ProcessMyURL fileSystemURLsToProcessOnOpen() # YOU MUST WRITE A 'PROCESSMYURL' ROUTINE
+    ProcessMyURL fileSystemURLsToProcessOnOpen() # YOU MUST WRITE A 'ProcessMyURL' ROUTINE
   end if
 end OpenApplication
 ```
@@ -245,7 +245,7 @@ end OpenApplication
 # app.livecodescript
 
 command ProcessURL pURL
-  ProcessMyURL pURL # YOU MUST WRITE A 'PROCESSMYURL' ROUTINE
+  ProcessMyFiles pURL # YOU MUST WRITE A 'ProcessMyURL' ROUTINE
 end ProcessURL
 ```
 
@@ -313,15 +313,16 @@ The helper does not currently provide an API for working with security scoped fi
 - [fileSystemFileExtensionGroupExtensionsForCategory](#fileSystemFileExtensionGroupExtensionsForCategory)
 - [fileSystemFileExtensionsForTypes](#fileSystemFileExtensionsForTypes)
 - [fileSystemFilesToProcessOnOpen](#fileSystemFilesToProcessOnOpen)
+- [fileSystemGetFilenameFromMenuOption](#fileSystemGetFilenameFromMenuOption)
 - [fileSystemRecentlyOpened](#fileSystemRecentlyOpened)
-- [fileSystemRecentlyOpenedMenuText](#fileSystemRecentlyOpenedMenuText)
 >
+- [fileSystemRecentlyOpenedMenuText](#fileSystemRecentlyOpenedMenuText)
 - [fileSystemRegisterURLProtocol](#fileSystemRegisterURLProtocol)
 - [fileSystemRemoveFromRecentlyOpened](#fileSystemRemoveFromRecentlyOpened)
 - [fileSystemSecurityBookmarkForRecentlyOpenedFile](#fileSystemSecurityBookmarkForRecentlyOpenedFile)
 - [fileSystemSetMaxRecentFiles](#fileSystemSetMaxRecentFiles)
-- [fileSystemURLsToProcessOnOpen](#fileSystemURLsToProcessOnOpen)
 >
+- [fileSystemURLsToProcessOnOpen](#fileSystemURLsToProcessOnOpen)
 - [ProcessCommandLineParameters](#ProcessCommandLineParameters)
 - [urlWakeUp](#urlWakeUp)
 
@@ -353,7 +354,7 @@ be accessible using the `fileSystemFilesToProcessOnOpen()` and `fileSystemURLsTo
 
 **Summary**: Adds a file to the list of recently opened files for a specific category.
 
-**Returns**: Error message
+**Returns**: <br>**the result**: Error message<br>**it**: Numerically indexed array
 
 **Parameters**:
 
@@ -366,8 +367,12 @@ be accessible using the `fileSystemFilesToProcessOnOpen()` and `fileSystemURLsTo
 
 **Description**:
 
-Calling this handler will save preferences.
+If adding the file will exceed the maximum number of recent files that can be stored then
+a numerically indexed array will be returned. The array representes the files that were
+removed from the recently opened list. Each value is an array with "file" and "tag"
+keys.
 
+Calling this handler will save preferences.
 
 <br>
 
@@ -562,6 +567,47 @@ in the `app.yml` file.
 
 <br>
 
+## <a name="fileSystemGetFilenameFromMenuOption"></a>fileSystemGetFilenameFromMenuOption
+
+**Type**: function
+
+**Syntax**: `fileSystemGetFilenameFromMenuOption(<pMenuPickItem>)`
+
+**Summary**: Extracts the filename from the parameter passed to a menuPick message.
+
+**Returns**: String
+
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pMenuPickItem` |  The first parameter passed to the `menuPick` message. |
+
+**Description**:
+
+The `fileSystemRecentlyOpenedMenuText()` function is used to create menu items
+for a recently opened files menu. The full path to the file is encoded as
+UTF-8 and the passed through `urlEncode()` and used as the tag for the menu line.
+This function will grab the tag from the selected menu item, urldecode it and
+then convert the text back to LiveCode text.
+
+**Examples**:
+```
+on menuPick pItemName
+  set the itemdelimiter to "|"
+
+  switch item 1 of pItemName
+    case "open recent"
+      put fileSystemGetFilenameFromMenuOption(pItemName) into tFilename
+      uiOpenDocument tFilename
+      break
+    ...
+  end switch
+end menuPick
+```
+
+<br>
+
 ## <a name="fileSystemRecentlyOpened"></a>fileSystemRecentlyOpened
 
 **Type**: function
@@ -600,7 +646,8 @@ in the `app.yml` file.
 **Description**:
 
 Each line of the returned list will be prefixed with a tab and will have special characters escaped
-for display in a menu.
+for display in a menu. The filename will be encoded as UTF-8 and urlencoded. To extract
+the filename in the `menuPick` message use the `fileSystemGetFilenameFromMenupick()` function.
 
 
 <br>
