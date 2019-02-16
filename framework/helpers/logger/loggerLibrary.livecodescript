@@ -41,6 +41,7 @@ end releaseStack
 /**
 Summary: Sets where log messages will be sent.
 
+Parameters:
 pTarget: `console`, `<filename>`, or field reference (e.g. `<the long id field>`).
 
 Description:
@@ -87,6 +88,7 @@ end loggerGetTarget
 /**
 Summary: Set the type of messages to log.
 
+Parameters:
 pTypes: A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`.  You can also specify your own types.
 
 Description:
@@ -168,6 +170,7 @@ end loggerOpenLogMonitor
 /**
 Summary: Start logging a specific message type.
 
+Parameters:
 pType: The type of message to start logging.  This can be one of Levure's special types or any one that you define.
 
 Examples:
@@ -186,6 +189,7 @@ end loggerAddType
 /**
 Summary: Stop logging a specific message type.
 
+Parameters:
 pType: The type of message to start logging.  This can be one of Levure's special types or any one that you define.
 
 Examples:
@@ -224,6 +228,7 @@ end loggerGetTypes
 /**
 Summary: Registers regex filters that will be applied to libURL messages that are logged.
 
+Parameters:
 pFilters: A CR-delimited list of filters to apply to libURL messages. Each line is a tab-delimited list where item 1 is a regex pattern and item 2 is the value to use as a replacement.
 
 Description:
@@ -250,8 +255,8 @@ end loggerGetNetworkTrafficFilters
 /**
 Summary: Sets column delimiter in the log.
 
-colDelim: One or more ascii (numeric) codes, joined by "+".
-
+Parameters:
+pColDelim: One or more ascii (numeric) codes, joined by "+".
 
 Examples:
 loggerSetColumnDelimiter 9
@@ -271,8 +276,8 @@ end loggerSetColumnDelimiter
 /**
 Summary: Sets row delimiter in the log.
 
-rowDelim: One or more ascii (numeric) codes, joined by "+"
-
+Parameters:
+pRowDelim: One or more ascii (numeric) codes, joined by "+"
 
 Examples:
 loggerSetRowDelimiter 13
@@ -293,6 +298,7 @@ end loggerSetRowDelimiter
 /**
 Summary: Sets whether to include the log type in the log.
 
+Parameters:
 pIncludeLogType: Boolean specifying whether or not to include the log type in each entry.
 
 Description:
@@ -312,6 +318,7 @@ end loggerSetIncludeLogType
 /**
 Summary: Logs a message.
 
+Parameters:
 pMsg: The message to log.
 pLogType:  Type of the message.  Default is `developer`.
 
@@ -423,6 +430,7 @@ end _loggerMsgChanged
 /**
 Summary: Filters and logs a libURL message
 
+Parameters:
 pMsg: The message to log
 
 Description:
