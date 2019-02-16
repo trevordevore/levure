@@ -15,7 +15,7 @@ The Logger helper provides an API for managing how debug messages are logged in 
 * [Logging your own messages](#logging-your-own-messages)
 * [Filtering network traffic](#filtering-network-traffic)
 * [Monitoring log messages while debugging](#monitoring-log-messages-while-debugging)
-* [API](https://github.com/trevordevore/levure/wiki/helper-logger#api)
+* [API](#api)
 
 ## Example log output
 
