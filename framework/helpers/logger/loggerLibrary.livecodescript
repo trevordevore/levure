@@ -1,47 +1,35 @@
 script "Logger Library"
-constant kBuiltInLogTypes = "developer,extensions,network,msg"
+constant kBuiltInLogTypes = "developer,error,extensions,network,msg"
 
 local sLogTarget, sLogPresetTarget
 local sLogA
 local sNetworkFilters
 local sColDelim, sRowDelim
-local sIncludeLogTypeBool
-local sLoggingSuspended
+local sIncludeLogType
+local sLoggingSuspended = "false"
 
 
 on libraryStack
   if the target is not me then pass libraryStack
-  put false into sLoggingSuspended
-  #<Initial settings>
-    #<log types>
-      put "developer" into logtypes #default
-      if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into logtypes
-      loggerSetTypes logTypes
-    #</log types>
 
-    #<log target>
-      put empty into logTarget #default, i.e. ignore log messages
-      if levureAppHasProperty("logger>target") then put levureAppGet ("logger>target") into slogPresetTarget #can't set the target to a field if the stack containing the field isn't open - which will be true for any stack at startup.
-    #<log target>
+  local tLogTypes, tColDelim, tRowDelim, tIncludeLogType
 
-    #<column delimiter>
-      put 9 into colDelim #default tab
-      if levureAppHasProperty("logger>column-delimiter") then put levureAppGet ("logger>column-delimiter") into colDelim
-      loggerSetColumnDelimiter colDelim
-    #</column delimiter>
+  put "developer" into tLogTypes
+  if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into tLogTypes
 
-   #<row delimiter>
-      put 10 into rowDelim #default LF
-      if levureAppHasProperty("logger>row-delimiter") then put levureAppGet ("logger>row-delimiter") into rowDelim
-      loggerSetRowDelimiter rowDelim
-    #</row delimiter>
+  if levureAppHasProperty("logger>target") then put levureAppGet ("logger>target") into sLogTarget
 
-    #<report log type boolean>
-      put true into includeLogTypeBool #default
-      if levureAppHasProperty("logger>include-log-type") then put levureAppGet ("logger>include-log-type") into includeLogTypeBool
-      loggerSetIncludeLogType includeLogTypeBool
-    #</report log type boolean>
-  #</Initial settings>
+  put 9 into tColDelim
+  if levureAppHasProperty("logger>column-delimiter") then put levureAppGet ("logger>column-delimiter") into tColDelim
+  loggerSetColumnDelimiter tColDelim
+
+  put 10 into tRowDelim
+  if levureAppHasProperty("logger>row-delimiter") then put levureAppGet ("logger>row-delimiter") into tRowDelim
+  loggerSetRowDelimiter tRowDelim
+
+  put true into tIncludeLogType
+  if levureAppHasProperty("logger>include-log-type") then put levureAppGet ("logger>include-log-type") into tIncludeLogType
+  loggerSetIncludeLogType tIncludeLogType
 end libraryStack
 
 
@@ -78,9 +66,9 @@ command loggerSetTarget pTarget
       put offset(" of stack " & quote, sLogTarget, tFirstChar) into tSecondChar
       if tSecondChar > 0 then
         delete char (tFirstChar + tSecondChar) to -1 of sLogTarget
-      end if #tSecondChar > 0
-    end if #tFirstChar > 0
-  end if #sLogTarget begins with "field "
+      end if
+    end if
+  end if
 
   return empty
 end loggerSetTarget
@@ -92,19 +80,8 @@ Summary: Returns the current target where log messages are sent.
 Returns: empty, `console`, `<filename>`, or field reference
 */
 function loggerGetTarget
-  return _logTarget()
-end loggerGetTarget
-
-
-
-private function _logTarget
-  /*
-   Returns the current log target.  Do it as a function b/c if the user pre-sets the target to a field in app.yml, the stack containing the field won't be open
-   when logger is initialized, which will result in an error when we try to retrieve the long id of the field.
-   */
-  if sLogPresetTarget is not empty and sLogTarget is empty then loggerSetTarget sLogPresetTarget # target was set in app.yml, but not set in logger yet.  This happens the first time b/c presetting a target to a field fails if the stack that contains the field isn't open yet, which is what we have at startup, when the helper is loaded.
   return sLogTarget
-end _logTarget
+end loggerGetTarget
 
 
 /**
@@ -123,22 +100,22 @@ The following types receive special handling from Levure
 `extensions`: Messages logged by an extension using the `log` command in LiveCode Builder.
 
 Examples:
-loggerSetTypes "'"developer,network"
-loggerSetTypes "error,oops" #custom types I want to use with loggerLogMsg
+loggerSetTypes "developer,network"
+loggerSetTypes "timer,oops" #custom types I want to use with loggerLogMsg
 
 Returns: Empty
 */
 command loggerSetTypes pTypes
-  #<Initialize True/False for the special built-in types>
-    put "all" is among the items of pTypes into preAssignBool
+  local tPreAssignBool, tType, tTypeToAssign
 
-    repeat for each item tType in kBuiltInLogTypes
-      put preAssignBool into sLogA[tType]
-    end repeat # for each item tType in kBuiltInLogTypes
-  #</Initialize True/False for the special built-in types>
+  put "all" is among the items of pTypes into tPreAssignBool
 
-  repeat for each item typeToAssign in pTypes #in case there are any others in the list (custom ones from the developer).  No harm in going over again for specials.
-    put true into sLogA[typeToAssign]
+  repeat for each item tType in kBuiltInLogTypes
+    put tPreAssignBool into sLogA[tType]
+  end repeat
+
+  repeat for each item tTypeToAssign in pTypes
+    put true into sLogA[tTypeToAssign]
   end repeat
 
   _activateExternalLogger sLogA["network"] is true
@@ -270,7 +247,6 @@ function loggerGetNetworkTrafficFilters
 end loggerGetNetworkTrafficFilters
 
 
-
 /**
 Summary: Sets column delimiter in the log.
 
@@ -283,12 +259,13 @@ loggerSetColumnDelimiter 9
 Returns: Empty
 */
 command loggerSetColumnDelimiter pColDelim
+  local tAsciiCode
+
   set the itemDelimiter to "+"
-  repeat for each item theAsciiCode in pColDelim
-    put numtochar(theAsciiCode) after sColDelim
+  repeat for each item tAsciiCode in pColDelim
+    put numToNativeChar(tAsciiCode) after sColDelim
   end repeat
 end loggerSetColumnDelimiter
-
 
 
 /**
@@ -304,55 +281,54 @@ loggerSetRowDelimiter 13+10
 Returns: Empty
 */
 command loggerSetRowDelimiter pRowDelim
+  local tAsciiCode
+
   set the itemDelimiter to "+"
-  repeat for each item theAsciiCode in pRowDelim
-    put numtochar(theAsciiCode) after sRowDelim
+  repeat for each item tAsciiCode in pRowDelim
+    put numToNativeChar(tAsciiCode) after sRowDelim
   end repeat
 end loggerSetRowDelimiter
-
 
 
 /**
 Summary: Sets whether to include the log type in the log.
 
-includeLogTypeBool: Whether to include the log type in each entry or not
+pIncludeLogType: Boolean specifying whether or not to include the log type in each entry.
 
 Description:
-Each entry in the log can include the type or type of log entry (or not, your choice).  This will be in its own column, surrounded by square brackets, e.g. [developer]
+Each entry in the log can include the type or type of log entry (or not, your choice).
+This will be in its own column, surrounded by square brackets, e.g. [developer]
 
 Examples:
 loggerSetIncludeLogType true
 
 Returns: Empty
 */
-command loggerSetIncludeLogType bool
-  put bool into sIncludeLogTypeBool
+command loggerSetIncludeLogType pIncludeLogType
+  put pIncludeLogType is true into sIncludeLogType
 end loggerSetIncludeLogType
-
 
 
 /**
 Summary: Logs a message.
 
 pMsg: The message to log.
-[pLogType]:  Type of the message.  Default is "developer"
+[pLogType]:  Type of the message.  Default is `developer`.
 
 Returns: Error message
 */
 command loggerLogMsg pMsg, pLogType
  local tError
 
-  if _logTarget() is empty then return empty #ignore message if no target is set
-  if pLogType is empty then put "developer" into pLogType #default
-  if not sLogA[pLogType] then return empty #if we're not logging this type then ignore
-  
+  if sLogTarget is empty then return empty
+  if pLogType is empty then put "developer" into pLogType
+  if not sLogA[pLogType] then return empty
 
   _log pMsg, pLogType
   put the result into tError
 
   return tError for error
 end loggerLogMsg
-
 
 
 /**
@@ -363,7 +339,6 @@ command loggerSuspend
 end loggerSuspend
 
 
-
 /**
 Summary: Resumes logging
 */
@@ -372,38 +347,31 @@ command loggerResume
 end loggerResume
 
 
-
-private command _log pMsg, logType
+private command _log pMsg, pLogType
   local tError
-  local msgInfo
+  local tMsgInfo
 
   if sLoggingSuspended then return empty for error
 
-  #<build log entry>
-    put _squareBracket(the internet date) & sColDelim into msgInfo #date/time stamp
-    if sIncludeLogTypeBool then put sColDelim & _squareBracket(logType) & sColDelim after msgInfo # log type
-    put msgInfo before pMsg
-    put sRowDelim after pMsg
-  #</build log entry>
+  put _squareBracket(the internet date) & sColDelim into tMsgInfo
+  if sIncludeLogType then put sColDelim & _squareBracket(pLogType) & sColDelim after tMsgInfo
+  put tMsgInfo before pMsg
+  put sRowDelim after pMsg
 
+  if sLogTarget is "console" then
+    write pMsg & cr to stdout
+  else if sLogTarget begins with "field " and there is a sLogTarget then
+    put pMsg after field id (word 3 of sLogTarget) of stack (word -2 to -1 of sLogTarget)
+  else #file
+    open file sLogTarget for append
+    put the result into tError
 
-  #<output>
-    put _logTarget() into logTarget
-    if logTarget is "console" then
-      write pMsg & cr to stdout
-    else if logTarget begins with "field " and there is a logTarget then
-      put pMsg after field id (word 3 of logTarget) of stack (word -2 to -1 of logTarget)
-    else #file
-      open file logTarget for append
-      put the result into tError
+    if tError is empty then
+      write textEncode(pMsg, "utf8") to file sLogTarget
+    end if
 
-      if tError is empty then
-        write textEncode(pMsg, "utf8") to file logTarget
-      end if
-
-      close file logTarget
-    end if #logTarget is "console"
-  #</output>
+    close file sLogTarget
+  end if
 
   return tError for error
 end _log
@@ -421,8 +389,8 @@ end _activateExternalLogger
 
 # LCB
 on _loggerLogChanged pMsg
-  if sLogA["extensions"] AND _logTarget() is not empty then
-    _log pMsg
+  if sLogA["extensions"] AND sLogTarget is not empty then
+    _log pMsg, "extension"
     return true
   else
     return false
@@ -431,22 +399,22 @@ end _loggerLogChanged
 
 
 # libURL
-on _loggeruLogIt pMsg
-  if sLogA["network"] AND _logTarget() is not empty then
+on _loggerUlLogIt pMsg
+  if sLogA["network"] AND sLogTarget is not empty then
     _logLibURLMessage pMsg
     return true
   else
     return false
   end if
-end _loggeruLogIt
+end _loggerUlLogIt
 
 
 # Message Box
 on _loggerMsgChanged
   if sLogA["msg"] and msg is not empty then
-    _log "msg changed:" && msg, "msg"
+    _log msg, "msg"
     return true
-  else 
+  else
     return false
   end if
 end _loggerMsgChanged
@@ -484,7 +452,6 @@ private command _logLibURLMessage pMsg
 end _logLibURLMessage
 
 
-
-private function _squareBracket what
-  return "[" & what & "]"
+private function _squareBracket pMsg
+  return "[" & pMsg & "]"
 end _squareBracket
