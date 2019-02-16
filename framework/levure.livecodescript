@@ -168,6 +168,47 @@ levurePackageApplication "release"
 Returns: Error message
 */
 command levurePackageApplication pBuildProfile
+  local tError, tSimulator
+
+  # Backwards compatability. Can be removed before 1.0 release.
+  if pBuildProfile is "ios simulator" then
+    put "release" into pBuildProfile
+    put "ios" into tSimulator
+  else if pBuildProfile is "android simulator" then
+    put "release" into pBuildProfile
+    put "android" into tSimulator
+  end if
+
+  _packageApplication pBuildProfile, tSimulator
+  return the result for error
+end levurePackageApplication
+
+
+/**
+Summary: Packages the application and launches it in a simulator.
+
+Parameters:
+pSimulator: `ios` or `android`.
+pBuildProfile: The profile to build (e.g. `release` or `beta`). The profile must be defined in your `app.yml` file. Default is `release`.
+
+Description:
+See `levurePackageApplication` for details about packaging process. The only difference
+is that this handler will build the application in a temporary folder
+and will launch the simulator after packaging is complete.
+
+Returns: nothing
+*/
+command levureTestApplicationInSimulator pSimulator, pBuildProfile
+  local tError
+
+  if pBuildProfile is empty then put "release" into pBuildProfile
+
+  _packageApplication pBuildProfile, pSimulator
+  return the result for error
+end levureTestApplicationInSimulator
+
+
+private command _packageApplication pBuildProfile, pSimulator
   local tError, tStackFilename
 
   if the environment is not "development" then put "can only be run in development environment" into tError
@@ -182,11 +223,11 @@ command levurePackageApplication pBuildProfile
 
     put the effective filename of me into tStandaloneStack
     # This stack will be removed from memory so send in time
-    send "packagerPackageApplication tStandaloneStack, pBuildProfile" to stack tStackFilename in 10 milliseconds
+    send "packagerPackageApplication tStandaloneStack, pBuildProfile, pSimulator" to stack tStackFilename in 10 milliseconds
   end if
 
   return tError for error
-end levurePackageApplication
+end _packageApplication
 
 
 /**

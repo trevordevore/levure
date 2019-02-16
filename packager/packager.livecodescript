@@ -43,11 +43,15 @@ Summary: Packages an application for configured platforms.
 
 pStandaloneStackFilename: The filename of the standalone stack.
 pBuildProfile: The build profile to use when packaging the application.
+pSimulator: `ios` or `simulator`.
+
+Description:
+If `pSimulator` has a valid value then
 
 Returns: Empty
 
 */
-command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
+command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSimulator
   local tError, tBuildProfile, tBuildStandalone, tStandaloneBuilderPlatforms
   local tSubFolder, tOutputFolder, tAppFolder, tPlatformFilter
 
@@ -56,12 +60,10 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile
   put levureAppGetConfig() into sAppA
   put pBuildProfile into tBuildProfile
 
-  if pBuildProfile is "ios simulator" then
-    put "release" into pBuildProfile
+  if pSimulator is "ios" then
     put false into tBuildStandalone
     put "ios" into tStandaloneBuilderPlatforms
-  else if pBuildProfile is "android simulator" then
-    put "release" into pBuildProfile
+  else if pBuildProfile is "android" then
     put false into tBuildStandalone
     put "android" into tStandaloneBuilderPlatforms
   else
