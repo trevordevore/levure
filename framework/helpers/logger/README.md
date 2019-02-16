@@ -50,12 +50,13 @@ You configure the Logger helper by specifying several settings:
 
 ### Specifying which types of messages to log
 
-You can specify which types of messages will be logged. The types are `all`, `developer`, `network`, `msg`, `extensions`.
+You can specify which types of messages will be logged. The types are `all`, `developer`, `error`, network`, `msg`, `extensions`.
 
 |  Type  |  Description  |
 |------------|---------------|
 | `all` | log all messages that Levure tracks.  Messages that are added to the list in the future will be automatically added. |
 | `developer` | messages logged with `loggerLogMsg` without specifying a type |
+| `error` | Use to log error messages within your app.
 | `network` | messages logged by libURL |
 | `msg` | `put` messages with no target, or targeting the message box (empty messages will be ignored) |
 | `extensions` | messages from LiveCode builder extensions. |
@@ -125,7 +126,7 @@ Next, any of the following values can be assigned.  All are optional:
 #app.yml
 
 logger:
-   types: developer,error #in this case "error" is a custom type
+   types: developer,error,timer #in this case "timer" is a custom type
    target: console
    column-delimiter: 9
    row-delimiter: 10+13
