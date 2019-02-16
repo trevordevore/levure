@@ -1,18 +1,35 @@
 script "Logger Library"
-constant kLogTypes = "developer,extensions,network,msg"
+constant kBuiltInLogTypes = "developer,error,extensions,network,msg"
 
 local sLogTarget
 local sLogA
 local sNetworkFilters
+local sColDelim, sRowDelim
+local sIncludeLogType
+local sLoggingSuspended = "false"
 
 
 on libraryStack
   if the target is not me then pass libraryStack
 
-  put true into sLogA["developer"]
-  put false into sLogA["extensions"]
-  put false into sLogA["network"]
-  put false into sLogA["msg"]
+  local tLogTypes, tColDelim, tRowDelim, tIncludeLogType
+
+  put "developer" into tLogTypes
+  if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into tLogTypes
+
+  if levureAppHasProperty("logger>target") then put levureAppGet ("logger>target") into sLogTarget
+
+  put 9 into tColDelim
+  if levureAppHasProperty("logger>column-delimiter") then put levureAppGet ("logger>column-delimiter") into tColDelim
+  loggerSetColumnDelimiter tColDelim
+
+  put 10 into tRowDelim
+  if levureAppHasProperty("logger>row-delimiter") then put levureAppGet ("logger>row-delimiter") into tRowDelim
+  loggerSetRowDelimiter tRowDelim
+
+  put true into tIncludeLogType
+  if levureAppHasProperty("logger>include-log-type") then put levureAppGet ("logger>include-log-type") into tIncludeLogType
+  loggerSetIncludeLogType tIncludeLogType
 end libraryStack
 
 
@@ -22,8 +39,9 @@ end releaseStack
 
 
 /**
-Summary: Sets the field where log messages will be sent.
+Summary: Sets where log messages will be sent.
 
+Parameters:
 pTarget: `console`, `<filename>`, or field reference (e.g. `<the long id field>`).
 
 Description:
@@ -32,7 +50,7 @@ You can target the "console", a file, or a field. "console" writes the log messa
 Examples:
 loggerSetTarget "console"
 loggerSetTarget specialFolderPath("desktop") & "/log_file.txt"
-loggerSetTarget the long id of field "Log" of me
+loggerSetTarget the long id of field "Log" of me # using just field "x" of me will instead try to use the _contents_ of the field.
 
 Returns: Empty
 */
@@ -70,31 +88,37 @@ end loggerGetTarget
 /**
 Summary: Set the type of messages to log.
 
-pTypes: A comma-delimited list of types to log.
+Parameters:
+pTypes: A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`.  You can also specify your own types.
 
 Description:
-Use this command to filter the types of messages that are logged.
+Use this command to filter the types of messages that are logged.  Types that are not specified are ignored.
 
-`all` : All currently supported message types.
-`developer`: Any message logged using `loggerLogMsg`.
+The following types receive special handling from Levure
+`all`: All of the below special message types
+`developer`: Default message logged using `loggerLogMsg`.
 `network`: Messages logged by libURL.
 `msg`: Any `put` statements that do not have a target. E.g. `put "testing"`
 `extensions`: Messages logged by an extension using the `log` command in LiveCode Builder.
 
+Examples:
+loggerSetTypes "developer,network"
+loggerSetTypes "timer,oops" #custom types I want to use with loggerLogMsg
+
 Returns: Empty
 */
 command loggerSetTypes pTypes
-  if pTypes is "all" then
-    local tType
-    repeat for each item tType in kLogTypes
-      put true into sLogA[tType]
-    end repeat
-  else
-    put "developer" is among the items of pTypes into sLogA["developer"]
-    put "network" is among the items of pTypes into sLogA["network"]
-    put "msg" is among the items of pTypes into sLogA["msg"]
-    put "extensions" is among the items of pTypes into sLogA["extensions"]
-  end if
+  local tPreAssignBool, tType, tTypeToAssign
+
+  put "all" is among the items of pTypes into tPreAssignBool
+
+  repeat for each item tType in kBuiltInLogTypes
+    put tPreAssignBool into sLogA[tType]
+  end repeat
+
+  repeat for each item tTypeToAssign in pTypes
+    put true into sLogA[tTypeToAssign]
+  end repeat
 
   _activateExternalLogger sLogA["network"] is true
 
@@ -146,17 +170,18 @@ end loggerOpenLogMonitor
 /**
 Summary: Start logging a specific message type.
 
-pType: `developer`, `network`, `msg`, `extensions`.
+Parameters:
+pType: The type of message to start logging.  This can be one of Levure's special types or any one that you define.
+
+Examples:
+loggerAddType "msg"
+loggerAddType "oops" #a custom type
 
 Returns: Empty
 */
 command loggerAddType pType
-  if pType is among the items of kLogTypes then
-    put true into sLogA[pType]
-  end if
-
+  put true into sLogA[pType]
   _activateExternalLogger sLogA["network"] is true
-
   return empty
 end loggerAddType
 
@@ -164,17 +189,18 @@ end loggerAddType
 /**
 Summary: Stop logging a specific message type.
 
-pType: `developer`, `network`, `msg`, `extensions`.
+Parameters:
+pType: The type of message to start logging.  This can be one of Levure's special types or any one that you define.
+
+Examples:
+loggerAddType "msg"
+loggerAddType "oops" #a custom type
 
 Returns: Empty
 */
 command loggerRemoveType pType
-  if pType is among the items of kLogTypes then
-    put false into sLogA[pType]
-  end if
-
+  put false into sLogA[pType]
   _activateExternalLogger sLogA["network"] is true
-
   return empty
 end loggerRemoveType
 
@@ -202,6 +228,7 @@ end loggerGetTypes
 /**
 Summary: Registers regex filters that will be applied to libURL messages that are logged.
 
+Parameters:
 pFilters: A CR-delimited list of filters to apply to libURL messages. Each line is a tab-delimited list where item 1 is a regex pattern and item 2 is the value to use as a replacement.
 
 Description:
@@ -226,34 +253,123 @@ end loggerGetNetworkTrafficFilters
 
 
 /**
-Summary: Logs a message. The message is of type `developer`.
+Summary: Sets column delimiter in the log.
 
+Parameters:
+pColDelim: One or more ascii (numeric) codes, joined by "+".
+
+Examples:
+loggerSetColumnDelimiter 9
+
+Returns: Empty
+*/
+command loggerSetColumnDelimiter pColDelim
+  local tAsciiCode
+
+  set the itemDelimiter to "+"
+  repeat for each item tAsciiCode in pColDelim
+    put numToNativeChar(tAsciiCode) after sColDelim
+  end repeat
+end loggerSetColumnDelimiter
+
+
+/**
+Summary: Sets row delimiter in the log.
+
+Parameters:
+pRowDelim: One or more ascii (numeric) codes, joined by "+"
+
+Examples:
+loggerSetRowDelimiter 13
+loggerSetRowDelimiter 13+10
+
+Returns: Empty
+*/
+command loggerSetRowDelimiter pRowDelim
+  local tAsciiCode
+
+  set the itemDelimiter to "+"
+  repeat for each item tAsciiCode in pRowDelim
+    put numToNativeChar(tAsciiCode) after sRowDelim
+  end repeat
+end loggerSetRowDelimiter
+
+
+/**
+Summary: Sets whether to include the log type in the log.
+
+Parameters:
+pIncludeLogType: Boolean specifying whether or not to include the log type in each entry.
+
+Description:
+Each entry in the log can include the type or type of log entry (or not, your choice).
+This will be in its own column, surrounded by square brackets, e.g. [developer]
+
+Examples:
+loggerSetIncludeLogType true
+
+Returns: Empty
+*/
+command loggerSetIncludeLogType pIncludeLogType
+  put pIncludeLogType is true into sIncludeLogType
+end loggerSetIncludeLogType
+
+
+/**
+Summary: Logs a message.
+
+Parameters:
 pMsg: The message to log.
+pLogType:  Type of the message.  Default is `developer`.
 
 Returns: Error message
 */
-command loggerLogMsg pMsg
-  if not sLogA["developer"] OR sLogTarget is empty then return empty
+command loggerLogMsg pMsg, pLogType
+ local tError
 
-  local tError
+  if sLogTarget is empty then return empty
+  if pLogType is empty then put "developer" into pLogType
+  if not sLogA[pLogType] then return empty
 
-  _log pMsg
+  _log pMsg, pLogType
   put the result into tError
 
   return tError for error
 end loggerLogMsg
 
 
-private command _log pMsg
-  local tError
+/**
+Summary: Suspends logging
+*/
+command loggerSuspend
+  put true into sLoggingSuspended
+end loggerSuspend
 
-  put "[" & the internet date & "] " && pMsg & cr into pMsg
+
+/**
+Summary: Resumes logging
+*/
+command loggerResume
+  put false into sLoggingSuspended
+end loggerResume
+
+
+private command _log pMsg, pLogType
+  local tError
+  local tMsgInfo
+
+  if sLoggingSuspended then return empty for error
+
+  put _squareBracket(the internet date) & sColDelim into tMsgInfo
+  if sIncludeLogType then put sColDelim & _squareBracket(pLogType) & sColDelim after tMsgInfo
+  put tMsgInfo before pMsg
+  put sRowDelim after pMsg
 
   if sLogTarget is "console" then
     write pMsg & cr to stdout
   else if sLogTarget begins with "field " and there is a sLogTarget then
     put pMsg after field id (word 3 of sLogTarget) of stack (word -2 to -1 of sLogTarget)
-  else
+  else #file
     open file sLogTarget for append
     put the result into tError
 
@@ -277,36 +393,44 @@ private command _activateExternalLogger pBoolean
   end if
 end _activateExternalLogger
 
+
 # LCB
-on logChanged pMsg
+on _loggerLogChanged pMsg
   if sLogA["extensions"] AND sLogTarget is not empty then
-    _log pMsg
+    _log pMsg, "extension"
+    return true
   else
-    pass logChanged
+    return false
   end if
-end logChanged
+end _loggerLogChanged
+
 
 # libURL
-on ulLogIt pMsg
+on _loggerUlLogIt pMsg
   if sLogA["network"] AND sLogTarget is not empty then
     _logLibURLMessage pMsg
+    return true
   else
-    pass ulLogIt
+    return false
   end if
-end ulLogIt
+end _loggerUlLogIt
+
 
 # Message Box
-on msgChanged
+on _loggerMsgChanged
   if sLogA["msg"] and msg is not empty then
-    _log "msg changed:" && msg
+    _log msg, "msg"
+    return true
+  else
+    return false
   end if
-  pass msgChanged
-end msgChanged
+end _loggerMsgChanged
 
 
 /**
 Summary: Filters and logs a libURL message
 
+Parameters:
 pMsg: The message to log
 
 Description:
@@ -332,5 +456,10 @@ private command _logLibURLMessage pMsg
     put replaceText(pMsg, item 1 of tFilter, item 2 of tFilter) into pMsg
   end repeat
 
-  _log pMsg
+  _log pMsg, "network"
 end _logLibURLMessage
+
+
+private function _squareBracket pMsg
+  return "[" & pMsg & "]"
+end _squareBracket

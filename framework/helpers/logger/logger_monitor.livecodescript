@@ -44,7 +44,7 @@ on preOpenCard
       put loggerGetTypes() into sOrigLocTypes
 
       loggerSetTarget the long id of field "LogMessages" of me
-      loggerSetTypes "developer,msg,extensions"
+      loggerSetTypes "developer,msg,extensions,error"
    else
       set the text of field "LogMessages" of me to "Logger helper is not available"
    end if
