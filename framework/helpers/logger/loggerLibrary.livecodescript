@@ -313,7 +313,7 @@ end loggerSetIncludeLogType
 Summary: Logs a message.
 
 pMsg: The message to log.
-[pLogType]:  Type of the message.  Default is `developer`.
+pLogType:  Type of the message.  Default is `developer`.
 
 Returns: Error message
 */
