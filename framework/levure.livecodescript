@@ -236,14 +236,14 @@ Summary: Message sent from the packager script.
 Description:
 Move along. Nothing to see here.
 */
-command packagerDidFinishPackagingApplication pStandaloneStackFilename, pBuildProfile
+command packagerDidFinishPackagingApplication pStandaloneStackFilename, pBuildProfile, pSimulator
   # Remove from memory after packaging is complete
   if there is a stack "Levure Framework Application Packager FrontScript" then
     delete stack "Levure Framework Application Packager FrontScript"
   end if
   delete stack "Levure Framework Application Packager"
 
-  if pBuildProfile is among the items of "ios simulator,android simulator" then
+  if pSimulator is among the items of "ios,android" then
     go stack pStandaloneStackFilename
     dispatch "revIDEDeployAction" to stack "revDeployLibrary"
   end if

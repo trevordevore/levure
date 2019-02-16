@@ -280,7 +280,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
     log "Done packaging application"
   end if
 
-  send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile" to stack pStandaloneStackFilename in 10 milliseconds
+  send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile, pSimulator" to stack pStandaloneStackFilename in 10 milliseconds
 end packagerPackageApplication
 
 
