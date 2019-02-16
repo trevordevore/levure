@@ -247,8 +247,8 @@ The [`loggerOpenLogMonitor`](https://github.com/trevordevore/levure/wiki/helper-
 
 | Name | Description |
 |:---- |:----------- |
-| `pMsg` |  The message to log.
-[pLogType]:  Type of the message.  Default is `developer`. |
+| `pMsg` |  The message to log. |
+| `pLogType` |  Type of the message.  Default is `developer`. |
 
 <br>
 
