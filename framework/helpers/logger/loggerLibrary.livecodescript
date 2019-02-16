@@ -1,7 +1,7 @@
 script "Logger Library"
 constant kBuiltInLogTypes = "developer,error,extensions,network,msg"
 
-local sLogTarget, sLogPresetTarget
+local sLogTarget
 local sLogA
 local sNetworkFilters
 local sColDelim, sRowDelim
