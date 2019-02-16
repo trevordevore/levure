@@ -1,5 +1,3 @@
-
-
 # logger
 
 The Logger helper provides an API for managing how debug messages are logged in an application. It provides the following features:
@@ -158,3 +156,8 @@ You can see what the current filters are by calling the `loggerGetNetworkTraffic
 ## Monitoring log messages while debugging
 
 The [`loggerOpenLogMonitor`](https://github.com/trevordevore/levure/wiki/helper-logger#loggerOpenLogMonitor) command will open a palette that displays all log messages. This can be helpful when you need to see log messages in order to debug something in the IDE or while running in a standalone.
+
+<br>
+
+## API
+
