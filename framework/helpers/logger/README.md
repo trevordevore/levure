@@ -20,7 +20,9 @@ The Logger helper provides an API for managing how debug messages are logged in 
 * [API](https://github.com/trevordevore/levure/wiki/helper-logger#api)
 
 ## Example log output
+
 Here is an example of what logger will output (when including the message type column)
+
 ```
 [Sat, 8 Dec 2018 09:33:26 -0500]		[developer]	This is a test
 [Sat, 8 Dec 2018 09:33:37 -0500]		[myTest]	You forgot something
@@ -60,29 +62,32 @@ You can specify which types of messages will be logged. The types are `all`, `de
 | `[custom type]` | Any other custom type that the developer uses and wishes to track. |
 
 There are three commands you can use to configure the types of messages to log:
+
 * `loggerSetTypes pTypes`: Pass in a comma-delimted list of types of messages to log.
 * `loggerAddType pType`: Specify that a specific type of message should be logged.
 * `loggerRemoveType pType`: Do not log a specific type of message.
 
 #### Example:
+
 ```
 # Only log developer and internet log messages
 loggerSetTypes "developer,network"
 ```
 
-<br>
-
 `loggerGetTypes()` returns a comma-delimited list of types that are being logged.  NOTE:  `all` is not a type.  The specific types that are active are returned.
+
 #### Example:
+
 ```
 loggerSetTypes ("all")
 loggerGetTypes()
 ```
+
 Will return
+
 ```
 developer,network,msg,extensions
 ```
-
 
 ### Specifying where to log messages
 
@@ -104,6 +109,7 @@ You can check where log messages are being sent using the `loggerGetTarget()` fu
 
 You can optionally pre-configure logger using your app.yml file.
 First, add a ```logger``` section.
+
 Next, any of the following values can be assigned.  All are optional:
 
 |  Type  |  Description  |
