@@ -115,9 +115,9 @@ Next, any of the following values can be assigned.  All are optional:
 |------------|---------------|
 | `types` | Comma-delimited list of [log message types](#Specifying-which-types-of-messages-to-log) |
 | `target` | Specifies [where your log messages should be sent](#Specifying-where–to-log-messages)|
-| `column-delimiter` | One or more ASCII codes joined by ```+``` to be used to separate columns in the log
-| `row-delimiter` | One or more ASCII codes joined by ```+``` to be used to separate rows in the log
-| `include-log-type` | (boolean) Include (or exclude) a column with the log message type. |
+| `column delimiter` | One or more ASCII codes joined by ```+``` to be used to separate columns in the log
+| `row delimiter` | One or more ASCII codes joined by ```+``` to be used to separate rows in the log
+| `include log type` | (boolean) Include (or exclude) a column with the log message type. |
 
 ### Example:
 ```
@@ -126,9 +126,9 @@ Next, any of the following values can be assigned.  All are optional:
 logger:
    types: developer,error,timer #in this case "timer" is a custom type
    target: console
-   column-delimiter: 9
-   row-delimiter: 10+13
-   include-log-type: true
+   column delimiter: 9
+   row delimiter: 10+13
+   include log type: true
 ```
 
 

@@ -20,15 +20,15 @@ on libraryStack
   if levureAppHasProperty("logger>target") then put levureAppGet ("logger>target") into sLogTarget
 
   put 9 into tColDelim
-  if levureAppHasProperty("logger>column-delimiter") then put levureAppGet ("logger>column-delimiter") into tColDelim
+  if levureAppHasProperty("logger>column delimiter") then put levureAppGet ("logger>column delimiter") into tColDelim
   loggerSetColumnDelimiter tColDelim
 
   put 10 into tRowDelim
-  if levureAppHasProperty("logger>row-delimiter") then put levureAppGet ("logger>row-delimiter") into tRowDelim
+  if levureAppHasProperty("logger>row delimiter") then put levureAppGet ("logger>row delimiter") into tRowDelim
   loggerSetRowDelimiter tRowDelim
 
   put true into tIncludeLogType
-  if levureAppHasProperty("logger>include-log-type") then put levureAppGet ("logger>include-log-type") into tIncludeLogType
+  if levureAppHasProperty("logger>include log type") then put levureAppGet ("logger>include log type") into tIncludeLogType
   loggerSetIncludeLogType tIncludeLogType
 end libraryStack
 
