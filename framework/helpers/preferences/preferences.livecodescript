@@ -20,7 +20,11 @@ on libraryStack
   # Set target suite on macOS
   if useNSUserDefaultsExtension("user") then
     if filenameForPlatform("user") is not empty then
-      get NSUserDefaultsInitWithSuiteName(filenameForPlatform("user"))
+      if the environment is "development" then
+        get NSUserDefaultsInitWithSuiteName(filenameForPlatform("user"))
+      else
+        get NSUserDefaultsInitWithSuiteName("")
+      end if
     end if
   end if
 end libraryStack

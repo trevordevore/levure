@@ -21,7 +21,7 @@ library community.livecode.trevordevore.nsuserdefaults
   private foreign handler ObjC_NSUserDefaultsStandardUserDefaults() \
         returns ObjcId \
         binds to "objc:NSUserDefaults.+standardUserDefaults"
-  private foreign handler ObjC_NSUserDefaultsInitWithSuiteName (in pObj as ObjcRetainedId, in pSuiteName as ObjcId) \
+  private foreign handler ObjC_NSUserDefaultsInitWithSuiteName (in pObj as ObjcRetainedId, in pSuiteName as optional ObjcId) \
         returns ObjcId \
         binds to "objc:NSUserDefaults.-initWithSuiteName:"
   private foreign handler ObjC_NSUserDefaultsObjectForKey (in pObj as ObjcId, in defaultName as ObjcId) \
@@ -122,15 +122,19 @@ library community.livecode.trevordevore.nsuserdefaults
       put nothing into mNSUserDefaultsInstance
     end if
 
-    if pSuiteName is not empty then
-      unsafe
-        put ObjC_NSUserDefaultsAlloc() into tUserDefaults
+    unsafe
+      put ObjC_NSUserDefaultsAlloc() into tUserDefaults
+
+      if pSuiteName is empty then
         // tUserDefaults can be null when calling this with a suite name that matches app identifier in a standalone.
         // That is fine as the standard user defaults will be used which gives the same result.
+        put ObjC_NSUserDefaultsInitWithSuiteName(tUserDefaults, nothing) into tUserDefaults
+      else
         put ObjC_NSUserDefaultsInitWithSuiteName(tUserDefaults, StringToNSString(pSuiteName)) into tUserDefaults
-        put tUserDefaults into mNSUserDefaultsInstance
-      end unsafe
-    end if
+      end if
+
+      put tUserDefaults into mNSUserDefaultsInstance
+    end unsafe
   end handler
 
 
