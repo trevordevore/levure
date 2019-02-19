@@ -20,6 +20,9 @@ on libraryStack
   # Set target suite on macOS
   if useNSUserDefaultsExtension("user") then
     if filenameForPlatform("user") is not empty then
+      # In the IDE the suite name must be passed in in order to target the proper
+      # preferences. When running as a standalone the app id in the plist file
+      # will be used automatically.
       if the environment is "development" then
         get NSUserDefaultsInitWithSuiteName(filenameForPlatform("user"))
       else
