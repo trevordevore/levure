@@ -40,7 +40,7 @@ on preOpenCard
    set the hilite of button "LogNetworkTraffic" to false
 
    if there is a stack "Logger Library" then
-      put loggerGetTypes() into sOrigTarget
+      put loggerGetTarget() into sOrigTarget
       put loggerGetTypes() into sOrigLocTypes
 
       loggerSetTarget the long id of field "LogMessages" of me
