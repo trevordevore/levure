@@ -16,6 +16,7 @@ on libraryStack
 
   put "developer" into tLogTypes
   if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into tLogTypes
+  loggerSetTypes tLogTypes
 
   if levureAppHasProperty("logger>target") then put levureAppGet ("logger>target") into sLogTarget
 
