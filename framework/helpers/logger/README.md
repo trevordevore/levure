@@ -85,7 +85,7 @@ loggerGetTypes()
 Will return
 
 ```
-developer,network,msg,extensions
+developer,error,network,msg,extensions
 ```
 
 ### Specifying where to log messages
@@ -319,6 +319,12 @@ InitializeApplication
 
 **Returns**: Empty
 
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pColDelim` |  One or more ascii (numeric) codes, joined by "+". |
+
 <br>
 
 ## <a name="loggerSetIncludeLogType"></a>loggerSetIncludeLogType
@@ -376,6 +382,12 @@ You can set network traffic log filters to remove sensitive data from logs that 
 
 **Returns**: Empty
 
+**Parameters**:
+
+| Name | Description |
+|:---- |:----------- |
+| `pRowDelim` |  One or more ascii (numeric) codes, joined by "+" |
+
 <br>
 
 ## <a name="loggerSetTarget"></a>loggerSetTarget
@@ -414,7 +426,7 @@ You can target the "console", a file, or a field. "console" writes the log messa
 
 | Name | Description |
 |:---- |:----------- |
-| `pTypes` |  A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`.  You can also specify your own types. |
+| `pTypes` |  A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`, and `error`.  You can also specify your own types. |
 
 **Description**:
 
