@@ -34,7 +34,7 @@ To add the Logger helper to your application add it under the `helpers` section 
 # app.yml
 
 helpers:
-  filename: "[[FRAMEWORK]]/helpers/logger" #in levure, "filename" points to your helper's folder.  "folder" points to a parent folder that contains multiple helper folders.
+  - filename: "[[FRAMEWORK]]/helpers/logger" #in levure, "filename" points to your helper's folder.  "folder" points to a parent folder that contains multiple helper folders.
 ```
 
 ## Configuring Logging
