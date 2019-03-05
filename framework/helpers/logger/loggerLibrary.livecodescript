@@ -14,7 +14,7 @@ on libraryStack
 
   local tLogTypes, tColDelim, tRowDelim, tIncludeLogType
 
-  put "developer" into tLogTypes
+  put kBuiltInLogTypes into tLogTypes
   if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into tLogTypes
   loggerSetTypes tLogTypes
 
@@ -90,7 +90,7 @@ end loggerGetTarget
 Summary: Set the type of messages to log.
 
 Parameters:
-pTypes: A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`.  You can also specify your own types.
+pTypes: A comma-delimited list of types to log.  Levure provides special handling for `all`, `developer`, `network`, `msg`, `extensions`, and `error`.  You can also specify your own types.
 
 Description:
 Use this command to filter the types of messages that are logged.  Types that are not specified are ignored.
