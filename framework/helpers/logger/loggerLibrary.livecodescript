@@ -1,5 +1,6 @@
 script "Logger Library"
 constant kBuiltInLogTypes = "developer,error,extensions,network,msg"
+constant kDefaultLogTypes = "developer,error,network"
 
 local sLogTarget
 local sLogA
@@ -14,7 +15,7 @@ on libraryStack
 
   local tLogTypes, tColDelim, tRowDelim, tIncludeLogType
 
-  put kBuiltInLogTypes into tLogTypes
+  put kDefaultLogTypes into tLogTypes
   if levureAppHasProperty("logger>types") then put levureAppGet ("logger>types") into tLogTypes
   loggerSetTypes tLogTypes
 
