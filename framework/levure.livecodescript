@@ -842,8 +842,6 @@ Description:
 This handler targets the internal array that was created when the app.yml file
 was loaded.
 
-If the property passed in does not exist then an error will be thrown.
-
 Example:
 put levureAppGet("preferences filename>user>default")
 
