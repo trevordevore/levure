@@ -273,7 +273,9 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   end repeat
   put empty into sCallbackStacksA
 
-  if tError is not empty then
+  if tError is "cancel" then
+    log "Packaging canceled"
+  else if tError is not empty then
     log "Done packaging application with error:" && tError
     answer error tError
   else
@@ -724,12 +726,12 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
   end if
 
   if tError is empty then
+    local tStandaloneError
+
     # Assign defaultBuildFolder so that IDE doesn't ask you to save stack
     set the cRevStandaloneSettings["defaultBuildFolder"] of stack tTempStandaloneStack to tTempBuildFolder
     try
       log "Build: revSaveAsStandalone"
-
-      revSetTestEnvironment true
 
       # Intercept standaloneSaved and dispatch custom message.
       local tFrontScriptFilename
@@ -745,13 +747,17 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
       # when loading a stack. See _unloadStackAndStackFiles in packager.livecodescript and look at adding same logic
       # to the LiveCode revSaveAsStandalone handler.
       dispatch "revSaveAsStandalone" to stack "revSaveAsStandalone" with tStack, tTempBuildFolder,, true
-      put the result into tError
+      put the result into tStandaloneError
     catch e
-      put e into tError
+      put e into tStandaloneError
     finally
-      revSetTestEnvironment false
       remove script of stack tFrontScriptFilename from front
       put empty into sBuildStandaloneA
+
+      if tStandaloneError is not empty then
+        log "revSaveAsStandalone error:" && tStandaloneError
+        put "cancel" into tError
+      end if
     end try
   end if
 
