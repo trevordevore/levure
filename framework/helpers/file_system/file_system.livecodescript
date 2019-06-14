@@ -65,6 +65,7 @@ It can be handled like other events triggered by file/url open requests.
 on urlWakeUp pUrl
   if pURL begins with "file://" then
     delete char 1 to 7 of pUrl
+    put textdecode(urldecode(pUrl), "utf8") into pUrl
   end if
   ProcessCommandLineParameters pUrl
 end urlWakeUp
