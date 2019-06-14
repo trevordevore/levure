@@ -63,7 +63,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   if pSimulator is "ios" then
     put false into tBuildStandalone
     put "ios" into tStandaloneBuilderPlatforms
-  else if pBuildProfile is "android" then
+  else if pSimulator is "android" then
     put false into tBuildStandalone
     put "android" into tStandaloneBuilderPlatforms
   else
