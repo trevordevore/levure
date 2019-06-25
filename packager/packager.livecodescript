@@ -287,21 +287,29 @@ end packagerPackageApplication
 
 
 private command _determineSigningCertificate pBuildProfile, pPlatform, @xAppA
-  local tCertName
+  local tKey, tCert
 
-  put xAppA["build profiles"][pBuildProfile]["certificates"][pPlatform]["name"] into tCertName
-  if tCertName is empty then
-    put xAppA["build profiles"]["all profiles"]["certificates"][pPlatform]["name"] into tCertName
+  if pPlatform is "macos" then
+    put "name" into tKey
+  else
+    put "filename" into tKey
   end if
 
-  if tCertName is not empty then
+  put xAppA["build profiles"][pBuildProfile]["certificates"][pPlatform][tKey] into tCert
+  if tCert is empty then
+    put xAppA["build profiles"]["all profiles"]["certificates"][pPlatform][tKey] into tCert
+  end if
+
+  if tCert is not empty then
     if pBuildProfile is "mac app store" then
-      put "3rd Party Mac Developer Application:" && tCertName into xAppA[pPlatform && "signing certificate"]
-      put "3rd Party Mac Developer Installer:" && tCertName into xAppA[pPlatform && "installer signing certificate"]
+      put "3rd Party Mac Developer Application:" && tCert into xAppA[pPlatform && "signing certificate"]
+      put "3rd Party Mac Developer Installer:" && tCert into xAppA[pPlatform && "installer signing certificate"]
     else if pBuildProfile is "mac app store development" then
-      put "Mac Developer:" && tCertName into xAppA[pPlatform && "signing certificate"]
-    else
-      put "Developer ID Application:" && tCertName into xAppA[pPlatform && "signing certificate"]
+      put "Mac Developer:" && tCert into xAppA[pPlatform && "signing certificate"]
+    else if pPlatform is "macos" then
+      put "Developer ID Application:" && tCert into xAppA[pPlatform && "signing certificate"]
+    else if pPlatform is "windows" then
+      put tCert into xAppA[pPlatform && "signing certificate"]
     end if
   end if
 end _determineSigningCertificate
