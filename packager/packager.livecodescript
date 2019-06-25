@@ -489,7 +489,7 @@ private command _dispatchPackagingComplete pBuildProfile, pAppA, pOutputFolder
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching packagingComplete to stack" && tFilename
 
-    dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder
+    dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder, pAppA
   end repeat
 end _dispatchPackagingComplete
 
