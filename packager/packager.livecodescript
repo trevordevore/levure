@@ -686,13 +686,17 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
   end if
 
   if tError is empty then
+    # If this wait isn't here then the IDE reloads pStandaloneStackFilename when tTempStandaloneStack
+    # is accessed. Many precious moments of my life have been lost trying to figure out why. My best
+    # guess is that an idemessage is being sent around and some component is holding onto the stack somehow.
+    # This `wait` message is me tapping out.
+    wait 1 second with messages
+
     if not buildForDistribution then
       set the stackfiles of stack tTempStandaloneStack to empty
       set the behavior of stack tTempStandaloneStack to empty
     end if
-  end if
 
-  if tError is empty then
     set the uBuildProfile of stack tTempStandaloneStack to pBuildProfile
     set the script of stack tTempStandaloneStack to tScript
 
@@ -803,6 +807,10 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
   set the behavior of stack pStandaloneStackFilename to empty
   set the behavior of stack pStandaloneStackFilename to the long id of stack tFrameworkFilename
   start using stack pStandaloneStackFilename
+
+  # If this wait isn't here then the IDE gets confused between pStandaloneStackFilename and tTempStandaloneStack
+  # This wait message is me giving up on trying to figure out what is going on.
+  wait 1 second with messages
 
   return tError
 end packagerBuildStandalones
