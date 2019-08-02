@@ -1088,7 +1088,7 @@ end _packageHelpers
 
 
 private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolder, pExecutableOutputFolder
-  local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFolder, tFolderA
+  local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFilename, tFolderA, tFileA
   local tKey, i
   local tRootFolder
   local tIndex, tHelpersA
@@ -1259,14 +1259,36 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
 
     # folders
     repeat for each element tFolderA in xHelperA["package folders"]
-      put xHelperA["filename"] & "/" & tFolderA["filename"] into tFolder
-      if not (the last item of tFolder begins with ".") AND not (tFolder ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFolder) then
-        log "  Adding helper additional folder:" && tFolder
-        log "    to folder:" && tDestFolder & "/" & the last item of tFolder
+      if not _shouldAssetBeDistributed(tFolderA, pBuildProfile, pPlatform) then
+        log "  Skipping helper folder:" && tFolderA["filename"]
+        next repeat
+      end if
 
-        _fileCopyFolder tFolder, tDestFolder & "/" & the last item of tFolder
+      put xHelperA["filename"] & "/" & tFolderA["filename"] into tFilename
+      if not (the last item of tFilename begins with ".") AND not (tFilename ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFilename) then
+        log "  Adding helper additional folder:" && tFilename
+        log "    to folder:" && tDestFolder & "/" & the last item of tFilename
+
+        _fileCopyFolder tFilename, tDestFolder & "/" & the last item of tFilename
         put the result into tError
       end if
+
+      if tError is not empty then exit repeat
+    end repeat
+
+    # files
+    repeat for each element tFileA in xHelperA["package files"]
+      if not _shouldAssetBeDistributed(tFileA, pBuildProfile, pPlatform) then
+        log "  Skipping helper file:" && tFileA["filename"]
+        next repeat
+      end if
+
+      put xHelperA["filename"] & "/" & tFileA["filename"] into tFilename
+      log "  Adding helper additional file:" && tFilename
+      log "    to folder:" && tDestFolder
+
+      _fileCopyFile tFilename, tDestFolder & "/" & the last item of tFilename
+      put the result into tError
 
       if tError is not empty then exit repeat
     end repeat
