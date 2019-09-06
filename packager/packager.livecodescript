@@ -45,7 +45,7 @@ Returns: nothing
 */
 command packagerLog pMsg
   log pMsg
-  return empty
+  return the result
 end packagerLog
 
 
