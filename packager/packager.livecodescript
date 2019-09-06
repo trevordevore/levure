@@ -39,6 +39,17 @@ end resetLogging
 
 
 /**
+Summary: Adds a message to the build log file.
+
+Returns: nothing
+*/
+command packagerLog pMsg
+  log pMsg
+  return empty
+end packagerLog
+
+
+/**
 Summary: Packages an application for configured platforms.
 
 pStandaloneStackFilename: The filename of the standalone stack.
