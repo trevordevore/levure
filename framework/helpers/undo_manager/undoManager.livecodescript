@@ -258,7 +258,7 @@ command undoAddAction pUndoStack, pActionName, pMementosA
   put pMementosA into sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
 
   put _getTargetForMessages(pUndoStack) into tTarget
-  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"]
+  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack]["undo"][tUndoIndex]["mementos"], false
 
   ## Redos are wiped out. "cleanup handler" is called so program
   ## can clean up after any internal data specific to the undo array.
@@ -529,7 +529,7 @@ private command _reverseAction pUndoStack, pTargetQueue, pIndex
   end repeat
 
   put _getTargetForMessages(pUndoStack) into tTarget
-  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"]
+  dispatch "undoStoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][tInverseQueue][tInverseIndex]["mementos"], true
 
   ## Run the undo
   dispatch "undoRestoreMementos" to tTarget with pUndoStack, sUndoLogA[pUndoStack][pTargetQueue][pIndex]["mementos"]
