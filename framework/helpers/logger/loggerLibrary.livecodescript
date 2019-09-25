@@ -453,12 +453,14 @@ private command _logLibURLMessage pMsg
 
   set the itemDelimiter to tab
   repeat for each line tFilter in sNetworkFilters
-    -- item 1 of tFilter: regex
-    -- item 2 of tFilter: replacement
+    # item 1 of tFilter: regex
+    # item 2 of tFilter: replacement
     put replaceText(pMsg, item 1 of tFilter, item 2 of tFilter) into pMsg
   end repeat
 
-  _log pMsg, "network"
+  if pMsg is not empty then
+    _log pMsg, "network"
+  end if
 end _logLibURLMessage
 
 
