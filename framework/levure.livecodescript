@@ -1159,8 +1159,6 @@ command levureLoadAppConfig pBuildProfile
   # set sAppFolder and load kAppStackName into memory
   loadApplicationStack
 
-  put empty into sAppA["filtered out filenames"]
-
   if (the environment is not "development") and (the uAppA of stack kAppStackName is an array) then
     # Packaged application: app stack is already in memory and all folders have been expanded
     put the uAppA of stack kAppStackName into sAppA
