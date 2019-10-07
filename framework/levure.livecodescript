@@ -2952,14 +2952,22 @@ end regExForFileExtensions
 private function ensureStackNameIsPresent pFileA
   # Grab stack name in memory if not provided.
   if pFileA["name"] is empty then
-    local tStackIsLoaded, msgsAreLocked
+    local msgsAreLocked
 
+    set the wholematches to true
     put the lockMessages into msgsAreLocked
     lock messages
-    put there is a stack pFileA["filename"] into tStackIsLoaded
-    if tStackIsLoaded then
+
+    # If stack is open then don't delete from memory after getting name.
+    # This allows the framework to reload the app in the IDE without disturbing
+    # the current state.
+    if pFileA["filename"] is among the lines of the stacks then
       put the short name of stack pFileA["filename"] into pFileA["name"]
-      delete stack pFileA["filename"]
+    else
+      if there is a stack pFileA["filename"] then
+        put the short name of stack pFileA["filename"] into pFileA["name"]
+        delete stack pFileA["filename"]
+      end if
     end if
     set the lockMessages to msgsAreLocked
   end if
