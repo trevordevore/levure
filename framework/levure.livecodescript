@@ -502,19 +502,8 @@ command levureInitializeFramework
 
   # extensions
   if tError is empty then
-    loadExtensions sAppA
+    loadAppExtensions
     put the result into tError
-  end if
-
-  if tError is empty then
-    repeat with i = 1 to the number of elements of sAppA["helpers"]
-      loadExtensions sAppA["helpers"][i]
-      put the result into tError
-
-      if tError is not empty then
-        exit repeat
-      end if
-    end repeat
   end if
 
   if tError is empty then
@@ -1810,6 +1799,29 @@ private command loadMessagePathAssets pArrayA
 
   return tError for error
 end loadMessagePathAssets
+
+
+private command loadAppExtensions
+  local tError
+
+  if tError is empty then
+    loadExtensions sAppA
+    put the result into tError
+  end if
+
+  if tError is empty then
+    repeat with i = 1 to the number of elements of sAppA["helpers"]
+      loadExtensions sAppA["helpers"][i]
+      put the result into tError
+
+      if tError is not empty then
+        exit repeat
+      end if
+    end repeat
+  end if
+
+  return tError for error
+end loadAppExtensions
 
 
 private command loadExtensions pArrayA
