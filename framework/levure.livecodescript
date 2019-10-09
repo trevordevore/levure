@@ -2421,24 +2421,28 @@ end levureStandaloneFolder
 
 
 /**
-Summary: Returns the path of the application standalone.
+Summary: Returns the name used for the application executable on the current platform.
+
+Description:
+The standalone name is the value assigned to the Name in the Standalone Builder with the
+appropriate suffix added (e.g. `.app` for macOS, `.exe` for Windows, and nothing for Linux).
 
 Example:
-put levureStandaloneFilename() into tAppFilename
+put levureStandaloneName() into tAppExecutable
 
-Returns: Path to file
+Returns: Name
 */
-function levureStandaloneFilename
-  local tFilename
+function levureStandaloneName
+  local tName
 
   if the environment is "development" then
-    put the cRevStandaloneSettings["name"] of me into tFilename
+    put the cRevStandaloneSettings["name"] of me into tName
     switch the platform
       case "macos"
-        put ".app" after tFilename
+        put ".app" after tName
         break
       case "win32"
-        put ".exe" after tFilename
+        put ".exe" after tName
         break
       case "linux"
       default
@@ -2448,18 +2452,32 @@ function levureStandaloneFilename
     set the itemDelimiter to "/"
     switch the platform
       case "macos"
-        put specialFolderPath("engine") into tFilename
-        delete item -2 to -1 of tFilename # /Contents/MacOS
-        put the last item of tFilename into tFilename
+        put specialFolderPath("engine") into tName
+        delete item -2 to -1 of tName # /Contents/MacOS
+        put the last item of tName into tName
         break
       case "win32"
       case "linux"
       default
-        put the last item of the address into tFilename
+        put the last item of the address into tName
         break
     end switch
   end if
-  return levureStandaloneFolder() & "/" & tFilename
+
+  return tName
+end levureStandaloneName
+
+
+/**
+Summary: Returns the path of the application standalone.
+
+Example:
+put levureStandaloneFilename() into tAppFilename
+
+Returns: Path to file
+*/
+function levureStandaloneFilename
+  return levureStandaloneFolder() & "/" & levureStandaloneName()
 end levureStandaloneFilename
 
 
