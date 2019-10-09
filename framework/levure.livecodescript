@@ -151,7 +151,7 @@ The `packager callback stackfiles` property in `app.yml` points to a stack that 
 `finalizePackagedAssets pBuildProfile, pBuildProfile, @xAppA, pAppFolder`,
 `finalizeStandaloneForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pFolderSavedIn`,
 `finalizePackageForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder`,
-and `packagingComplete pBuildProfile, pOutputFolder` messages.
+and `packagingComplete pBuildProfile, pOutputFolder, pAppA` messages.
 
 The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on macOS.
 The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
