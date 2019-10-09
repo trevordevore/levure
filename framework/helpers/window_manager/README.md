@@ -115,63 +115,34 @@ The library manages the menu of a stack in the following ways:
 
 ## API
 
-- [effectiveRectWorksInEngine](#effectiveRectWorksInEngine)
-- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
 - [openCard](#openCard)
 - [windowCalculateRectForWindow](#windowCalculateRectForWindow)
 - [windowCheckWindowAfterDesktopChanged](#windowCheckWindowAfterDesktopChanged)
->
 - [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
 - [windowClearWindowCache](#windowClearWindowCache)
+>
 - [windowEnsureWindowIsEntirelyOnScreen](#windowEnsureWindowIsEntirelyOnScreen)
 - [windowGetProperty](#windowGetProperty)
 - [windowGoStack](#windowGoStack)
->
 - [windowHasCardBeenOpened](#windowHasCardBeenOpened)
 - [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
+>
 - [windowIsManaged](#windowIsManaged)
 - [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowResizeMenu](#windowResizeMenu)
->
 - [windowResolveTargetStack](#windowResolveTargetStack)
 - [windowSaveWindowPosition](#windowSaveWindowPosition)
+>
 - [windowSetCardInitializedState](#windowSetCardInitializedState)
 - [windowSetInitializedState](#windowSetInitializedState)
 - [windowSetProperty](#windowSetProperty)
->
 - [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
 - [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
+>
 - [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)
-
-<br>
-
-## <a name="effectiveRectWorksInEngine"></a>effectiveRectWorksInEngine
-
-**Type**: function
-
-**Syntax**: `effectiveRectWorksInEngine()`
-
-**Summary**: Only use effectiveRect in `preOpenStack` with supported engines.
-
-**Returns**: Boolean
-
-**Description**:
-
-LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
-
-<br>
-
-## <a name="windowWasVisibleInPreOpenStack"></a>windowWasVisibleInPreOpenStack
-
-**Type**: function
-
-**Syntax**: `windowWasVisibleInPreOpenStack(<pStackName>)`
-
-**Summary**: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
-
-**Returns**: Boolean
-
-
+>
+- [effectiveRectWorksInEngine](#effectiveRectWorksInEngine)
+- [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
 
 <br>
 
@@ -634,6 +605,36 @@ The stack must have the same mode as pMode and be visible.
 
 The stack must have a mode no higher than pMode and be visible.
 
+
+
+
+<br>
+
+## <a name="effectiveRectWorksInEngine"></a>effectiveRectWorksInEngine
+
+**Type**: function
+
+**Syntax**: `effectiveRectWorksInEngine()`
+
+**Summary**: Only use effectiveRect in `preOpenStack` with supported engines.
+
+**Returns**: Boolean
+
+**Description**:
+
+LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
+
+<br>
+
+## <a name="windowWasVisibleInPreOpenStack"></a>windowWasVisibleInPreOpenStack
+
+**Type**: function
+
+**Syntax**: `windowWasVisibleInPreOpenStack(<pStackName>)`
+
+**Summary**: Used by the `openCard` handler in the windowManager library to check if a window should be shown in `openCard`.
+
+**Returns**: Boolean
 
 
 

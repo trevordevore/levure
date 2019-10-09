@@ -95,6 +95,19 @@ my preference 2: 100
 my preference 3: true
 ```
 
+### Packaging prefs.yml 
+
+If you create a `prefs.yml` file then remember to include it when packaging your application. This is done by adding `prefs.yml` to [the `copy files` section](How-do-I-include-additional-files-and-folders-in-my-application-builds%3F). Here is an example:
+
+```
+
+build profiles:
+  all profiles:
+    copy files:
+      all platforms:
+        - filename: prefs.yml
+```
+
 ## Set a preference to a value
 
 While your application is running you can set an application preference to a value with the `prefsSetPref` command. If the preference does not already exist, it will be created and set to the value.
