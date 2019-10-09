@@ -730,11 +730,11 @@ end levureAppPrintConfig
 
 
 /**
-Summary: Returns an environmental variable stored in the `.env` file.
+Summary: Returns the environmental variables stored in the `.env` file.
 
 Description:
 During development you can place an `.env` file alongside the `app.yml` file. The format is
-a key=value pair, one per line. This function will return a key value.
+a key=value pair, one per line. This function will return an array of key/values.
 
 Use the `.env` file to store values you don't want stored in a git repository. For example,
 you should store the `password` used to password protect your application in the `.env` file.
@@ -746,7 +746,8 @@ your application.
 
 Example:
 # Assumes your .env file has a PASSWORD=VALUE line in it
-put levureAppGetENV("password") into tPassword
+put levureAppGetENV() into tEnvA
+put tEnvA["PASSWORD"]
 
 Returns: String
 */
