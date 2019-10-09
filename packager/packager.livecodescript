@@ -464,15 +464,15 @@ private function _packagerCallbackStacks pAppA, pBuildProfile
 end _packagerCallbackStacks
 
 
-private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder
+private command _dispatchFinalizeBuildForPlatform pBuildProfile, pPlatform, @xAppA, pAppFolder, pOutputFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
-  put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
+  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching finalizePackageForPlatform to stack" && tFilename
 
-    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, pAppA, pAppFolder, pOutputFolder
+    dispatch "finalizePackageForPlatform" to stack tFilename with pBuildProfile, pPlatform, xAppA, pAppFolder, pOutputFolder
     put "" into sCallbackStacksA[ tFilename ]
   end repeat
 end _dispatchFinalizeBuildForPlatform
@@ -492,15 +492,15 @@ private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA
 end _dispatchFinalizePackagedAssets
 
 
-private command _dispatchPackagingComplete pBuildProfile, pAppA, pOutputFolder
+private command _dispatchPackagingComplete pBuildProfile, @xAppA, pOutputFolder
   local tCallbackStacks, tFilename
 
   # Send callbacks
-  put _packagerCallbackStacks(pAppA, pBuildProfile) into tCallbackStacks
+  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
   repeat for each line tFilename in tCallbackStacks
     log "Dispatching packagingComplete to stack" && tFilename
 
-    dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder, pAppA
+    dispatch "packagingComplete" to stack tFilename with pBuildProfile, pOutputFolder, xAppA
   end repeat
 end _dispatchPackagingComplete
 
