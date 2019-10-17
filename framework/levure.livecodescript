@@ -2527,6 +2527,46 @@ end levureFrameworkFilename
 
 
 /**
+Summary: Sets the default font that all open stacks will inherit.
+
+Parameters:
+pFont: The font to assign to the `textFont` property.
+
+Returns: nothing
+*/
+command levureSetApplicationFont pFont
+  set the textFont of stack _targetStackForFont() to pFont
+end levureSetApplicationFont
+
+
+/**
+Summary: Sets the default font size that all open stacks will inherit.
+
+Parameters:
+pSize: The value to assign to the `textSize` of the stack.
+
+Returns: nothing
+*/
+command levureSetApplicationFontSize pSize
+  set the textSize of stack _targetStackForFont() to pSize
+end levureSetApplicationFontSize
+
+
+/**
+Summary: Returns the name of the stack whose font properties will affect all stacks in engine.
+
+Returns: String
+*/
+private function _targetStackForFont
+  if the environment is "development" then
+    return "home"
+  else
+    return levureStandaloneStackName()
+  end if
+end _targetStackForFont
+
+
+/**
 Summary: Expand "filenames" for every asset except Helpers
 */
 private command expandPackagedAppArrayFilenames @xAppA, pRootFolder
