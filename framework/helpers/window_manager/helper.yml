@@ -2,3 +2,7 @@ libraries:
   - filename: windowManager.livecodescript
 frontscripts:
   - filename: message_watcher.livecodescript
+extensions:
+  - filename: windows.lcm
+    platform: windows
+    source: windows.lcb

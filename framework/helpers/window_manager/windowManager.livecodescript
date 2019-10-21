@@ -457,7 +457,7 @@ private function _calculateWindowRect pStackName, pDefaultScreenRect, pDefaultRe
   # Don't touch rect of a stack that isn't resizable
   # We only care about the loc from the value stored in prefs
   if tRect is not a rect or not the resizable of tStack then
-    put the effective rect of tStack into tRect
+    put _actualEffectiveRect(tStack) into tRect
   end if
 
   if tRect is not a rect then
@@ -567,19 +567,70 @@ After the desktop changes two things must be checked:
 command windowCheckWindowAfterDesktopChanged pStackName
   local tScreenRect, tEffectiveRect, tRect
 
+  # Ignore zoomed windows
+  if the platform is "win32" and windowManagerIsZoomed(the windowid of stack pStackName) then
+    return empty
+  end if
+
   put line (the screen of stack pStackName) of the working screenrects into tScreenRect
-  put the effective rect of stack pStackName into tEffectiveRect
+  put _actualEffectiveRect(the long id of stack pStackName) into tEffectiveRect
   put the rect of stack pStackName into tRect
 
   put _constrainWindowDimensionsToScreenDimensions(tScreenRect, tEffectiveRect) into tEffectiveRect
   put _shiftWindowOnScreen(tScreenRect, tEffectiveRect) into tEffectiveRect
 
-  if the effective rect of stack pStackName is not tEffectiveRect then
-    set the effective rect of stack pStackName to tEffectiveRect
+  if _actualEffectiveRect(the long id of stack pStackName) is not tEffectiveRect then
+    _setActualEffectiveRect the long id of stack pStackName, tEffectiveRect
   end if
 
   return empty
 end windowCheckWindowAfterDesktopChanged
+
+
+/**
+Summary: Returns the actual effective rect for a stack.
+
+Parameters:
+pStack: The long id of the stack.
+
+Description:
+Windows 10 has an 8 pixel border but only 1 pixel is actually visible.
+
+Bug report: https://quality.livecode.com/show_bug.cgi?id=16305
+
+Returns: Rect
+*/
+private function _actualEffectiveRect pStack
+   local tRect
+
+   put the effective rect of pStack into tRect
+
+   if the platform is "win32" and the systemversion is "NT 10.0" then
+      add 7 to item 1 of tRect
+      subtract 7 from item 3 of tRect
+      subtract 7 from item 4 of tRect
+   end if
+
+   return tRect
+end _actualEffectiveRect
+
+
+/**
+Summary: Inverse of getting effective rect above.
+
+Returns: nothing
+*/
+private command _setActualEffectiveRect pStack, pRect
+   if the platform is "win32" and the systemversion is "NT 10.0" then
+      subtract 7 from item 1 of pRect
+      add 7 to item 3 of pRect
+      add 7 to item 4 of pRect
+   end if
+
+   set the effective rect of pStack to pRect
+
+   return empty
+end _setActualEffectiveRect
 
 
 /**
@@ -598,14 +649,19 @@ Returns: nothing
 command windowEnsureWindowIsEntirelyOnScreen pStackName
   local tScreenRect, tEffectiveRect, tRect
 
+  # Ignore zoomed windows
+  if the platform is "win32" and windowManagerIsZoomed(the windowid of stack pStackName) then
+    return empty
+  end if
+
   put line (the screen of stack pStackName) of the working screenrects into tScreenRect
-  put the effective rect of stack pStackName into tEffectiveRect
+  put _actualEffectiveRect(the long id of stack pStackName) into tEffectiveRect
   put the rect of stack pStackName into tRect
 
   put _shiftWindowOnScreen(tScreenRect, tEffectiveRect) into tEffectiveRect
 
-  if the effective rect of stack pStackName is not tEffectiveRect then
-    set the effective rect of stack pStackName to tEffectiveRect
+  if _actualEffectiveRect(the long id of stack pStackName) is not tEffectiveRect then
+    _setActualEffectiveRect the long id of stack pStackName, tEffectiveRect
   end if
 
   return empty
@@ -627,15 +683,20 @@ After the user moves a stack window two things need to be checked:
 command windowCheckWindowAfterMove pStackName
   local tScreenRect, tEffectiveRect, tRect
 
+  # Ignore zoomed windows
+  if the platform is "win32" and windowManagerIsZoomed(the windowid of stack pStackName) then
+    return empty
+  end if
+
   put line (the screen of stack pStackName) of the working screenrects into tScreenRect
-  put the effective rect of stack pStackName into tEffectiveRect
+  put _actualEffectiveRect(the long id of stack pStackName) into tEffectiveRect
   put the rect of stack pStackName into tRect
 
   put _constrainWindowDimensionsToScreenDimensions(tScreenRect, tEffectiveRect) into tEffectiveRect
   put _ensureTitleBarIsVisibleAfterMove(tScreenRect, tEffectiveRect, tRect) into tEffectiveRect
 
-  if the effective rect of stack pStackName is not tEffectiveRect then
-    set the effective rect of stack pStackName to tEffectiveRect
+  if _actualEffectiveRect(the long id of stack pStackName) is not tEffectiveRect then
+    _setActualEffectiveRect the long id of stack pStackName, tEffectiveRect
   end if
 
   return empty
@@ -652,7 +713,7 @@ command _calculateDecorationsForStackStyle pStyle
   put "DetermineWindowDecorationDimensions" into tStack
   set the style of the templateStack to pStyle
   create invisible stack tStack
-  put the effective rect of stack tStack into tEffectiveRect
+  put _actualEffectiveRect(the long id of stack tStack) into tEffectiveRect
   put the rect of stack tStack into tRect
   delete stack tStack
   reset the templateStack

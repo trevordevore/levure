@@ -1,0 +1,31 @@
+library community.livecode.trevordevore.window_manager
+
+  use com.livecode.engine
+  use com.livecode.foreign
+
+  metadata title is "Windows Manager Levure Helper"
+  metadata author is "Trevor DeVore"
+  metadata version is "0.0.1"
+
+  public type HWND is UIntPtr
+
+  foreign handler User32IsZoomed(in pHWND as HWND) returns CBool binds to "user32>IsZoomed!stdcall"
+
+  /**
+  Summary: Returns the zoomed setting of a window.
+
+  Description:
+  https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iszoomed
+
+  */
+  public handler windowManagerIsZoomed(in hWnd as Number) returns Boolean
+    variable tResult as Boolean
+
+    unsafe
+      put User32IsZoomed(hWnd) into tResult
+    end unsafe
+
+    return tResult
+  end handler
+
+ end library
