@@ -45,6 +45,9 @@ on preOpenCard
       put loggerGetTarget() into sOrigTarget
       put loggerGetTypes() into sOrigLocTypes
 
+      # Turn network logging off by default. User can modify in the UI.
+      loggerRemoveType "network"
+
       loggerSetTarget the long id of field "LogMessages" of me
    else
       set the text of field "LogMessages" of me to "Logger helper is not available"
