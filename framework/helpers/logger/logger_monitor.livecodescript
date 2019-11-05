@@ -3,6 +3,8 @@ local sOrigTarget, sOrigLocTypes
 
 on preOpenStack
   if there is not a field "LogMessages" then
+    set the textFont of me to "(Message)"
+    set the textSize of me to 13
     set the label of me to "Log Monitor"
     set the minwidth of me to 450
     set the minheight of me to 400
