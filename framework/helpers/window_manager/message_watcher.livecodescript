@@ -75,7 +75,7 @@ on preOpenStack
     end if
 
     # Branch behavior based on whether or not engine supports setting the `effective rect` in `preOpenStack`.
-    if effectiveRectWorksInEngine() then
+    if windowEffectiveRectWorksInEngine() then
       _resizeWindowAndMenu tStackName, tStack, tIsInit
 
       if windowIsPropertyManaged(tStackName, "messages") then
@@ -166,7 +166,7 @@ on openStack
     put windowHasWindowBeenOpened(tStackName) into tIsInit
 
     # Branch behavior based on whether or not engine supports setting the `effective rect` in `preOpenStack`.
-    if effectiveRectWorksInEngine() then
+    if windowEffectiveRectWorksInEngine() then
       if tMsgsAreManaged then
         dispatch "OpenWindow" to the current card of tStack with tIsInit
       end if
@@ -312,25 +312,3 @@ private command _resizeWindowAndMenu pStackName, pStack, pIsInit
     windowResizeMenu pStackName
   end if
 end _resizeWindowAndMenu
-
-
-/**
-Summary: Only use effectiveRect in `preOpenStack` with supported engines.
-
-Description:
-LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
-
-https://quality.livecode.com/show_bug.cgi?id=18997
-
-Returns: Boolean
-*/
-function effectiveRectWorksInEngine
-  local tVersion
-
-  set the itemDelimiter to "."
-
-  put the trueWord 1 of the version into tVersion
-  return item 1 of tVersion > 9 \
-        or item 1 of tVersion is 9 and \
-        (item 2 of tVersion >= 1 or item 3 of tVersion >= 3)
-end effectiveRectWorksInEngine

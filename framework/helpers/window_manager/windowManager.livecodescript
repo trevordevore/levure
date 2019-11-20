@@ -6,7 +6,7 @@ on libraryStack
   if the target is not me then pass libraryStack
 
   # workaround for bug #18997 <http://quality.livecode.com/show_bug.cgi?id=18997>
-  if not effectiveRectWorksInEngine() then
+  if not windowEffectiveRectWorksInEngine() then
     _calculateDecorationsForStackStyle "toplevel"
     _calculateDecorationsForStackStyle "palette"
   end if
@@ -49,6 +49,28 @@ on openCard
 
   pass openCard
 end openCard
+
+
+/**
+Summary: Only use effectiveRect in `preOpenStack` with supported engines.
+
+Description:
+LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
+
+https://quality.livecode.com/show_bug.cgi?id=18997
+
+Returns: Boolean
+*/
+function windowEffectiveRectWorksInEngine
+  local tVersion
+
+  set the itemDelimiter to "."
+
+  put the trueWord 1 of the version into tVersion
+  return item 1 of tVersion > 9 \
+        or item 1 of tVersion is 9 and \
+        (item 2 of tVersion >= 1 or item 3 of tVersion >= 3)
+end windowEffectiveRectWorksInEngine
 
 
 /**
