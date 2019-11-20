@@ -6,8 +6,10 @@ on libraryStack
   if the target is not me then pass libraryStack
 
   # workaround for bug #18997 <http://quality.livecode.com/show_bug.cgi?id=18997>
-  _calculateDecorationsForStackStyle "toplevel"
-  _calculateDecorationsForStackStyle "palette"
+  if not effectiveRectWorksInEngine() then
+    _calculateDecorationsForStackStyle "toplevel"
+    _calculateDecorationsForStackStyle "palette"
+  end if
 end libraryStack
 
 
