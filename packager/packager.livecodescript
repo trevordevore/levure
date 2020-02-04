@@ -2299,9 +2299,9 @@ private command _signFile pFilename, pCertificate
     put _bundleEntitlementFile(pFilename) into tEntitlementsFile
 
     if tEntitlementsFile is not empty then
-      put format("codesign --verbose --force --timestamp -s \"%s\" --entitlements \"%s\" \"%s\"", pCertificate, tEntitlementsFile, pFilename) into tCmd
+      put format("codesign --verbose --force --options=runtime --timestamp -s \"%s\" --entitlements \"%s\" \"%s\"", pCertificate, tEntitlementsFile, pFilename) into tCmd
     else
-      put format("codesign --verbose --force --timestamp -s \"%s\" \"%s\"", pCertificate, pFilename) into tCmd
+      put format("codesign --verbose --force --options=runtime --timestamp -s \"%s\" \"%s\"", pCertificate, pFilename) into tCmd
     end if
 
     get shell(tCmd)
