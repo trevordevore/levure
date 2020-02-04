@@ -2311,6 +2311,8 @@ private command _signFile pFilename, pCertificate
       put format("codesign --verbose --force --options=runtime --timestamp -s \"%s\" \"%s\"", pCertificate, pFilename) into tCmd
     end if
 
+    log "codesign cmd:" && tCmd
+
     get shell(tCmd)
     if the result > 0 then
       put the result into tError
