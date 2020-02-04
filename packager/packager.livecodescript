@@ -2260,26 +2260,33 @@ end _signMacOSApplication
 
 
 ## Monte Goulding with modifications by Trevor DeVore
-command _signAndStrip pBundle, pCertificate, pSignFile
+command _signAndStrip pBundle, pCertificate
   local tError
-  local tRootFolder
+  local tFolders, tFolder, tRootFolder
 
-  # recursively parse any frameworks
-  if tError is empty then
-    put pBundle & "/Contents/Frameworks" into tRootFolder
-    if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pSignFile
-      put the result into tError
-    end if
-  end if
+  /*
+  List of folders from Apple docs:
+  https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html#//apple_ref/doc/uid/TP40005929-CH4-TNTAG201
 
-  # recursively parse the MacOS folder
+  Exception is `/Resources` which is folder where .frameworks can store files.
+  For example, Sparkle stores Autoupdate.app in the `/Resources` folder.
+  */
+  put "/Contents/Frameworks,/Contents/MacOS,/Contents/Frameworks,/Contents/PlugIns," & \
+      "/Contents/XPCServices,/Contents/Helpers,/Contents/Library/Automator," & \
+      "/Contents/Library/Spotlight,/Contents/Library/LoginItems,/Contents/Library/LaunchServices," & \
+      "/Resources" into tFolders
+
+  # recursively parse standard locations for code inside of a bundle
   if tError is empty then
-    put pBundle & "/Contents/MacOS" into tRootFolder
-    if there is a folder tRootFolder then
-      _findBundlesAndStripExecutables tRootFolder, pCertificate, pSignFile
-      put the result into tError
-    end if
+    repeat for each item tFolder in tFolders
+      put pBundle & tFolder into tRootFolder
+      if there is a folder tRootFolder then
+        _findBundlesAndStripExecutables tRootFolder, pCertificate
+        put the result into tError
+      end if
+
+      if tError is not empty then exit repeat
+    end repeat
   end if
 
   if tError is empty then
