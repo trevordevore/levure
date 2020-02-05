@@ -2361,10 +2361,8 @@ end _isMacOSExecutable
 
 
 ## Monte Goulding with modifications by Trevor DeVore
-private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFiles
+private command _findBundlesAndStripExecutables pFolder, pCertificate
   local tError, tOldDefaultFolder, tFolders, tFilesInfo, tFiles, tResult
-
-  put pSignFiles is not false into pSignFiles
 
   # Get list of folders and reset. Can't wait until end as it messes up recursive calls.
   put the defaultFolder into tOldDefaultFolder
@@ -2376,76 +2374,43 @@ private command _findBundlesAndStripExecutables pFolder, pCertificate, pSignFile
 
   repeat for each line tFolder in line 2 to -1 of tFolders
     if _isMacOSExecutable(tFolder) then
-      _signAndStrip  pFolder & "/" & tFolder, pCertificate, false # don't sign any files within bundle
-      put the result into tError
-    else if tFolder ends with ".app" OR tFolder ends with ".framework" then
-      _signAndStrip  pFolder & "/" & tFolder, pCertificate, true # sign files within the app
+      _signAndStrip  pFolder & "/" & tFolder, pCertificate
       put the result into tError
     else
-      _findBundlesAndStripExecutables pFolder & "/" & tFolder, pCertificate, pSignFiles # inherit behavior
+      _findBundlesAndStripExecutables pFolder & "/" & tFolder, pCertificate
       put the result into tError
     end if
 
     if tError is not empty then exit repeat
   end repeat
 
-  # On Mavericks and above additional signing is required. Anything that can contain code (or that macOS thinks can contain code)
+  # lipo and sign executables
   if tError is empty then
-    if pSignFiles then # don't sign if part of a bundle
-      local tFilesWOExt, tCmd
-
-      set the itemdelimiter to "."
-
-      # sign things like .dylib before others. Otherwise codesign will try to sign app and complain that .dylib isn't signed.
-      put tFiles into tFilesWOExt
-      filter tFilesWOExt without "*.*"
-      filter tFiles with "*.*"
-      if tFilesWOExt is not empty then
-        put tFilesWOExt into line (the number of lines of tFiles + 1) of tFiles
-      end if
-
-      repeat for each line tFile in tFiles
-        if the platform is "macos" AND \
-              (item 1 of the itemDelimiter > 10 OR item 1 of the systemVersion = 10 AND item 2 of the systemVersion >= 9) then
-
-          # If file has already been codesigned then don't sign again. Some binaries may need to be signed by the developer
-          # using an entitlement file. If the file is signed again the entitlements won't be applied. If for any reason this code
-          # returns a false positive in the future a comparison could be done between pCertificate and the following line of output
-          # from the `codesign` call:
-          # Authority=3rd Party Mac Developer Application: CERT_NAME (TEAM_ID)
-          # pCertificate should match `3rd Party Mac Developer Application: CERT_NAME`.
-          put format("codesign -dv --verbose=4 \"%s\"", pFolder & "/" & tFile) into tCmd
-          put shell(tCmd) into tResult
-          if the result < 1 then
-            log "skipping file which is already signed:" && pFolder & "/" & tFile
-            next repeat
-          end if
-
-          _signFile pFolder & "/" & tFile, pCertificate
-          put the result into tError
-        end if
-
-        if tError is not empty then exit repeat
-      end repeat
-    end if
-  end if
-
-  # strip
-  if tError is empty then
-    set the itemDelimiter to ","
+    local tFilename, tCmd
 
     repeat for each line tFile in tFilesInfo
-      # If executable bit is set then lipo it.
-      # Prior to 2014-05-27 we assumed 755. Now we just check for a 7 in the first char.
-      # TODO: error reporting
-      if char 1 of item 10 of tFile = "7" then
-        log "lipo -remove ppc" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
-        get shell(format("lipo -remove ppc \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
+      put URLDecode(item 1 of tFile) into tFilename
+
+      # If executable bit is set then lipo.
+      # TODO: error reporting for lipo
+      if char 1 of item 10 of tFile is "7" and item 11 of tFile is not "rhapslnk" then
+        put format("lipo -remove ppc \"%s\" -output \"%s\"", pFolder & "/" & tFilename, pFolder & "/" & tFilename) into tCmd
+        log tCmd
+        get shell(tCmd)
         if the result > 0 then
-          log "lipo ppc7400" && pFolder & "/" & URLDecode(item 1 of tFile) && tResult
-          get shell(format("lipo -remove ppc7400 \"%s\" -output \"%s\"", pFolder & "/" & URLDecode(item 1 of tFile), pFolder & "/" & URLDecode(item 1 of tFile)))
+          put format("lipo -remove ppc7400 \"%s\" -output \"%s\"", pFolder & "/" & tFilename, pFolder & "/" & tFilename) into tCmd
+          log tCmd
+          get shell(tCmd)
         end if
       end if
+
+      # Executables need to be signed.
+      if (_isMacOSExecutable(tFilename) or char 1 of item 10 of tFile is "7") and item 11 of tFile is not "rhapslnk" then
+        _signFile pFolder & "/" & tFilename, pCertificate
+        put the result into tError
+      end if
+
+      if tError is not empty then exit repeat
     end repeat
   end if
 
