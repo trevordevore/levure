@@ -2303,7 +2303,7 @@ private command _signFile pFilename, pCertificate
   local tEntitlementsFile, tCmd, tError, tResult
 
   if tError is empty then
-    put _bundleEntitlementFile(pFilename) into tEntitlementsFile
+    put _entitlementFile(pFilename) into tEntitlementsFile
 
     if tEntitlementsFile is not empty then
       put format("codesign --verbose --force --options=runtime --timestamp -s \"%s\" --entitlements \"%s\" \"%s\"", pCertificate, tEntitlementsFile, pFilename) into tCmd
@@ -2332,24 +2332,40 @@ private command _signFile pFilename, pCertificate
 end _signFile
 
 
-private function _bundleEntitlementFile pBundle
-  local tFiles, tBundleName
+/**
+Summary: Looks for an entitlement file to use with a file.
+
+Parameters:
+pFilename: Path to an .app, .framework, or executable file.
+
+Returns: Full path to .entitlements file
+*/
+function _entitlementFile pFilename
+  local tFiles, tFileShortName
 
   # Look for an entitlement file that matches the bundle name
   set the itemdelimiter to "/"
-  put the last item of pBundle into tBundleName
+  put the last item of pFilename into tFileShortName
   set the itemDelimiter to "."
-  put item 1 to -2 of tBundleName into tBundleName
-
-  put _fileListing(pBundle & "/Contents/Resources", true) into tFiles
-  filter tFiles with "*/" & tBundleName & ".entitlements"
-  if tFiles is empty then
-    put _fileListing(pBundle & "/Contents", true) into tFiles
-    filter tFiles with "*/" & tBundleName & ".entitlements"
+  if the number of items of tFileShortName > 1 then
+    delete item -1 of tFileShortName
   end if
 
+  if there is a folder (pFilename & "/Contents/Resources") then
+    put _fileListing(pFilename & "/Contents/Resources", true) into tFiles
+  else if there is a folder (pFilename & "/Contents") then
+    put _fileListing(pFilename & "/Contents", true) into tFiles
+  else if pFilename contains ".app/Contents/MacOS" then
+    # Look for entitlement for executable that was moved from ./Resources/_MacOS
+    replace ".app/Contents/MacOS" with ".app/Contents/Resources/_MacOS" in pFilename
+    set the itemdelimiter to "/"
+    put _fileListing(item 1 to -2 of pFilename, true) into tFiles
+  end if
+
+  filter tFiles with "*/" & tFileShortName & ".entitlements"
+
   return tFiles
-end _bundleEntitlementFile
+end _entitlementFile
 
 
 private function _isMacOSExecutable pFilepath
