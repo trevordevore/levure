@@ -121,27 +121,26 @@ The library manages the menu of a stack in the following ways:
 - [windowCheckWindowAfterMove](#windowCheckWindowAfterMove)
 - [windowClearWindowCache](#windowClearWindowCache)
 >
+- [windowEffectiveRectWorksInEngine](#windowEffectiveRectWorksInEngine)
 - [windowEnsureWindowIsEntirelyOnScreen](#windowEnsureWindowIsEntirelyOnScreen)
 - [windowGetProperty](#windowGetProperty)
 - [windowGoStack](#windowGoStack)
 - [windowHasCardBeenOpened](#windowHasCardBeenOpened)
-- [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
 >
+- [windowHasWindowBeenOpened](#windowHasWindowBeenOpened)
 - [windowIsManaged](#windowIsManaged)
 - [windowIsPropertyManaged](#windowIsPropertyManaged)
 - [windowResizeMenu](#windowResizeMenu)
 - [windowResolveTargetStack](#windowResolveTargetStack)
-- [windowSaveWindowPosition](#windowSaveWindowPosition)
 >
+- [windowSaveWindowPosition](#windowSaveWindowPosition)
 - [windowSetCardInitializedState](#windowSetCardInitializedState)
 - [windowSetInitializedState](#windowSetInitializedState)
 - [windowSetProperty](#windowSetProperty)
 - [windowSetWindowRectBeforeOpening](#windowSetWindowRectBeforeOpening)
+>
 - [windowTopMostWindowOfMode](#windowTopMostWindowOfMode)
->
 - [windowTopMostWindowWithModeOfCeiling](#windowTopMostWindowWithModeOfCeiling)
->
-- [effectiveRectWorksInEngine](#effectiveRectWorksInEngine)
 - [windowWasVisibleInPreOpenStack](#windowWasVisibleInPreOpenStack)
 
 <br>
@@ -259,6 +258,22 @@ After the user moves a stack window two things need to be checked:
 
 This handler should be called when closing a managed stack that has `destroyStack` set to true.
 
+
+<br>
+
+## <a name="windowEffectiveRectWorksInEngine"></a>windowEffectiveRectWorksInEngine
+
+**Type**: function
+
+**Syntax**: `windowEffectiveRectWorksInEngine()`
+
+**Summary**: Only use effectiveRect in `preOpenStack` with supported engines.
+
+**Returns**: Boolean
+
+**Description**:
+
+LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
 
 <br>
 
@@ -607,22 +622,6 @@ The stack must have a mode no higher than pMode and be visible.
 
 
 
-
-<br>
-
-## <a name="effectiveRectWorksInEngine"></a>effectiveRectWorksInEngine
-
-**Type**: function
-
-**Syntax**: `effectiveRectWorksInEngine()`
-
-**Summary**: Only use effectiveRect in `preOpenStack` with supported engines.
-
-**Returns**: Boolean
-
-**Description**:
-
-LC 9.0.3 fixes bug where the `effective rect` returns the wrong value in `preOpenStack`.
 
 <br>
 
