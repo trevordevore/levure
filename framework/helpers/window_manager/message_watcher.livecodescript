@@ -242,8 +242,8 @@ end moveStack
 
 
 private command _dispatchResizeView pCardRef, pWidth, pHeight, pOldWidth, pOldHeight
-  if pWidth is empty then put the width of pCardRef into pWidth
-  if pHeight is empty then put the height of pCardRef into pHeight
+  if pWidth is not a number then put the width of pCardRef into pWidth
+  if pHeight is not a number then put the height of pCardRef into pHeight
   dispatch "ResizeView" to pCardRef with pWidth, pHeight, pOldWidth, pOldHeight
 end _dispatchResizeView
 
