@@ -1,5 +1,5 @@
 script "Levure Framework Application Packager"
-constant kStandaloneBuilderPlatforms = "MacOSX x86-32,MacOSX x86-64,Windows,Linux,Linux x64,Linux armv6-hf,iOS,Android,Emscripten"
+constant kStandaloneBuilderPlatforms = "MacOSX x86-32,MacOSX x86-64,Windows,Windows x86-64,Linux,Linux x64,Linux armv6-hf,iOS,Android,Emscripten"
 constant kPlatformsThatCantTest = "iOS,Android,Emscripten"
 constant kNestedKeysDelimiter = ">"
 
