@@ -1027,20 +1027,23 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pArchitecture, pAppA,
             log "  Copying file" && tFilename && "to" && tDestination
 
             put URL("binfile:" & tFilename) into tFiledata
+            put _errorMsg("reading file contents [" & tFilename & "]", the result) into tError
 
             # Send callbacks
-            if tFilesA[i]["callback stackfile"] is not empty then
-              log "Dispatching processCopyFilesFile to stack" && tFilesA[i]["callback stackfile"]
+            if tError is empty then
+              if tFilesA[i]["callback stackfile"] is not empty then
+                log "Dispatching processCopyFilesFile to stack" && tFilesA[i]["callback stackfile"]
 
-              dispatch "processCopyFilesFile" to stack tFilesA[i]["callback stackfile"] \
-                    with pBuildProfile, tFiledata, tDestination, the last item of tFilename, tFilesA[i]
+                dispatch "processCopyFilesFile" to stack tFilesA[i]["callback stackfile"] \
+                      with pBuildProfile, tFiledata, tDestination, the last item of tFilename, tFilesA[i]
 
-              # Store for unloading at end of packaging
-              put "" into sCallbackStacksA[ tFilesA[i]["callback stackfile"] ]
+                # Store for unloading at end of packaging
+                put "" into sCallbackStacksA[ tFilesA[i]["callback stackfile"] ]
+              end if
+
+              put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
+              put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
             end if
-
-            put tFiledata into URL("binfile:" & tDestination & "/" & the last item of tFilename)
-            put _errorMsg("storing file" && tDestination & "/" & the last item of tFilename, the result) into tError
           else if there is a folder tFilename then
             local tTargetFolder
 
