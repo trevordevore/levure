@@ -116,12 +116,13 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   end if
 
   if tError is empty then
-    local tPlatform, tBuildPlatform
+    local tPlatform, tArchitecture, tBuildPlatform
     local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
     local tCertName
 
     repeat for each item tBuildPlatform in tStandaloneBuilderPlatforms
       put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
+      put _buildPlatformToArchitecture(tBuildPlatform) into tArchitecture
 
       if not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
       if tPlatform is "macos" and the platform is not "macos" then next repeat
@@ -148,19 +149,19 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
 
       # Copy over all files
       if tError is empty then
-        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tPlatform, tAppA, tCopyFilesTempFolder
+        _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, tPlatform, tArchitecture, tAppA, tCopyFilesTempFolder
         put the result into tError
       end if
 
       # Process target specific instructions in "copy files"
       if tError is empty then
-        _copyFiles pBuildProfile, tPlatform, tAppA, tAppFolder, tCopyFilesTempFolder
+        _copyFiles pBuildProfile, tPlatform, tArchitecture, tAppA, tAppFolder, tCopyFilesTempFolder
         put the result into tError
       end if
 
       # Process instructions for all platform
       if tError is empty then
-        _copyFiles pBuildProfile, "all platforms", tAppA, tAppFolder, tCopyFilesTempFolder
+        _copyFiles pBuildProfile, "all platforms", tArchitecture, tAppA, tAppFolder, tCopyFilesTempFolder
         put the result into tError
       end if
 
@@ -265,7 +266,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   # Process "package folder" key in "copy files"
   if tBuildStandalone then
     if tError is empty then
-      _copyFiles pBuildProfile, "package folder", sAppA, tAppFolder, tOutputFolder
+      _copyFiles pBuildProfile, "package folder", tArchitecture, sAppA, tAppFolder, tOutputFolder
       put the result into tError
     end if
 
@@ -339,7 +340,7 @@ private command _setPassword pStackName, pPassword
 end _setPassword
 
 
-private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, pPlatform, @xAppA, pOutputFolder
+private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, pBuildProfile, pPlatform, pArchitecture, @xAppA, pOutputFolder
   local tError
 
   # Behaviors, Libraries, Frontscripts, Backscripts
@@ -370,7 +371,7 @@ private command _prepareAppFilesForStandaloneBuilding pStandaloneStackFilename, 
   # Convert any script only stacks to stacks
   # Remove helper.yml file.
   if tError is empty then
-    _packageHelpers pBuildProfile, xAppA, pPlatform, pOutputFolder, pOutputFolder
+    _packageHelpers pBuildProfile, xAppA, pPlatform, pArchitecture, pOutputFolder, pOutputFolder
     put the result into tError
   end if
 
@@ -562,6 +563,7 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
   put levureAppFolder() into sBuildStandaloneA["app folder"]
   put pBuildProfile into sBuildStandaloneA["build profile"]
   put _buildPlatformToLevurePlatform(pBuildForPlatform) into sBuildStandaloneA["target platform"]
+  put _buildPlatformToArchitecture(pBuildForPlatform) into sBuildStandaloneA["architecture"]
   put _packagerCallbackStacks(sAppA, pBuildProfile) into sBuildStandaloneA["callback stacks"]
   put pPrunedAppA into sBuildStandaloneA["app array"]
 
@@ -840,7 +842,7 @@ command packagerStandaloneSaved pFolderSavedIn
     filter tAppBundle with "*.app"
     put pFolderSavedIn & "/" & tAppBundle into pFolderSavedIn
 
-    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sAppA, \
+    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sBuildStandaloneA["architecture"], sAppA, \
           sBuildStandaloneA["app folder"], pFolderSavedIn & "/Contents/Resources"
     put the result into tError
   end if
@@ -865,7 +867,7 @@ command packagerMobileStandaloneSaved pTargetType, pAppBundle
   if the last char of pAppBundle is "/" then delete the last char of pAppBundle
 
   if sBuildStandaloneA["target platform"] is "macos" then
-    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sAppA, \
+    _copyFiles sBuildStandaloneA["build profile"], "macos resources", sBuildStandaloneA["architecture"], sAppA, \
           sBuildStandaloneA["app folder"], pAppBundle & "/Contents/Resources"
     put the result into tError
   end if
@@ -903,25 +905,35 @@ end _packagerCallbacksStackFile
 
 private function _buildPlatformToLevurePlatform pBuildPlatform
   switch pBuildPlatform
-  case "Windows"
-    return "windows"
-  case "MacOSX x86-32"
-  case "MacOSX x86-64"
-    return "macos"
-  case "Linux"
-  case "Linux x64"
-  case "Linux armv6-hf"
-    return "linux"
-  case "iOS"
-    return "ios"
-  case "Android"
-    return "android"
-  case "Emscripten"
-    return "emscripten"
-  default
-    throw param(0) && "invalid build platform:" && pBuildPlatform
+    case "Windows"
+    case "Windows x86-64"
+      return "windows"
+    case "MacOSX x86-32"
+    case "MacOSX x86-64"
+      return "macos"
+    case "Linux"
+    case "Linux x64"
+    case "Linux armv6-hf"
+      return "linux"
+    case "iOS"
+      return "ios"
+    case "Android"
+      return "android"
+    case "Emscripten"
+      return "emscripten"
+    default
+      throw param(0) && "invalid build platform:" && pBuildPlatform
   end switch
 end _buildPlatformToLevurePlatform
+
+
+private function _buildPlatformToArchitecture pBuildPlatform
+ if pBuildPlatform is among the items of "Windows,Linux,MacOSX x86-32" then
+    return 32
+  else
+    return 64
+  end if
+end _buildPlatformToArchitecture
 
 
 private function _errorMsg pPrefix, pError
@@ -939,13 +951,14 @@ Summary: Process the "copy files" section of the application configuration.
 
 pBuildProfile: The target build profile.
 pTargetPlatform: The platform to target when copying files.
+pArchitecture: 64 or 32.
 pAppA: The app config array to process.
 pRootFolder: Root folder to use for resolving relative paths.
 pDestinationFolder: Location where files are being copied to.
 
 Returns: Error message
 */
-private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, pDestinationFolder
+private command _copyFiles pBuildProfile, pTargetPlatform, pArchitecture, pAppA, pRootFolder, pDestinationFolder
   local tError
   local i, tProfile, tFilename, tFiledata, tFoldersA
 
@@ -959,7 +972,7 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
   if tError is empty then
     local tDestination, tFilesA, tKey, tIndex, tMaintainFilenameFolderStructure
 
-    log "Copying files for" && pTargetPlatform
+    log "Copying files for" && pTargetPlatform && pArchitecture
 
     repeat for each item tProfile in "all profiles/" & pBuildProfile
       # Build list of files to copy over. Start with known files for target platform.
@@ -1056,14 +1069,11 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pAppA, pRootFolder, p
 end _copyFiles
 
 
-private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder, pExecutableOutputFolder
+private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pArchitecture, pOutputFolder, pExecutableOutputFolder
   local tError, i, tIndex, tHelpersA
-  local tPlatformKey, tRootFolder
+  local tRootFolder
 
   if the number of elements of xAppA["helpers"] > 0 then
-    if pPlatform is "win32" then put "windows" into tPlatformKey
-    else put tolower(pPlatform) into tPlatformKey
-
     log "Packaging Helpers for platform" && pPlatform
 
     repeat with i = 1 to the number of elements of xAppA["helpers"]
@@ -1077,7 +1087,7 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
       end if
 
       if tError is empty then
-        _packageHelper pBuildProfile, xAppA["helpers"][i], pPlatform, pOutputFolder, pExecutableOutputFolder, tPlatformKey
+        _packageHelper pBuildProfile, xAppA["helpers"][i], pPlatform, pArchitecture, pOutputFolder, pExecutableOutputFolder
         put the result into tError
       end if
 
@@ -1098,7 +1108,7 @@ private command _packageHelpers pBuildProfile, @xAppA, pPlatform, pOutputFolder,
 end _packageHelpers
 
 
-private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolder, pExecutableOutputFolder
+private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pArchitecture, pOutputFolder, pExecutableOutputFolder
   local tError, tExclusions, tDestFolder, tExecutableDestFolder, tFilename, tFolderA, tFileA
   local tKey, i
   local tRootFolder
@@ -1129,7 +1139,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
       put 0 into tIndex
 
       repeat with i = 1 to the number of elements of xHelperA[tKey]
-        if not _shouldAssetBeDistributed(xHelperA[tKey][i], pBuildProfile, pPlatform) then
+        if not _shouldAssetBeDistributed(xHelperA[tKey][i], pBuildProfile, pPlatform, pArchitecture) then
           log "  Skipping helper" && tKey && ":" && xHelperA[tKey]["filename"]
           next repeat
         end if
@@ -1173,7 +1183,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
         put 0 into tIndex
 
         repeat with i = 1 to the number of elements of xHelperA["externals"][pPlatform]
-          if not _shouldAssetBeDistributed(xHelperA["externals"][pPlatform][i], pBuildProfile, pPlatform) then
+          if not _shouldAssetBeDistributed(xHelperA["externals"][pPlatform][i], pBuildProfile, pPlatform, pArchitecture) then
             log "  Skipping helper external:" && xHelperA["externals"][pPlatform][i]["filename"]
             next repeat
           end if
@@ -1220,7 +1230,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
       put 0 into tIndex
 
       repeat with i = 1 to the number of elements of xHelperA["extensions"]
-        if not _shouldAssetBeDistributed(xHelperA["extensions"][i], pBuildProfile, pPlatform) then
+        if not _shouldAssetBeDistributed(xHelperA["extensions"][i], pBuildProfile, pPlatform, pArchitecture) then
           log "  Skipping helper extension:" && xHelperA["extensions"][i]["filename"]
           next repeat
         end if
@@ -1231,11 +1241,13 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
         packagerCreateAllFoldersInPath tExecutableDestFolder, tRootFolder
         put the result into tError
 
+        # extension file
         if tError is empty then
           _fileCopyFile xHelperA["extensions"][i]["filename"], tExecutableDestFolder
           put the result into tError
         end if
 
+        # resource folder
         if tError is empty then
           if xHelperA["extensions"][i]["resource folder"] is not empty then
             log "  Adding extension helper resource folder:" && xHelperA["extensions"][i]["resource folder"]
@@ -1270,7 +1282,7 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pOutputFolde
 
     # folders
     repeat for each element tFolderA in xHelperA["package folders"]
-      if not _shouldAssetBeDistributed(tFolderA, pBuildProfile, pPlatform) then
+      if not _shouldAssetBeDistributed(tFolderA, pBuildProfile, pPlatform, pArchitecture) then
         log "  Skipping helper folder:" && tFolderA["filename"]
         next repeat
       end if
@@ -1478,7 +1490,7 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
 end _packageFiles
 
 
-private function _shouldAssetBeDistributed pAssetA, pBuildProfile, pPlatform
+private function _shouldAssetBeDistributed pAssetA, pBuildProfile, pPlatform, pArchitecture
   set the wholematches to true
 
   if pAssetA["distribute"] is false then
@@ -1486,6 +1498,8 @@ private function _shouldAssetBeDistributed pAssetA, pBuildProfile, pPlatform
   else if pAssetA["engine version"] is not empty and not __useLevureFileWithThisEngine(pAssetA["engine version"]) then
     return false
   else if pAssetA["platform"] is not empty and pPlatform is not among the items of pAssetA["platform"] then
+    return false
+  else if pAssetA["architecture"] is not empty and pAssetA["architecture"] is not pArchitecture then
     return false
   else
     return true
