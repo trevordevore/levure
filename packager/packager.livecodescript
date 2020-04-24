@@ -1283,6 +1283,8 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pArchitectur
       end if
     end if
 
+    local tDestination
+
     # folders
     repeat for each element tFolderA in xHelperA["package folders"]
       if not _shouldAssetBeDistributed(tFolderA, pBuildProfile, pPlatform, pArchitecture) then
@@ -1292,10 +1294,24 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pArchitectur
 
       put xHelperA["filename"] & "/" & tFolderA["filename"] into tFilename
       if not (the last item of tFilename begins with ".") AND not (tFilename ends with ".bundle") AND there is not a folder (tDestFolder & "/" & the last item of tFilename) then
-        log "  Adding helper additional folder:" && tFilename
-        log "    to folder:" && tDestFolder & "/" & the last item of tFilename
+        put tFolderA["destination"] into tDestination
+        if tDestination is empty then
+          put tDestFolder & "/" & the last item of tFilename into tDestination
+        else
+          put pOutputFolder & "/" & _normalizeRelativeFilename(tDestination) into tDestination
+          # tDestination may have been `./` or `/`.
+          if the last char of tDestination is "/" then
+            delete the last char of tDestination
+          end if
 
-        _fileCopyFolder tFilename, tDestFolder & "/" & the last item of tFilename
+          packagerCreateAllFoldersInPath tDestination, pOutputFolder
+          put _errorMsg("creating folder" && tDestination, the result) into tError
+        end if
+
+        log "  Adding helper additional folder:" && tFilename
+        log "    to folder:" && tDestination
+
+        _fileCopyFolder tFilename, tDestination
         put the result into tError
       end if
 
@@ -1304,17 +1320,34 @@ private command _packageHelper pBuildProfile, @xHelperA, pPlatform, pArchitectur
 
     # files
     repeat for each element tFileA in xHelperA["package files"]
-      if not _shouldAssetBeDistributed(tFileA, pBuildProfile, pPlatform) then
+      if not _shouldAssetBeDistributed(tFileA, pBuildProfile, pPlatform, pArchitecture) then
         log "  Skipping helper file:" && tFileA["filename"]
         next repeat
       end if
 
       put xHelperA["filename"] & "/" & tFileA["filename"] into tFilename
-      log "  Adding helper additional file:" && tFilename
-      log "    to folder:" && tDestFolder
+      put tFileA["destination"] into tDestination
+      if tDestination is empty then
+        put tDestFolder & "/" & the last item of tFilename into tDestination
+      else
+        put pOutputFolder & "/" & _normalizeRelativeFilename(tDestination) into tDestination
+        # tDestination may have been `./` or `/`.
+        if the last char of tDestination is "/" then
+          delete the last char of tDestination
+        end if
+        packagerCreateAllFoldersInPath tDestination, pOutputFolder
+        put _errorMsg("creating folder" && tDestination, the result) into tError
 
-      _fileCopyFile tFilename, tDestFolder & "/" & the last item of tFilename
-      put the result into tError
+        put "/" & the last item of tFilename after tDestination
+      end if
+
+      log "  Adding helper additional file:" && tFilename
+      log "    to file:" && tDestination
+
+      if tError is empty then
+        _fileCopyFile tFilename, tDestination
+        put the result into tError
+      end if
 
       if tError is not empty then exit repeat
     end repeat
