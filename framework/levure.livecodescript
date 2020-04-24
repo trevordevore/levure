@@ -1133,6 +1133,11 @@ command levureShutdownApplication
 end levureShutdownApplication
 
 
+private function isPackaged
+  return (the environment is not "development") and (the uAppA of stack kAppStackName is an array)
+end isPackaged
+
+
 /**
 Summary: Loads the app configuration data into memory and resolves all file references in it.
 
@@ -1160,7 +1165,7 @@ command levureLoadAppConfig pBuildProfile
   # set sAppFolder and load kAppStackName into memory
   loadApplicationStack
 
-  if (the environment is not "development") and (the uAppA of stack kAppStackName is an array) then
+  if isPackaged() then
     # Packaged application: app stack is already in memory and all folders have been expanded
     put the uAppA of stack kAppStackName into sAppA
 
@@ -1825,19 +1830,24 @@ end loadAppExtensions
 
 private command loadExtensions pArrayA
   local tError
-  local tExtA, tTargetPlatform
+  local tExtA, tTargetPlatform, tCodeFolder
+  local tIsPackaged = false
 
   put targetPlatform() into tTargetPlatform
+  put isPackaged() into tIsPackaged
 
   repeat for each element tExtA in pArrayA["extensions"]
     if tExtA["engine version"] is not empty and not _useFileWithThisEngine(tExtA["engine version"]) then next repeat
     if tExtA["platform"] is not empty and tTargetPlatform is not among the items of tExtA["platform"] then next repeat
+
+    loadExtensionCode tExtA, tIsPackaged
 
     if tExtA["resource folder"] is not empty then
       load extension from file tExtA["filename"] with resource path tExtA["resource folder"]
     else
       load extension from file tExtA["filename"]
     end if
+
     if the result is not empty and the result is not "module already loaded" then
       put the result & ":" && tExtA["filename"] & cr after tError
     end if
@@ -1847,6 +1857,58 @@ private command loadExtensions pArrayA
 
   return tError for error
 end loadExtensions
+
+
+# Desktop needs to have mappings explicitly set for extensions with <code> folders.
+private command loadExtensionCode pExtA, pIsPackaged
+  local tFilename, tLibName, tFolder, tExtension
+
+  repeat for each element tCodeLib in pExtA["code"]
+    set the itemdelimiter to "/"
+    put item 1 to -2 of pExtA["filename"] into tFilename
+
+    set the itemdelimiter to "."
+    put item 1 of tCodeLib into tLibName
+
+    switch the platform
+      case "macos"
+        put "x86_64-mac" into tFolder
+        put "dylib" into tExtension
+        break
+
+      case "win32"
+        # this is really `architecture` as it is the engine, not computer
+        if the processor is "x86" then
+          put "x86-win32" into tFolder
+        else
+          put "x86_64-win32" into tFolder
+        end if
+        put "dll" into tExtension
+        break
+
+      case "linux"
+        if the processor is "x86" then
+          put "x86-linux" into tFolder
+        else
+          put "x86_64-linux" into tFolder
+        end if
+        put "so" into tExtension
+        break
+    end switch
+
+    if the number of items of tCodeLib is 1 then
+      put "." & tExtension after tCodeLib
+    end if
+
+    if pIsPackaged then
+      put "./Externals/" & tCodeLib into tFilename
+    else
+      put tFilename & "/code/" & tFolder & "/" & tCodeLib into tFilename
+    end if
+
+    set the revLibraryMapping[tLibName] to tFilename
+  end repeat
+end loadExtensionCode
 
 
 /**
