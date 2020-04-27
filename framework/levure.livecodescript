@@ -1047,6 +1047,8 @@ private command unloadApp
   end repeat
 
   unloadExternals
+
+  stop using stack kAppStackName
 end unloadApp
 
 
