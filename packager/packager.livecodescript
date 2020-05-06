@@ -2514,6 +2514,8 @@ private function _fileListing pFilename
   local tFiles, tFile, tFullPathFiles
 
   put files(pFilename) into tFiles
+  # Packaging a macOS folder on Windows will complain about not finding the .DS_Store file
+  filter tFiles without ".DS_Store"
 
   repeat for each line tFile in tFiles
     put pFilename & "/" & tFile & cr after tFullPathFiles
