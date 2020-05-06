@@ -1890,12 +1890,16 @@ private command _copyExecutablesAndSupportingFilesToFolder pBuildForPlatform, pB
   set the itemdelimiter to "/"
 
   if pBuildForDistribution then
-    _moveFolder tFolderContainingBuild, pOutputFolder
-    put _errorMsg("moving folder [" & tFolderContainingBuild & "] to [" & pOutputFolder & "]", the result) into tError
+    local tNewFolderName
+    put item 1 to -2 of tFolderContainingBuild & "/" & pBuildForPlatform into tNewFolderName
+
+    # rename first in case folder is being moved to a network volume on Windows.
+    rename folder tFolderContainingBuild to tNewFolderName
+    put _errorMsg("renaming folder [" & tFolderContainingBuild & "] to [" & tNewFolderName & "]", the result) into tError
 
     if tError is empty then
-      rename folder (pOutputFolder & "/" & the last item of tFolderContainingBuild) to pOutputFolder & "/" & pBuildForPlatform
-      put _errorMsg("renaming folder [" & tFolderContainingBuild & "] to [" & pOutputFolder & "/" & pBuildForPlatform & "]", the result) into tError
+      _moveFolder tNewFolderName, pOutputFolder
+      put _errorMsg("moving folder [" & tNewFolderName & "] to [" & pOutputFolder & "]", the result) into tError
     end if
   else
     _moveFilesAndFolders tFolderContainingBuild, pOutputFolder
