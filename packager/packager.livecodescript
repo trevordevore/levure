@@ -1062,10 +1062,10 @@ private command _copyFiles pBuildProfile, pTargetPlatform, pArchitecture, pAppA,
 
             if there is a folder tTargetFolder then
               _copyFilesAndFolders tFilename, tTargetFolder
-              put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+              put _errorMsg("copying folder" && tFilename && "to" && tTargetFolder, the result) into tError
             else
               _fileCopyFolder tFilename, tTargetFolder
-              put _errorMsg("copying file" && tFilename && "to" && tTargetFolder, the result) into tError
+              put _errorMsg("copying folder" && tFilename && "to" && tTargetFolder, the result) into tError
             end if
           else
             put "unable to locate file [" & tFilename & "]" into tError
