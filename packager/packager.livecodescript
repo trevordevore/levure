@@ -65,6 +65,10 @@ Returns: Empty
 command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSimulator
   local tError, tBuildProfile, tBuildStandalone, tStandaloneBuilderPlatforms
   local tSubFolder, tOutputFolder, tAppFolder, tPlatformFilter
+  local tHideConsole
+
+  put the hideConsoleWindows into tHideConsole
+  set the hideConsoleWindows to true
 
   levureLoadAppConfig pBuildProfile
 
@@ -295,6 +299,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   end if
 
   send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile, pSimulator" to stack pStandaloneStackFilename in 10 milliseconds
+
+  set the hideConsoleWindows to tHideConsole
 end packagerPackageApplication
 
 
@@ -507,8 +513,11 @@ end _dispatchPackagingComplete
 
 
 command packagerBuildStandaloneForTesting pStandaloneStackFilename
-  local tError, tOutputFolder
+  local tError, tOutputFolder, tHideConsole
   local tBuildProfile = "test"
+
+  put the hideConsoleWindows into tHideConsole
+  set the hideConsoleWindows to true
 
   resetLogging
   log "[" & the system date & "] Packaging app using profile test"
@@ -550,6 +559,8 @@ command packagerBuildStandaloneForTesting pStandaloneStackFilename
   end if
 
   send "packagerDidFinishBuildingStandaloneForTesting" to stack pStandaloneStackFilename in 10 milliseconds
+
+  set the hideConsoleWindows to tHideConsole
 end packagerBuildStandaloneForTesting
 
 
