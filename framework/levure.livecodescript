@@ -2247,7 +2247,7 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
   put xHelperA into tConfigA
 
   if tError is empty then
-    local tPlatform, tTargetPlatform
+    local tPlatform, tTargetPlatform, tArchitecture
 
     # stack files
     repeat with j = 1 to the number of elements of tConfigA["ui"]
@@ -2256,6 +2256,11 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
     end repeat
 
     put targetPlatform() into tTargetPlatform
+    if the processor is "x86" then
+      put 32 into tArchitecture
+    else
+      put 64 into tArchitecture
+    end if
 
     set the wholematches to true
 
@@ -2270,6 +2275,7 @@ private command resolveHelperFolderAssets pBuildProfile, @xHelperA, pExternalPac
         end if
 
         if tPlatform is tTargetPlatform and tConfigA["externals"][tTargetPlatform][j]["name"] is not empty \
+              and (xHelperA["architecture"] is empty or xHelperA["architecture"] is tArchitecture) \
               and tConfigA["externals"][tTargetPlatform][j]["name"] is not among the lines of pExternalPackagesInMemory then
           put tConfigA["externals"][tTargetPlatform][j]["filename"] into \
                 line (the number of lines of sAppA["externals to load"] + 1) of sAppA["externals to load"]
