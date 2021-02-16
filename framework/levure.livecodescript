@@ -3608,17 +3608,27 @@ private function __unquotedCharOffset pChar, pLine
   local tOffset = 0
   local tChar
   local tInQuote = "false"
+  local tQuoteChar, tQuoteEscapeChar
 
   repeat with tOffset = 1 to the number of chars of pLine
     put char tOffset of pLine into tChar
 
-    if tInQuote and tChar is "\" and char tOffset+1 of pLine is quote then
+    if tInQuote and tChar is tQuoteEscapeChar and \
+        char tOffset+1 of pLine is tQuoteChar then
       add 1 to tOffset
       next repeat
     end if
 
-    if tChar is quote then
+    if tInQuote and tChar is tQuoteChar then
       put not tInQuote into tInQuote
+    else if not tInQuote and tChar is quote then
+      put quote into tQuoteChar
+      put "\" into tQuoteEscapeChar
+      put true into tInQuote
+    else if not tInQuote and tChar is "'" then
+      put "'"  into tQuoteChar
+      put "'" into tQuoteEscapeChar
+      put true into tInQuote
     else if tChar is pChar and not tInQuote then
       return tOffset
     end if
