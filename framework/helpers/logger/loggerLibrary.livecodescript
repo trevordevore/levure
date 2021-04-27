@@ -371,6 +371,8 @@ private command _log pMsg, pLogType
     write pMsg & cr to stdout
   else if sLogTarget begins with "field " and there is a sLogTarget then
     put pMsg after field id (word 3 of sLogTarget) of stack (word -2 to -1 of sLogTarget)
+  else if sLogTarget is "answer" then
+    answer pMsg
   else #file
     open file sLogTarget for append
     put the result into tError
