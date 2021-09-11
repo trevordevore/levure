@@ -1,7 +1,7 @@
 name: <appname>
 version: 0.0.1
 build: 1
-encrypt stacks: false
+encrypt stacks: 
 multiple instances: false
 relaunch in background: false
 creator code:
