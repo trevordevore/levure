@@ -373,6 +373,10 @@ private command _log pMsg, pLogType
     put pMsg after field id (word 3 of sLogTarget) of stack (word -2 to -1 of sLogTarget)
   else if sLogTarget is "answer" then
     answer pMsg
+  else if sLogTarget is "db" then
+    set the itemDelimiter to sColDelim
+    delete first item of pMsg #date/timestamp
+    handleQuery "INSERT INTO log (seconds, message) VALUES (:1, :2)" , args ( the seconds , pMsg )
   else #file
     open file sLogTarget for append
     put the result into tError
