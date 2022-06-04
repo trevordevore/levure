@@ -155,10 +155,8 @@ and `packagingComplete pBuildProfile, pOutputFolder, pAppA` messages.
 
 The `certificates` > `macos` > `name` property is the name of the certificate that the packager should use to sign your applications on macOS.
 The packager will prefix the certificate with `Developer ID Application:` for apps being distributed outside of the Mac App Store
-and with `3rd Party Mac Developer Application:` for apps being distributed through the Mac App Store, and with `Mac Developer:` for apps built
-for testing Mac App Store applications. The packager assumes you are
-distributing through the Mac App Store if the name of pBuildProfile is "mac app store" and for development if pBuildProfile is
-"mac app store development".
+and with `3rd Party Mac Developer Application:` for apps being distributed through the Mac App Store. The packager assumes you are
+distributing through the Mac App Store if the name of pBuildProfile is "mac app store".
 
 The `copy files` property determines which files will be copied into the output folder.
 

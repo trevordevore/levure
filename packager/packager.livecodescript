@@ -240,12 +240,13 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
         if tPlatform is "macos" then
           _signMacOSApplication pBuildProfile, sAppA, tOutputFolder & "/" & tPlatform
           put the result into tError
-        end if
 
-        if tPlatform is "macos" and pBuildProfile is "mac app store" then
-          log "Packaging for Mac App Store"
-          _packageForMAS sAppA, tOutputFolder & "/" & tPlatform
-          put the result into tError
+          if tError is empty then
+            # PKG can be uploaded to the Mac App Store or used with device management systems such as JAMF
+            log "Creating .pkg for macOS"
+            _createMacOsPkg pBuildProfile, sAppA, tOutputFolder, tOutputFolder & "/" & tPlatform
+            put the result into tError
+          end if
         end if
       end if
 
@@ -319,13 +320,12 @@ private command _determineSigningCertificate pBuildProfile, pPlatform, @xAppA
   end if
 
   if tCert is not empty then
-    if pBuildProfile is "mac app store" then
+    if pBuildProfile is "mac app store" and pPlatform is "macos" then
       put "3rd Party Mac Developer Application:" && tCert into xAppA[pPlatform && "signing certificate"]
       put "3rd Party Mac Developer Installer:" && tCert into xAppA[pPlatform && "installer signing certificate"]
-    else if pBuildProfile is "mac app store development" then
-      put "Mac Developer:" && tCert into xAppA[pPlatform && "signing certificate"]
     else if pPlatform is "macos" then
       put "Developer ID Application:" && tCert into xAppA[pPlatform && "signing certificate"]
+      put "Developer ID Installer:" && tCert into xAppA[pPlatform && "installer signing certificate"]
     else if pPlatform is "windows" then
       put tCert into xAppA[pPlatform && "signing certificate"]
     end if
@@ -2239,8 +2239,8 @@ private function _findRangeForPlistEntry pData, pEntry
 end _findRangeForPlistEntry
 
 
-private command _packageForMAS pAppA, pFolderWithMacApp
-  local tAppBundle
+private command _createMacOsPkg pBuildProfile, pAppA, pOutputFolder, pFolderWithMacApp
+  local tAppBundle, tInstallerName
   local tPackage, tCmd, tResult
 
   set the itemdelimiter to "/"
@@ -2248,18 +2248,44 @@ private command _packageForMAS pAppA, pFolderWithMacApp
   put pFolderWithMacApp & "/" & the last item of levureStandaloneFilename() into tAppBundle
   if there is not a folder tAppBundle then return empty
 
-  set the itemdelimiter to "."
-  put tAppBundle into tPackage
-  put "pkg" into item -1 of tPackage
+  put packagerGetInstallerName(pBuildProfile, "macos") into tInstallerName
+  if tInstallerName is empty then return empty
 
-  put format("productbuild --component \"%s\" /Applications --sign \"%s\" \"%s\"", tAppBundle, pAppA["macos installer signing certificate"], tPackage) into tCmd
+  put pOutputFolder & "/" & tInstallerName & ".pkg" into tPackage
+
+  put format("productbuild --sign \"%s\" --component \"%s\" /Applications \"%s\"", pAppA["macos installer signing certificate"], tAppBundle, tPackage) into tCmd
+  packagerLog "productbuild shell command:" && tCmd
   put shell(tCmd) into tResult
   if the result > 0 then
     return tResult for error
   else
     return empty for value
   end if
-end _packageForMAS
+end _createMacOsPkg
+
+
+function packagerGetInstallerName pBuildProfile, pPlatform
+  local tName, tProfilesA
+
+  put levureAppGet("build profiles") into tProfilesA
+
+  put tProfilesA[pBuildProfile]["installer name"][pPlatform] into tName
+  if tName is empty then
+    put tProfilesA["all profiles"]["installer name"][pPlatform] into tName
+  end if
+  if tName is empty then
+    put tProfilesA[pBuildProfile]["installer name"]["all platforms"] into tName
+  end if
+  if tName is empty then
+    put tProfilesA["all profiles"]["installer name"]["all platforms"] into tName
+  end if
+
+  if tName is not empty then
+    put tName && levureAppGet("version") & "-" & levureAppGet("build") into tName
+  end if
+
+  return tName
+end packagerGetInstallerName
 
 
 private command _signMacOSApplication pBuildProfile, pAppA, pFolderWithMacApp
