@@ -35,7 +35,7 @@ end startup
 
 
 on shutdown
-  if the environment is not "development" then
+  if "development" is not in the environment then
     levureShutdownApplication
   end if
 
@@ -89,7 +89,10 @@ then the error will be displayed and the application will quit. The assumption i
 unexpected happened and you don't want your application lingering around in memory unable to quit.
 */
 on errorDialog pError
-  if the environment is "development" OR sRuntimePropertiesA["state"] is "running" then pass errorDialog
+  if "development" is in the environment \
+      OR sRuntimePropertiesA["state"] is "running" then
+    pass errorDialog
+  end if
 
   answer error pError
   quit
@@ -211,7 +214,9 @@ end levureTestApplicationInSimulator
 private command _packageApplication pBuildProfile, pSimulator
   local tError, tStackFilename
 
-  if the environment is not "development" then put "can only be run in development environment" into tError
+  if "development" is not in the environment then
+    put "can only be run in development environment" into tError
+  end if
 
   if tError is empty then
     _initializePackaging pBuildProfile, tStackFilename
@@ -289,7 +294,9 @@ Returns: Error message
 command levureBuildStandalonesForTesting
   local tError, tStackFilename
 
-  if the environment is not "development" then return "can only be run in development environment"
+  if "development" is not in the environment then
+    return "can only be run in development environment"
+  end if
 
   if tError is empty then
     _initializePackaging empty, tStackFilename
@@ -444,7 +451,7 @@ command levureInitializeAndRunApplication
   if tError is not empty then
     answer error "An error occurred while initializing the application [" &  tError & "]."
 
-    if the environment is not "development" then
+    if "development" is not in the environment then
       quit
     end if
   end if
@@ -541,7 +548,7 @@ command levureRunApplication
       unloadApp
 
       ## Only quit if not in development. This allows developer to troubleshoot.
-      if the environment is not "development" then
+      if "development" is not in the environment then
         quit
         exit to top
       end if
@@ -999,7 +1006,7 @@ end if
 Returns: Build profile name
 */
 function levureBuildProfile
-  if the environment is "development" then
+  if "development" is in the environment then
     return "development"
   else
     return the uBuildProfile of me # Assigned at build time
@@ -1136,7 +1143,8 @@ end levureShutdownApplication
 
 
 private function isPackaged
-  return (the environment is not "development") and (the uAppA of stack kAppStackName is an array)
+  return ("development" is not in the environment) and \
+      (the uAppA of stack kAppStackName is an array)
 end isPackaged
 
 
@@ -1275,7 +1283,7 @@ command levureLoadAppConfig pBuildProfile
                 break
               case "copy files"
                 # Copy files are only loaded in development
-                if the environment is "development" then
+                if "development" is in the environment then
                   if tKey is not among the keys of sAppA["registered components"][tKind] then
                     put empty into sAppA["registered components"][tKind][tKey]
                     put sAppA["helpers"][i]["register components"][tKeyIndex]["target platform"] \
@@ -1294,7 +1302,7 @@ command levureLoadAppConfig pBuildProfile
           end repeat
 
           # Register callbacks defined in helper
-          if the environment is "development" then
+          if "development" is in the environment then
             if sAppA["helpers"][i]["packager callbacks stackfile"] is not empty then
               put resolveFilenameReference(sAppA["helpers"][i]["packager callbacks stackfile"], sAppA["helpers"][i]["filename"]) \
                     into line (the number of lines of sAppA["packager callbacks stackfiles"] + 1) \
@@ -1415,7 +1423,7 @@ private command loadApplicationStack
   else if doesFolderContainAppFile(tRootSearchFolder) then
     put tRootSearchFolder into sAppFolder
   else
-    if the environment is not "development" then
+    if "development" is not in the environment then
       # Running "test" standalone which has this function defined.
       put levureTestingStandaloneAppFolder() into sAppFolder
     else
@@ -1613,7 +1621,7 @@ private command loadAppAssets
 
   if tError is empty then
     if tRenameAnswerDialog then
-      if the environment is "development" then
+      if "development" is in the environment then
         set the name of stack "Answer Dialog" to "Answer Dialog (LiveCode)"
       else
         delete stack "Answer Dialog"
@@ -1621,7 +1629,7 @@ private command loadAppAssets
     end if
 
     if tRenameAskDialog then
-      if the environment is "development" then
+      if "development" is in the environment then
         set the name of stack "Ask Dialog" to "Ask Dialog (LiveCode)"
       else
         delete stack "Ask Dialog"
@@ -2192,7 +2200,7 @@ private command resolveHelperAssets pBuildProfile
   end repeat
 
   # If macos and not in development then need to point to the MacOS folder and not the Resources/_MacOS folder
-  if the platform is "macos" and the environment is not "development" then
+  if the platform is "macos" and "development" is not in the environment then
     replace "/Resources/_MacOS/" with "/MacOS/" in sAppA["externals to load"]
   end if
 
@@ -2481,7 +2489,7 @@ function levureStandaloneFolder
   put the effective filename of me into tFolder
   set the itemDelimiter to "/"
   delete the last item of tFolder
-  if the environment is not "development" and the platform is "macos" then
+  if "development" is not in the environment and the platform is "macos" then
     if tFolder contains ".app/Contents/MacOS" then
       delete item -3 to -1 of tFolder
     end if
@@ -2505,7 +2513,7 @@ Returns: Name
 function levureStandaloneName
   local tName
 
-  if the environment is "development" then
+  if "development" is in the environment then
     put the cRevStandaloneSettings["name"] of me into tName
     switch the platform
       case "macos"
@@ -2628,7 +2636,7 @@ Summary: Returns the name of the stack whose font properties will affect all sta
 Returns: String
 */
 private function _targetStackForFont
-  if the environment is "development" then
+  if "development" is in the environment then
     return "home"
   else
     return levureStandaloneStackName()
@@ -3040,7 +3048,7 @@ end replaceVariablesInPaths
 private function userExtensionsFolder
   local tUserExtensionsFolder
 
-  if the environment is "development" then
+  if "development" is in the environment then
     put revEnvironmentCustomizationPath() into tUserExtensionsFolder
   else
     try
@@ -3267,7 +3275,7 @@ function levureExternalsLoadedInMemory
   local tStacks,tSubstack,tSubstacks
 
   put stacksInUse into tStacks
-  if the environment is "development" then
+  if "development" is in the environment then
     put "home" into line (the number of lines of tStacks + 1) of tStacks
   end if
 
