@@ -1929,6 +1929,9 @@ private function _generateStartupScript pRelativeFrameworkPath, pRelativeAppPath
           _qstr("if the platform is `macos` then") & cr & \
           _qstr("put resolvePath(`" & tAppStackFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tAppStackFilename") & cr & \
           _qstr("put resolvePath(`" & tFrameworkFilename & "`, item 1 to -2 of the engine folder & `/Resources/_MacOS`) into tFrameworkFilename") & cr & \
+          _qstr("else if the platform is `web` then") & cr & \
+          _qstr("put resolvePath(`" & tAppStackFilename & "`, the engine folder & `/standalone`) into tAppStackFilename") & cr & \
+          _qstr("put resolvePath(`" & tFrameworkFilename & "`, the engine folder & `/standalone`) into tFrameworkFilename") & cr & \
           "else" & cr & \
           _qstr("put resolvePath(`" & tAppStackFilename & "`, the engine folder) into tAppStackFilename") & cr & \
           _qstr("put resolvePath(`" & tFrameworkFilename & "`, the engine folder) into tFrameworkFilename") & cr & \
