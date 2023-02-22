@@ -2221,16 +2221,16 @@ private function _useFileWithThisEngine pVersionRange
 
   switch tOperator
     case "<"
-      return tVersion < tEngineVersion
+      return tEngineVersion < tVersion
 
     case ">"
-      return tVersion > tEngineVersion
+      return tEngineVersion > tVersion
 
     case "<="
-        return tVersion <= tEngineVersion
+        return tEngineVersion <= tVersion
 
     case ">="
-      return tVersion >= tEngineVersion
+      return tEngineVersion >= tVersion
 
     default
       return false
