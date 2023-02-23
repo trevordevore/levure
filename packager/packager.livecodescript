@@ -5,6 +5,9 @@ constant kNestedKeysDelimiter = ">"
 
 local sAppA, sPassword, sBuildLogFile, sCallbackStacksA, sBuildStandaloneA
 
+/* Enum used for command line packaging running|failed|cancelled|complete */
+local sCommandLineStatus
+
 on libraryStack
   if the target is not me then pass libraryStack
 end libraryStack
@@ -291,11 +294,19 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
 
   if tError is "cancel" then
     log "Packaging canceled"
+    put "cancelled" into sCommandLineStatus
   else if tError is not empty then
     log "Done packaging application with error:" && tError
-    answer error tError
+    if sCommandLineStatus is "running" then
+      put "failed" into sCommandLineStatus
+      write "Done packaging application with error:" && tError & return \
+        to stderr
+    else
+      answer error tError
+    end if
   else
     log "Done packaging application"
+    put "complete" into sCommandLineStatus
   end if
 
   send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile, pSimulator" to stack pStandaloneStackFilename in 10 milliseconds
@@ -2952,3 +2963,133 @@ private function _printCharXTimes pChar, pTimes
   end repeat
   return tStr
 end _printCharXTimes
+
+/*
+
+To run the packager on the command line of an installed IDE use:
+
+```
+<path to IDE exe> \
+  -ui \
+  <path to levure/packager/packager.livecodescript> \
+  <path to app/standalone.livecode> \
+  <buildprofile>
+```
+
+For example:
+
+```
+"/Applications/LiveCode 9.6.8.app/Contents/MacOS/LiveCode" \
+  -ui \
+  ~/myapp/levure/packager/packager.livecodescript \
+  ~/myapp/app/standalone.livecode \
+  beta
+```
+*/
+on startup
+   _LoadHomeStack
+
+  start using stack "revSBLibrary"
+
+  if there is no stack $1 then
+    write "Stack not found" && $1 & return to stderr
+    quit 1
+  end if
+
+  go stack $1
+
+  put "running" into sCommandLineStatus
+
+  send "_doPackageCommand $1, $2" \
+    to me \
+    in 100 milliseconds
+
+  /* There is a send in time in levurePackageApplication so we need to wait
+   * here until complete */
+  wait while sCommandLineStatus is "running" with messages
+
+  switch sCommandLineStatus
+  case "complete"
+    /* completed ok but there may be warnings */
+    if revStandaloneGetWarnings() is not empty then
+      write revStandaloneGetWarnings() & return to stdout
+    end if
+    quit 0
+  case "failed"
+    quit 2
+  case "cancelled"
+    quit 3
+  default
+    write "unknown command line status" && sCommandLineStatus & return to stderr
+    quit 99
+  end switch
+end startup
+
+on _doPackageCommand \
+    pStandaloneStack, \
+    pBuildProfile
+
+  send "levurePackageApplication pBuildProfile" to stack pStandaloneStack
+end _doPackageCommand
+
+private function _IsInstalledIDE
+  set the itemDelimiter to slash
+  switch the platform
+  case "MacOS"
+    local tBundleContents
+    put item 1 to -2 of specialFolderPath("engine") into tBundleContents
+    if there is a folder (tBundleContents & "/Tools/Toolset") then
+      return true
+    end if
+    return false
+  case "Win32"
+    local tBinFolder
+    put specialFolderPath("engine") into tBinFolder
+    return there is a file tBinFolder & slash & "revxml.dll"
+  end switch
+end _IsInstalledIDE
+
+private command _LoadHomeStack
+  set the itemDelimiter to slash
+  local tToolsetLocation
+  if _IsInstalledIDE() then
+    switch the platform
+    case "MacOS"
+      local tBundleContents
+      put item 1 to -2 of specialFolderPath("engine") into tBundleContents
+      put tBundleContents & "/Tools/Toolset" \
+        into tToolsetLocation
+      break
+    case "Win32"
+      write "Cannot load standalone libraries" & return to stderr
+      quit 1
+    end switch
+  else
+    local tRepoFolder
+    switch the platform
+    case "MacOS"
+      if specialFolderPath("engine") contains "_build" then
+        put item 1 to -7 of specialFolderPath("engine") into tRepoFolder
+      else
+        put item 1 to -5 of specialFolderPath("engine") into tRepoFolder
+      end if
+      break
+    case "Win32"
+      put item 1 to -2 of specialFolderPath("engine") into tRepoFolder
+      break
+    end switch
+    put tRepoFolder & "/ide/Toolset" into tToolsetLocation
+  end if
+
+  local tHome
+  put tToolsetLocation & "/home.livecodescript" into tHome
+
+  -- Set the 'test environment' to true
+  dispatch "revSetTestEnvironment" to stack tHome with true
+
+  insert the script of stack tHome into back
+
+  dispatch "startup" to stack tHome
+
+  open stack tHome
+end _LoadHomeStack
