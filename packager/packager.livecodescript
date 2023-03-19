@@ -175,6 +175,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
 
         _pruneAppArray tAppA, pBuildProfile, tPlatform
 
+        _dispatchFinalizeApp pBuildProfile, tPlatform, tAppA, tAppFolder
+
         log "tAppA:" && _printArray(tAppA,,true)
 
         set the itemdelimiter to "/"
@@ -498,6 +500,18 @@ private command _dispatchFinalizePackagedAssets pBuildProfile, pPlatform, @xAppA
   end repeat
 end _dispatchFinalizePackagedAssets
 
+private command _dispatchFinalizeApp pBuildProfile, pPlatform, @xAppA, pAppFolder
+  local tCallbackStacks, tFilename
+
+  # Send callbacks
+  put _packagerCallbackStacks(xAppA, pBuildProfile) into tCallbackStacks
+  repeat for each line tFilename in tCallbackStacks
+    log "Dispatching finalizePackagedApp to stack" && tFilename
+
+    dispatch "finalizePackagedApp" to stack tFilename with pBuildProfile, pPlatform, xAppA, pAppFolder
+    put "" into sCallbackStacksA[ tFilename ]
+  end repeat
+end _dispatchFinalizeApp
 
 private command _dispatchPackagingComplete pBuildProfile, @xAppA, pOutputFolder
   local tCallbackStacks, tFilename
