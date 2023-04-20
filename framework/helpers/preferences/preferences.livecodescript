@@ -426,8 +426,19 @@ command prefsSave pUserOrShared
 
     else if useNSUserDefaultsExtension(pUserOrShared) then
       # Nothing to do.
-    else
+    else if the platform is "web" then
+      local tData
+      put base64Encode(arrayEncode(sPrefsA[pUserOrShared], "7.0")) into tData
+      replace return with empty in tData
 
+      local tJS
+      put format( \
+          "window.localStorage.setItem('%s', '%s')", \
+          pUserOrShared, \
+          tData) \
+        into tJS
+      do tJS as "javascript"
+    else
       saveContentsToFile tFile, arrayEncode(sPrefsA[pUserOrShared])
       put the result into tError
 
@@ -493,39 +504,46 @@ private command _ensurePrefsAreLoaded pUserOrShared
   validateKey pUserOrShared
 
   if sPrefsA[pUserOrShared] is null then
-    local tFile
-
-    if pUserOrShared is "shared" then
-      put prefsGetPreferenceFile("shared") into tFile
-    else
-      put prefsGetPreferenceFile("user") into tFile
-    end if
-
-    if there is a file tFile then
-      local tError, tData
-
-      put readFileContents(tFile) into tData
-      put the result into tError
-
-      if tError is empty then
-        if tData is not empty then
-          try
-            put arrayDecode(tData) into sPrefsA[pUserOrShared]
-          catch e
-            throw kPrefsErr & "error loading preferences:" && e
-          end try
-        else
-          put empty into sPrefsA[pUserOrShared]
-        end if
-        return true
-      else
-        throw kPrefsErr & "error loading preferences:" && tError
+    local tFile, tData, tError
+    if the platform is "web" then
+      do format( \
+          "window.localStorage.getItem('%s')", \
+          pUserOrShared) \
+        as "javascript"
+      if the result is not empty then
+        put base64Decode(the result) into tData
       end if
     else
-      # create "user" or "shared" key as an array type
-      put 1 into sPrefsA[pUserOrShared]["init"]
-      delete local sPrefsA[pUserOrShared]["init"]
+      if pUserOrShared is "shared" then
+        put prefsGetPreferenceFile("shared") into tFile
+      else
+        put prefsGetPreferenceFile("user") into tFile
+      end if
+
+      if there is a file tFile then
+        put readFileContents(tFile) into tData
+        put the result into tError
+      else
+        # create "user" or "shared" key as an array type
+        put 1 into sPrefsA[pUserOrShared]["init"]
+        delete local sPrefsA[pUserOrShared]["init"]
+        return true
+      end if
+    end if
+
+    if tError is empty then
+      if tData is not empty then
+        try
+          put arrayDecode(tData) into sPrefsA[pUserOrShared]
+        catch e
+          throw kPrefsErr & "error loading preferences:" && e
+        end try
+      else
+        put empty into sPrefsA[pUserOrShared]
+      end if
       return true
+    else
+      throw kPrefsErr & "error loading preferences:" && tError
     end if
   else
     return true
