@@ -1485,6 +1485,8 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
 
       local tFilename
 
+      local tIndex
+      put 0 into tIndex
       repeat with i = 1 to the number of elements of xAppA[tLookupA]
         # Send callbacks
         if xAppA["registered components"]["files"][tKey]["callback stackfile"] is not empty then
@@ -1517,11 +1519,13 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
         end if
 
         if tError is empty then
-          put _makeRelativePath(xAppA[tLookupA][i]["filename"], levureAppFolder()) into tCompsA[i]["filename"]
+          # Create new array with excluded elements removed
+          add 1 to tIndex
+          put _makeRelativePath(xAppA[tLookupA][i]["filename"],levureAppFolder()) into tCompsA[tIndex]["filename"]
           repeat for each key tProp in xAppA[tLookupA][i]
             if tProp is "filename" then next repeat
 
-            put xAppA[tLookupA][i][tProp] into tCompsA[i][tProp]
+            put xAppA[tLookupA][i][tProp] into tCompsA[tIndex][tProp]
           end repeat
         end if
 
