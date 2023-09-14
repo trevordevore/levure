@@ -2087,14 +2087,15 @@ end _performPackagingPrechecks
 
 
 private command _moveFilesAndFolders pSourceFolder, pDestinationFolder
-  local tError, tFile
+  local tError, tFile, tNewFilename
 
   set the itemdelimiter to "/"
 
   if tError is empty then
     repeat for each line tFile in _fileListing(pSourceFolder)
-      rename file tFile to (pDestinationFolder & "/" & the last item of tFile)
-      put the result into tError
+      put pDestinationFolder & "/" & the last item of tFile into tNewFilename
+      rename file tFile to tNewFilename
+      put _errorMsg("renaming file [" & tFile & "] to [" & tNewFilename & "]", the result) into tError
 
       if tError is not empty then exit repeat
     end repeat
@@ -2102,8 +2103,9 @@ private command _moveFilesAndFolders pSourceFolder, pDestinationFolder
 
   if tError is empty then
     repeat for each line tFile in _folderListing(pSourceFolder)
-      rename folder tFile to (pDestinationFolder & "/" & the last item of tFile)
-      put the result into tError
+      put pDestinationFolder & "/" & the last item of tFile into tNewFilename
+      rename folder tFile to tNewFilename
+      put _errorMsg("renaming folder [" & tFile & "] to [" & tNewFilename & "]", the result) into tError
 
       if tError is not empty then exit repeat
     end repeat
