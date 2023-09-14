@@ -456,6 +456,11 @@ private command _pruneAppArray @xAppA, pBuildProfile, pPlatform
     delete local xAppA["preferences filename"]["shared"][tKey]
   end repeat
 
+  /* Delete callback stackfiles that will be resolved at runtime */
+  repeat for each key tKey in xAppA["registered components"]["files"]
+    delete local xAppA["registered components"]["files"][tKey]["callback stackfile"]
+  end repeat
+
   return empty for error
 end _pruneAppArray
 

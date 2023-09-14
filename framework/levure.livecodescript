@@ -1182,6 +1182,22 @@ command levureLoadAppConfig pBuildProfile
     put expandHelperAssetsFileReferenceArray(pBuildProfile, sAppA["helpers"], sAppFolder) into sAppA["helpers"]
     put the result into tError
 
+    /* Update callback stackfiles */
+    local i, tKeyIndex, tKind, tHelperFilename
+    repeat with i = 1 to the number of elements of sAppA["helpers"]
+      repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
+        put sAppA["helpers"][i]["register components"][tKeyIndex]["key"] into tKey
+        put sAppA["helpers"][i]["register components"][tKeyIndex]["kind"] into tKind
+
+        if sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"] is not empty then
+          put resolveFilenameReference( \
+              sAppA["helpers"][i]["register components"][tKeyIndex]["callback stackfile"], \
+              sAppA["helpers"][i]["filename"]) \
+            into sAppA["registered components"][tKind][tKey]["callback stackfile"]
+        end if
+      end repeat
+    end repeat
+
     if tError is empty then
       resolveHelperAssets pBuildProfile
       put the result into tError
@@ -1205,7 +1221,7 @@ command levureLoadAppConfig pBuildProfile
     end if
 
     if tError is empty then
-      local i, j
+      local j
       local tFilesA
 
       ##########
@@ -1258,7 +1274,7 @@ command levureLoadAppConfig pBuildProfile
       # Get keys registered by helpers
       ##########
       if tError is empty then
-        local tKeyIndex, tKind, tCallbackStack, k
+        local tCallbackStack, k
 
         repeat with i = 1 to the number of elements of sAppA["helpers"]
           repeat with tKeyIndex = 1 to the number of elements of sAppA["helpers"][i]["register components"]
