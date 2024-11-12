@@ -3079,7 +3079,8 @@ private function _IsInstalledIDE
   case "MacOS"
     local tBundleContents
     put item 1 to -2 of specialFolderPath("engine") into tBundleContents
-    if there is a folder (tBundleContents & "/Tools/Toolset") then
+    if there is a folder (tBundleContents & "/Tools/Toolset") or \
+        there is a folder (tBundleContents & "/Classic/Toolset") then
       return true
     end if
     return false
@@ -3098,8 +3099,11 @@ private command _LoadHomeStack
     case "MacOS"
       local tBundleContents
       put item 1 to -2 of specialFolderPath("engine") into tBundleContents
-      put tBundleContents & "/Tools/Toolset" \
-        into tToolsetLocation
+      if there is a folder (tBundleContents & "/Tools") then
+        put tBundleContents & "/Tools/Toolset" into tToolsetLocation
+      else
+        put tBundleContents & "/Classic/Toolset" into tToolsetLocation
+      end if
       break
     case "Win32"
       write "Cannot load standalone libraries" & return to stderr
