@@ -126,6 +126,7 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
     local tPlatform, tArchitecture, tBuildPlatform
     local tAppA, tWorkingOutputFolder, tExecutableOutputFolder
     local tCertName
+    local tBuiltForMacOS = false
 
     repeat for each item tBuildPlatform in tStandaloneBuilderPlatforms
       put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
@@ -134,6 +135,12 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
       if not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
       if tPlatform is "macos" and the platform is not "macos" then next repeat
       if not _shouldBuildForPlatform(tPlatform, tPlatformFilter) then next repeat
+
+      # MacOS builds universal binaries so only build once for the platform.
+      if tPlatform is "macos" then
+        if tBuiltForMacOS then next repeat
+        put true into tBuiltForMacOS
+      end if
 
       # Create folder for copy files
       log "packaging for platform:" && tPlatform
@@ -314,6 +321,30 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
 
   set the hideConsoleWindows to tHideConsole
 end packagerPackageApplication
+
+
+# The mac standalone builder lumps all platforms together
+private function _platformsToBuildFor pStandaloneStackFilename, pBuildForPlatform
+  local tPlatform
+
+  put _buildPlatformToLevurePlatform(pBuildForPlatform) into tPlatform
+
+  if tPlatform is "macos" then
+    local tMacPlatforms, tMacPlatform, tPlatforms
+
+    put "MacOSX x86-32,MacOSX x86-64,MacOSX arm64" into tMacPlatforms
+
+    repeat for each item tMacPlatform in tMacPlatforms
+      if the cRevStandaloneSettings[tMacPlatform] of stack pStandaloneStackFilename then
+        put tMacPlatform & "," after tPlatforms
+      end if
+    end repeat
+    delete the last char of tPlatforms
+    return tPlatforms
+  else
+    return pBuildForPlatform
+  end if
+end _platformsToBuildFor
 
 
 private command _determineSigningCertificate pBuildProfile, pPlatform, @xAppA
@@ -529,8 +560,9 @@ end _dispatchPackagingComplete
 
 
 command packagerBuildStandaloneForTesting pStandaloneStackFilename
-  local tError, tOutputFolder, tHideConsole
+  local tError, tOutputFolder, tHideConsole, tBuildPlatform, tPlatform
   local tBuildProfile = "test"
+  local tBuiltForMacOS = false
 
   put the hideConsoleWindows into tHideConsole
   set the hideConsoleWindows to true
@@ -552,6 +584,13 @@ command packagerBuildStandaloneForTesting pStandaloneStackFilename
     repeat for each item tBuildPlatform in kStandaloneBuilderPlatforms
       if tBuildPlatform is among the items of kPlatformsThatCantTest \
             OR not the cRevStandaloneSettings[tBuildPlatform] of stack pStandaloneStackFilename then next repeat
+
+      # MacOS builds universal binaries so only build once for the platform.
+      put _buildPlatformToLevurePlatform(tBuildPlatform) into tPlatform
+      if tPlatform is "macos" then
+        if tBuiltForMacOS then next repeat
+        put true into tBuiltForMacOS
+      end if
 
       packagerBuildStandalones pStandaloneStackFilename, tBuildPlatform, tBuildProfile, empty, sAppA
       put the result into tError
@@ -753,8 +792,11 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     end if
 
     # Only build for target platform
+    local tPlatform, tPlatformsToBuildFor
+    put _platformsToBuildFor(tTempStandaloneStack, pBuildForPlatform) into tPlatformsToBuildFor
+
     repeat for each item tPlatform in kStandaloneBuilderPlatforms
-      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack to tPlatform is pBuildForPlatform
+      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack to tPlatform is in tPlatformsToBuildFor
     end repeat
 
     set the cRevStandaloneSettings["files"] of stack tTempStandaloneStack to pCopyFiles
