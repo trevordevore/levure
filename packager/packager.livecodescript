@@ -1565,7 +1565,22 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
         end if
 
         put xAppA[tLookupA][i]["filename"] into tFilename
-        replace levureAppFolder() with pOutputFolder in tFilename
+
+        # Figure out destination
+        local tDestination
+        put xAppA[tLookupA][i]["destination"] into tDestination
+
+        if tDestination is empty then
+          replace levureAppFolder() with pOutputFolder in tFilename
+        else
+          put _normalizeRelativeFilename(tDestination) into tDestination
+          # tDestination may have been `./` or `/`.
+          if the last char of tDestination is "/" then
+            delete the last char of tDestination
+          end if
+          put tDestination & "/" & the last item of tFilename into tDestination
+          put pOutputFolder & "/" & tDestination into tFilename
+        end if
 
         packagerCreateAllFoldersInPath item 1 to -2 of tFilename, pOutputFolder
         put _errorMsg("creating folder" && item 1 to -2 of tFilename, the result) into tError
@@ -1579,7 +1594,12 @@ private command _packageFiles pBuildProfile, pPlatform, @xAppA, pOutputFolder
         if tError is empty then
           # Create new array with excluded elements removed
           add 1 to tIndex
-          put _makeRelativePath(xAppA[tLookupA][i]["filename"],levureAppFolder()) into tCompsA[tIndex]["filename"]
+          if tDestination is not empty then
+            put "./" & tDestination into tCompsA[tIndex]["filename"]
+          else
+            put _makeRelativePath(xAppA[tLookupA][i]["filename"],levureAppFolder()) \
+                into tCompsA[tIndex]["filename"]
+          end if
           repeat for each key tProp in xAppA[tLookupA][i]
             if tProp is "filename" then next repeat
 
