@@ -68,7 +68,9 @@ Returns: Empty
 command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSimulator
   local tError, tBuildProfile, tBuildStandalone, tStandaloneBuilderPlatforms
   local tSubFolder, tOutputFolder, tAppFolder, tPlatformFilter
-  local tHideConsole
+  local tHideConsole, tOldDefaultFolder
+
+  put the defaultFolder into tOldDefaultFolder
 
   put the hideConsoleWindows into tHideConsole
   set the hideConsoleWindows to true
@@ -318,6 +320,8 @@ command packagerPackageApplication pStandaloneStackFilename, pBuildProfile, pSim
   end if
 
   send "packagerDidFinishPackagingApplication pStandaloneStackFilename, tBuildProfile, pSimulator" to stack pStandaloneStackFilename in 10 milliseconds
+
+  set the defaultFolder to tOldDefaultFolder
 
   set the hideConsoleWindows to tHideConsole
 end packagerPackageApplication
@@ -796,7 +800,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     put _platformsToBuildFor(tTempStandaloneStack, pBuildForPlatform) into tPlatformsToBuildFor
 
     repeat for each item tPlatform in kStandaloneBuilderPlatforms
-      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack to tPlatform is in tPlatformsToBuildFor
+      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack \
+        to tPlatform is among the items of tPlatformsToBuildFor
     end repeat
 
     set the cRevStandaloneSettings["files"] of stack tTempStandaloneStack to pCopyFiles
