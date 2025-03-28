@@ -796,7 +796,8 @@ command packagerBuildStandalones pStandaloneStackFilename, pBuildForPlatform, pB
     put _platformsToBuildFor(tTempStandaloneStack, pBuildForPlatform) into tPlatformsToBuildFor
 
     repeat for each item tPlatform in kStandaloneBuilderPlatforms
-      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack to tPlatform is in tPlatformsToBuildFor
+      set the cRevStandaloneSettings[tPlatform] of stack tTempStandaloneStack \
+        to tPlatform is among the items of tPlatformsToBuildFor
     end repeat
 
     set the cRevStandaloneSettings["files"] of stack tTempStandaloneStack to pCopyFiles
