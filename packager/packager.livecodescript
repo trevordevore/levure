@@ -3003,14 +3003,7 @@ end _moveFolder
 
 ## Like revDeleteFolder but returns valid error message.
 on _deleteFolder pSrcFolder
-  if the platform is "MacOS" and char 1 of the systemVersion is not "1" then
-    if "applescript" is in the alternateLanguages then
-      # OK-2009-02-11 : Removed unquoted literal pDestFolder
-      --do revAppleScriptFull("deleteFolder",pSrcFolder,pDestFolder) as applescript
-      do revAppleScriptFull("deleteFolder", pSrcFolder) as "applescript"
-      return the result
-    else return "Error: AppleScript not installed"
-  else if the platform is "Win32" then
+  if the platform is "Win32" then
     revSetWindowsShellCommand
     if _isWindowsVistaOrNewer() then
       get shell ("rmdir /s /q" && revWindowsFromUnixPath(quote&pSrcFolder&quote))
